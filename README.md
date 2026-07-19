@@ -53,6 +53,54 @@ Research Forge is a local-first agentic research platform for two starting point
 ### System mind map
 
 ```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    background: '#ffffff'
+    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
+    primaryColor: '#f8fafc'
+    primaryTextColor: '#111827'
+    primaryBorderColor: '#cbd5e1'
+    secondaryColor: '#eff6ff'
+    secondaryTextColor: '#111827'
+    secondaryBorderColor: '#bfdbfe'
+    tertiaryColor: '#ffffff'
+    tertiaryTextColor: '#111827'
+    tertiaryBorderColor: '#e2e8f0'
+    lineColor: '#94a3b8'
+    git0: '#1d4ed8'
+    gitBranchLabel0: '#ffffff'
+    cScale0: '#eff6ff'
+    cScale1: '#f8fafc'
+    cScale2: '#dbeafe'
+    cScale3: '#f1f5f9'
+    cScale4: '#eff6ff'
+    cScale5: '#f8fafc'
+    cScale6: '#dbeafe'
+    cScale7: '#f1f5f9'
+    cScale8: '#eff6ff'
+    cScale9: '#f8fafc'
+    cScale10: '#dbeafe'
+    cScale11: '#f1f5f9'
+    cScaleLabel0: '#111827'
+    cScaleLabel1: '#111827'
+    cScaleLabel2: '#111827'
+    cScaleLabel3: '#111827'
+    cScaleLabel4: '#111827'
+    cScaleLabel5: '#111827'
+    cScaleLabel6: '#111827'
+    cScaleLabel7: '#111827'
+    cScaleLabel8: '#111827'
+    cScaleLabel9: '#111827'
+    cScaleLabel10: '#111827'
+    cScaleLabel11: '#111827'
+  themeCSS: >-
+    .edge, [class*="edge-depth-"] { stroke-width: 2px !important; }
+    [class*="section-edge-"] { stroke: #94a3b8 !important; }
+    .mindmap-node rect, .mindmap-node path, .mindmap-node circle, .mindmap-node polygon { stroke: #cbd5e1 !important; stroke-width: 1px !important; }
+    .section-root rect, .section-root path, .section-root circle, .section-root polygon { stroke: #1d4ed8 !important; stroke-width: 2px !important; }
+---
 mindmap
   root((Research Forge))
     Entry points
