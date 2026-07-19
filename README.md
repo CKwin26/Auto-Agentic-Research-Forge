@@ -128,7 +128,7 @@ config:
     .section-root span { color: #ffffff !important; }
 ---
 mindmap
-  root(Research Forge)
+  root((Forge))
     Start
       Project folder
       Research idea
