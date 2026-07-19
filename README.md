@@ -1,19 +1,140 @@
-# Research Forge
+<p align="center">
+  <img src="docs/assets/research-forge-hero.png" alt="Editorial digital-human illustration of Albert Einstein reviewing evidence for Research Forge" width="100%">
+</p>
 
-Research Forge is a personal, local-first AI-for-science loop. Codex is the default reasoning backend. It is built around one rule: **Codex proposes; deterministic code owns truth and side effects**.
+<h1 align="center">Research Forge</h1>
 
-## 核心亮点
+<p align="center"><strong>Turn a local project into an evidence-bound scientific paper.</strong></p>
 
-- **本地资源定向研究**：只读导入本地项目包或文本资料库，允许选择真实代码、数据、协议、测试和报告作为研究边界，从已有资源中生成可验证想法与证据约束论文。
-- **端到端研究平台**：贯通发现与选题、文献与协议、实验验证、论文综合和发表审计四个阶段，而不是只生成论文文字。
-- **人格蒸馏科学家审核**：仓库内置 [Nuwa Scientist Panel](skills/nuwa-scientist-panel/SKILL.md)，用费曼、图基、香农和波普尔式公开科学方法进行隔离盲审，并由确定性否决与弃权规则聚合。它始终标记为同模型补充审稿，不替代真人或跨模型验证。
-- **故障责任定位**：`diagnostic_owner` 将阻塞归因到想法验证、证据包装、文献支撑或论文写作，避免把想法失败误诊成 Agent 失败。
-- **证据回溯与研究再分支**：失败不会被覆盖；系统保留追加式账本，回溯最早可预防阶段，生成修复合同，补证据后重新运行受影响的下游阶段。
-- **Codex 默认、API 可选**：默认复用本地 ChatGPT/Codex 登录，不需要单独配置 OpenAI API Key；服务器或规模化场景可显式切换 API 后端。
+<p align="center">
+  Local-first agentic research with deterministic gates, traceable evidence, scientist-panel review, fault localization, and rollback.
+</p>
 
-> 把本地项目交给 Codex，从真实证据走到可审核论文；失败时定位责任阶段、补齐证据并重新闭环。
+<p align="center">
+  <img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white">
+  <img alt="132 tests passing" src="https://img.shields.io/badge/tests-132%20passing-2EA043?style=flat-square">
+  <img alt="Codex default backend" src="https://img.shields.io/badge/backend-Codex-111827?style=flat-square">
+  <a href="https://github.com/CKwin26/Auto-Agentic-Research-Forge/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/CKwin26/Auto-Agentic-Research-Forge?style=flat-square&color=0A7B83"></a>
+</p>
 
-The first release now closes all four macro stages: source-backed discovery, frozen protocol and baseline, bounded automated experimentation, and evidence-bound synthesis. Paper drafting is intentionally downstream of verified evidence rather than the first demo surface. See [the four-stage contract](docs/four-stage-closed-loop.md).
+<p align="center">
+  <a href="#why-research-forge">Why Research Forge</a> ·
+  <a href="#four-stage-closed-loop">How it works</a> ·
+  <a href="#quick-start">Quick start</a> ·
+  <a href="docs/project-bundle-workflow.md">Project bundles</a> ·
+  <a href="docs/benchmark.md">RF-Bench</a>
+</p>
+
+<p align="center"><sub>Editorial digital-human artwork—not a historical photograph or endorsement.</sub></p>
+
+Research Forge is a local-first agentic research platform for two starting points: an early research idea, or an existing folder containing code, data, protocols, tests, and reports. It narrows the research boundary, freezes the evidence contract, runs bounded validation, and writes only what the evidence can support.
+
+> [!IMPORTANT]
+> **Codex proposes. Deterministic code owns truth, gates, budgets, provenance, and side effects.** A polished manuscript cannot upgrade a weak idea or repair missing evidence by prose alone.
+
+## Why Research Forge
+
+| Capability | What it changes |
+|---|---|
+| **Use your real project bundle** | Read-only ingestion turns selected local code, datasets, protocols, tests, and reports into the explicit research boundary. |
+| **Idea-to-paper and project-to-paper** | Both entry points use the same governed research workspace instead of separate demo flows. |
+| **Evidence before prose** | Idea verdicts, protocol-output binding, numeric results, and frozen literature remain independent from manuscript generation. |
+| **Scientist-panel review** | The bundled [Nuwa Scientist Panel](skills/nuwa-scientist-panel/SKILL.md) runs blinded Feynman-, Tukey-, Shannon-, and Popper-inspired reviews with deterministic veto and abstention rules. |
+| **Fault ownership** | `diagnostic_owner` separates failures in idea validation, evidence packaging, literature grounding, and paper writing. |
+| **Rollback and repair** | Append-only failure ledgers identify the earliest preventable stage, produce a repair contract, and rerun only affected downstream stages. |
+| **Codex without a separate API key** | The default backend reuses local ChatGPT/Codex authentication; an explicit API backend remains available for server deployments. |
+
+## Four-stage closed loop
+
+| 01 — Discover | 02 — Freeze | 03 — Validate | 04 — Synthesize |
+|---|---|---|---|
+| Inspect the selected project resources and converge a testable contribution. | Bind literature, protocol, baseline, metrics, budgets, and immutable inputs. | Run bounded experiments, protected evaluation, negative-result capture, and idea verdict. | Generate an evidence-bound working paper, audit claims and depth, then route publication blockers upstream. |
+
+### System mind map
+
+```mermaid
+mindmap
+  root((Research Forge))
+    Entry points
+      Idea to paper
+      Project to paper
+      Text library
+    Local resources
+      Code and tests
+      Data and metrics
+      Protocols and reports
+      Read only snapshots
+    01 Discover
+      Research boundary
+      Testable contribution
+      Verified literature
+    02 Freeze
+      Protocol and baseline
+      Metrics and budget
+      Input hashes
+    03 Validate
+      Bounded experiments
+      Protected evaluation
+      Idea verdict
+      Negative results
+    04 Synthesize
+      Evidence bound manuscript
+      Claim and depth audit
+      Venue readiness
+    Scientific control
+      Nuwa scientist panel
+      Diagnostic owner
+      Failure ledger
+      Rollback and rebranch
+      Human validation separate
+    Runtime
+      Codex default
+      API optional
+      Deterministic side effects
+```
+
+<p align="center">
+  <img src="docs/agent-sequence.png" alt="Research Forge agent sequence" width="88%">
+</p>
+
+The paper is downstream of the research verdict. Stage 4 can report that an idea is unsupported or that evidence is incomplete; it cannot rewrite Stage 3 into a success. See [the four-stage contract](docs/four-stage-closed-loop.md).
+
+## Review, diagnosis, and rollback
+
+<p align="center">
+  <img src="docs/agent-interactions.png" alt="Research Forge agent interactions" width="88%">
+</p>
+
+Persona review is a **same-model supplemental audit**, not human validation or cross-model independence. Deterministic aggregation preserves vetoes and abstentions; root-cause preflight then maps each blocker to its owning stage and the evidence needed to resume the loop.
+
+<details>
+<summary><strong>中文简介</strong></summary>
+
+- **本地资源定向研究**：只读导入项目包或文本资料库，把真实代码、数据、协议、测试和报告作为研究边界。
+- **双入口端到端平台**：支持“想法到论文”和“项目生成论文”，共同使用发现、冻结、验证、综合四阶段闭环。
+- **人格蒸馏科学家审核**：以费曼、图基、香农和波普尔式公开方法盲审，并由确定性规则聚合；不冒充真人审核。
+- **故障责任定位**：区分想法验证、证据包装、文献支撑和论文写作问题，避免把想法失败误诊为 Agent 失败。
+- **回滚补证据**：保留失败账本，定位最早可预防阶段，补充证据后只重跑受影响的下游步骤。
+- **Codex 默认、API 可选**：默认复用本地 ChatGPT/Codex 登录，也可显式切换 API 后端。
+
+</details>
+
+## Quick start
+
+```powershell
+git clone https://github.com/CKwin26/Auto-Agentic-Research-Forge.git
+Set-Location .\Auto-Agentic-Research-Forge
+python -m venv .venv
+& .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+& .\.venv\Scripts\python.exe main.py doctor
+& .\.venv\Scripts\python.exe main.py web --open
+```
+
+The web interface defaults to **I already have a project** and lets users switch in place to **idea to paper**. Source projects are read-only; generated runs and evidence packages live in separate working directories.
+
+## Verified research record and publication gates
+
+The first release closes all four macro stages: source-backed discovery, frozen protocol and baseline, bounded automated experimentation, and evidence-bound synthesis. Paper drafting is intentionally downstream of verified evidence rather than the first demo surface. See [the four-stage contract](docs/four-stage-closed-loop.md).
 
 Research Forge can also ingest an existing project folder or text library read-only. It prefers complete protocol-output-report chains. When none exists, it derives a provisional research boundary from readable project materials, runs all four macro stages, and structurally keeps the idea verdict `unverifiable` until a frozen protocol and bound experiment output are supplied. Every path snapshots the exact resources used, writes `idea_verdict.json` independently of the manuscript, and generates an evidence-gap working paper. See [the project-bundle workflow](docs/project-bundle-workflow.md).
 
