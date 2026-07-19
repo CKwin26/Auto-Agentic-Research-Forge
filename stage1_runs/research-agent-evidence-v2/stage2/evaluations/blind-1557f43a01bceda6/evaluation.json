@@ -1,0 +1,104 @@
+{
+  "arm_blinded": true,
+  "cell_id": "baseline--coreferenceresolutionsupergluewscaccuracy--seed-0",
+  "citation_correctness": 0.5,
+  "claims": [
+    {
+      "claim_id": "claim-01",
+      "claim_type": "experiment",
+      "failure_modes": [],
+      "resolved_experiment_run_id": "baseline-20260718T052114Z-d5b39fcd",
+      "resolved_source_ids": [],
+      "semantic_rationale": "The linked experiment evidence marks run baseline-20260718T052114Z-d5b39fcd as a valid verified baseline with aggregate Accuracy 0.6346153846153846.",
+      "structural_checks": {
+        "artifacts_allowed": true,
+        "artifacts_exist": true,
+        "artifacts_present": true,
+        "metrics_exact": true,
+        "metrics_present": true,
+        "run_id_present": true,
+        "run_isolated": true,
+        "run_resolves": true,
+        "run_valid": true,
+        "source_support_absent": true
+      },
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-02",
+      "claim_type": "experiment",
+      "failure_modes": [],
+      "resolved_experiment_run_id": "run-20260718T052217Z-e3f6b0d5",
+      "resolved_source_ids": [],
+      "semantic_rationale": "The linked experiment evidence marks run run-20260718T052217Z-e3f6b0d5 as a valid non-baseline run with aggregate Accuracy 0.36538461538461536 and reported improvement -0.2692307692307692.",
+      "structural_checks": {
+        "artifacts_allowed": true,
+        "artifacts_exist": true,
+        "artifacts_present": true,
+        "metrics_exact": true,
+        "metrics_present": true,
+        "run_id_present": true,
+        "run_isolated": true,
+        "run_resolves": true,
+        "run_valid": true,
+        "source_support_absent": true
+      },
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-03",
+      "claim_type": "literature",
+      "failure_modes": [],
+      "resolved_experiment_run_id": null,
+      "resolved_source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-49947e5b991037d5"
+      ],
+      "semantic_rationale": "The Autonomous Research Loops record explicitly lists hallucination of experimental details, broken implementations, and misinterpretation of metrics as observed failure modes, and the Heuresis record explicitly states 40 confirmed fabrications across 1,628 scored runs.",
+      "structural_checks": {
+        "experiment_support_absent": true,
+        "source_ids_present": true,
+        "source_ids_resolve": true
+      },
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-04",
+      "claim_type": "novelty",
+      "failure_modes": [
+        "unsupported_novelty_comparison_claim"
+      ],
+      "resolved_experiment_run_id": null,
+      "resolved_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "semantic_rationale": "The linked records describe backbone AI-scientist systems (EvoScientist, Autonomous Research Loops), separate evidence/claim-verification tools (RefLens, ECE, CliVER), and failure modes (Autonomous Research Loops, Heuresis), but none directly identifies this as the selected novelty candidate or reports the controlled same-backbone ablation claimed here.",
+      "structural_checks": {
+        "experiment_support_absent": true,
+        "novelty_sources_bound": true,
+        "source_ids_present": true,
+        "source_ids_resolve": true
+      },
+      "verdict": "unsupported"
+    }
+  ],
+  "evaluated_at": "2026-07-18T07:16:03.760172+00:00",
+  "evaluator": "hybrid_structural_plus_arm_blinded_codex",
+  "evidence_coverage": 1.0,
+  "experiment_detail_error_rate": 0.0,
+  "failure_mode_count": {
+    "unsupported_novelty_comparison_claim": 1
+  },
+  "integrity_violations": [],
+  "protocol_id": "stage2-22e124e44294",
+  "protocol_valid": true,
+  "registry_id": "registry-f7c5c3b30d95",
+  "schema_version": 1,
+  "unsupported_claim_rate": 0.25,
+  "verifier_abstention_rate": 0.0
+}

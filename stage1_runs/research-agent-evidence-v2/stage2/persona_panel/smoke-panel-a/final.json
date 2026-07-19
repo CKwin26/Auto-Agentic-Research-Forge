@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "panel_id": "smoke-panel-a",
+  "panel_version": "nuwa-scientist-panel-v1",
+  "ensemble_label": "same-model persona ensemble",
+  "source_sample_sha256": "0ef6aff20a330b8e247554971f58999c85290726a949005becc8feffbb30ef6e",
+  "manifest_path": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\stage2\\persona_panel\\smoke-panel-a\\manifest.json",
+  "review_sha256": {
+    "feynman": "19d5c7359d20250a4c1267ff6fc117378e08ad69c24d9849455d2f05450aa231",
+    "shannon": "d991a5ca6d30aa29f253f91389d9ec4fb64962c30d86f10303f78052e8aef1a6",
+    "popper": "b0596e27161138c3afc4c70e0ce41d60d9be40896ed1ed0a045d4169390ce490"
+  },
+  "item_count": 1,
+  "verdict_counts": {
+    "supported": 1
+  },
+  "limitations": [
+    "Persona contexts were isolated, but all reviewers used the same underlying model family.",
+    "The result is internal adversarial review, not human validation, cross-model validation, or replication."
+  ],
+  "items": [
+    {
+      "audit_id": "audit-05fe62b553253bd3",
+      "routed_personas": [
+        "feynman",
+        "shannon",
+        "popper"
+      ],
+      "final_verdict": "supported",
+      "hard_veto_failure_modes": [],
+      "votes": [
+        {
+          "persona_id": "feynman",
+          "audit_id": "audit-05fe62b553253bd3",
+          "verdict": "supported",
+          "rationale": "Each named system is directly identified in a linked source record, and each record describes the corresponding verification target: CliVER for scientific claims, ECE for evidence coverage, and RefLens for citations. The packet therefore supports every material part of the scoped literature-inclusion claim without requiring inference beyond the supplied evidence.",
+          "failure_modes": [],
+          "decisive_evidence": [
+            "linked_source_records[0].title: Retrieval augmented scientific claim verification; notes: developed CliVER, an end-to-end scientific Claim VERification system",
+            "linked_source_records[1].title: Evidence Coverage Evaluator: A Comprehensive Framework for Assessing Grounding Quality in Retrieval-Augmented Generation Systems; notes: presents the Evidence Coverage Evaluator (ECE)",
+            "linked_source_records[2].title: RefLens: End-to-End Evidence-Grounded Citation Verification with LLM Agents; notes: RefLens is an end-to-end system that automates citation verification"
+          ]
+        },
+        {
+          "persona_id": "shannon",
+          "audit_id": "audit-05fe62b553253bd3",
+          "verdict": "supported",
+          "rationale": "Each named system maps directly to a linked source record and to the stated verification object: CliVER verifies scientific claims, ECE assesses evidence coverage, and RefLens verifies citations. The claim adds no quantitative or functional detail beyond those operational descriptions.",
+          "failure_modes": [],
+          "decisive_evidence": [
+            "paper-35ad838f0ac171a7 notes: developed CliVER, an end-to-end scientific Claim VERification system",
+            "paper-69c6e5faa8ef37c2 title: Evidence Coverage Evaluator: A Comprehensive Framework for Assessing Grounding Quality in Retrieval-Augmented Generation Systems",
+            "paper-e48872d23c4d9e23 notes: RefLens, an end-to-end system that automates citation verification"
+          ]
+        },
+        {
+          "persona_id": "popper",
+          "audit_id": "audit-05fe62b553253bd3",
+          "verdict": "supported",
+          "rationale": "The three linked source records directly identify dedicated systems whose stated functions match the claim's bounded categories: CliVER for scientific claim verification, ECE for evidence coverage assessment, and RefLens for citation verification. The claim is falsifiable by a missing named record or a functional mismatch, neither of which appears in the supplied packet; it makes no novelty assertion requiring a prior-art comparison.",
+          "failure_modes": [],
+          "decisive_evidence": [
+            "linked_source_records[0].title: Retrieval augmented scientific claim verification; notes: developed CliVER, an end-to-end scientific Claim VERification system",
+            "linked_source_records[1].title: Evidence Coverage Evaluator: A Comprehensive Framework for Assessing Grounding Quality in Retrieval-Augmented Generation Systems",
+            "linked_source_records[2].title: RefLens: End-to-End Evidence-Grounded Citation Verification with LLM Agents; notes: an end-to-end system that automates citation verification"
+          ]
+        }
+      ]
+    }
+  ]
+}

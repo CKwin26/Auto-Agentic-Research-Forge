@@ -1,0 +1,42 @@
+{
+  "judgments": [
+    {
+      "claim_id": "claim-01",
+      "rationale": "The linked experiment evidence marks the run as a valid verified baseline and reports aggregate SpearmanCorrelation exactly 0.5757186473267853.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-02",
+      "rationale": "The linked non-baseline run is marked valid_non_improving, with aggregate SpearmanCorrelation 0.5725548964668126 and improvement -0.0031637508599727804 relative to the verified baseline.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-03",
+      "rationale": "The packet contains records for Autonomous Research Loops, EvoScientist, and Heuresis as research-agent systems, and for CliVER, Evidence Coverage Evaluator, and RefLens as evidence-grounding or citation-verification systems.",
+      "supporting_source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-965b07ca55b0b420",
+        "paper-49947e5b991037d5",
+        "paper-35ad838f0ac171a7",
+        "paper-69c6e5faa8ef37c2",
+        "paper-e48872d23c4d9e23"
+      ],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-04",
+      "rationale": "The supplied literature notes describe related research-agent and verification systems, but they do not directly establish the claimed proposed novelty of a same-backbone claim-level evidence-gate intervention study, nor do they directly support the negative comparison that the reviewed set lacks that controlled ablation.",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "verdict": "unsupported"
+    }
+  ]
+}

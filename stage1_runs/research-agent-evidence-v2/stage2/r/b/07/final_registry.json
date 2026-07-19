@@ -1,0 +1,92 @@
+{
+  "arm": "baseline",
+  "cell_id": "baseline--coreferenceresolutionsupergluewscaccuracy--seed-0",
+  "claims": [
+    {
+      "arm": "baseline",
+      "artifact_paths": [
+        "stage2/r/b/07/evidence/baseline-20260718T052114Z-d5b39fcd/record.json",
+        "stage2/r/b/07/evidence/baseline-20260718T052114Z-d5b39fcd/trial-001-metrics.json",
+        "stage2/r/b/07/evidence/baseline-20260718T052114Z-d5b39fcd/trial-002-metrics.json"
+      ],
+      "claim_id": "claim-01",
+      "claim_text": "The verified baseline run achieved Accuracy 0.6346153846153846 on this task.",
+      "claim_type": "experiment",
+      "experiment_run_id": "baseline-20260718T052114Z-d5b39fcd",
+      "metric_values": {
+        "Accuracy": 0.6346153846153846
+      },
+      "run_id": "agent-baseline--coreferenceresolutionsupergluewscaccuracy--seed-0",
+      "schema_version": 1,
+      "seed": 0,
+      "source_ids": [],
+      "task_pack": "coreferenceresolutionsupergluewscaccuracy"
+    },
+    {
+      "arm": "baseline",
+      "artifact_paths": [
+        "stage2/r/b/07/evidence/run-20260718T052217Z-e3f6b0d5/record.json",
+        "stage2/r/b/07/evidence/run-20260718T052217Z-e3f6b0d5/trial-001-metrics.json",
+        "stage2/r/b/07/evidence/run-20260718T052217Z-e3f6b0d5/trial-002-metrics.json"
+      ],
+      "claim_id": "claim-02",
+      "claim_text": "The evaluated non-baseline candidate run achieved Accuracy 0.36538461538461536 and had reported improvement -0.2692307692307692.",
+      "claim_type": "experiment",
+      "experiment_run_id": "run-20260718T052217Z-e3f6b0d5",
+      "metric_values": {
+        "Accuracy": 0.36538461538461536
+      },
+      "run_id": "agent-baseline--coreferenceresolutionsupergluewscaccuracy--seed-0",
+      "schema_version": 1,
+      "seed": 0,
+      "source_ids": [],
+      "task_pack": "coreferenceresolutionsupergluewscaccuracy"
+    },
+    {
+      "arm": "baseline",
+      "artifact_paths": [],
+      "claim_id": "claim-03",
+      "claim_text": "In the bounded literature packet, Autonomous Research Loops reports hallucinated experimental details, broken implementations, and metric misinterpretation, and Heuresis reports 40 confirmed fabrications across 1,628 scored runs.",
+      "claim_type": "literature",
+      "experiment_run_id": null,
+      "metric_values": {},
+      "run_id": "agent-baseline--coreferenceresolutionsupergluewscaccuracy--seed-0",
+      "schema_version": 1,
+      "seed": 0,
+      "source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-49947e5b991037d5"
+      ],
+      "task_pack": "coreferenceresolutionsupergluewscaccuracy"
+    },
+    {
+      "arm": "baseline",
+      "artifact_paths": [],
+      "claim_id": "claim-04",
+      "claim_text": "Within the reviewed set, the selected novelty candidate is a same-backbone intervention question about whether adding a RefLens- or ECE-style claim-evidence gate to an EvoScientist- or Autonomous-Research-Loops-style system reduces unsupported claims relative to the ungated backbone, because the reviewed records do not establish that controlled ablation.",
+      "claim_type": "novelty",
+      "experiment_run_id": null,
+      "metric_values": {},
+      "run_id": "agent-baseline--coreferenceresolutionsupergluewscaccuracy--seed-0",
+      "schema_version": 1,
+      "seed": 0,
+      "source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "task_pack": "coreferenceresolutionsupergluewscaccuracy"
+    }
+  ],
+  "created_at": "2026-07-18T05:23:27.391289+00:00",
+  "final_output_text": "The verified baseline run achieved Accuracy 0.6346153846153846 on this task.\nThe evaluated non-baseline candidate run achieved Accuracy 0.36538461538461536 and had reported improvement -0.2692307692307692.\nIn the bounded literature packet, Autonomous Research Loops reports hallucinated experimental details, broken implementations, and metric misinterpretation, and Heuresis reports 40 confirmed fabrications across 1,628 scored runs.\nWithin the reviewed set, the selected novelty candidate is a same-backbone intervention question about whether adding a RefLens- or ECE-style claim-evidence gate to an EvoScientist- or Autonomous-Research-Loops-style system reduces unsupported claims relative to the ungated backbone, because the reviewed records do not establish that controlled ablation.",
+  "protocol_id": "stage2-22e124e44294",
+  "registry_id": "registry-f7c5c3b30d95",
+  "run_id": "agent-baseline--coreferenceresolutionsupergluewscaccuracy--seed-0",
+  "schema_version": 1,
+  "seed": 0,
+  "task_pack": "coreferenceresolutionsupergluewscaccuracy"
+}

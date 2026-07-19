@@ -1,0 +1,20 @@
+{
+  "added_at": "2026-07-17T15:21:46.534588+00:00",
+  "authors": [
+    "Shiyang Duan",
+    "Yuan Tian",
+    "Qi-Tao Bing",
+    "Xiaowei Shao"
+  ],
+  "locator": "https://doi.org/10.48550/arxiv.2508.01746",
+  "notes": "The exponential growth of scientific knowledge has made the automated generation of scientific hypotheses that combine novelty, feasibility, and research value a core challenge. Existing methods based on large language models fail to systematically model the inherent in hypotheses or incorporate the closed-loop feedback mechanisms crucial for refinement. This paper proposes a multi-agent collaborative framework called HypoAgents, which for the first time integrates Bayesian reasoning with an information entropy-driven search mechanism across three stages-hypotheses generation, evidence validation, and hypotheses Refinement-to construct an iterative closed-loop simulating scientists'cognitive processes. Specifically, the framework first generates an initial set of hypotheses through diversity sampling and establishes prior beliefs based on a composite novelty-relevance-feasibility (N-R-F) score. It then employs etrieval-augmented generation (RAG) to gather external literature evidence, updating the posterior probabilities of hypotheses using Bayes'theorem. Finally, it identifies high-uncertainty hypotheses using information entropy $H = - \\sum {{p_i}\\log {p_i}}$ and actively refines them, guiding the iterative optimization of the hypothesis set toward higher quality and confidence. Experimental results on the ICLR 2025 conference real-world research question dataset (100 research questions) show that after 12 optimization iterations, the average ELO score of generated hypotheses improves by 116.3, surpassing the benchmark of real paper abstracts by 17.8, while the framework's overall uncertainty, as measured by Shannon entropy, decreases significantly by 0.92. This study presents an interpretable probabilistic reasoning framework for automated scientific discovery, substantially improving the quality and reliability of machine-generated research hypotheses.",
+  "origin": "discovery",
+  "origin_id": "discovery-2026-07-17T151524.143318+0000-35e67c",
+  "schema_version": 1,
+  "source_id": "paper-3b6399a19264a862",
+  "source_type": "paper",
+  "title": "Bayes-Entropy Collaborative Driven Agents for Research Hypotheses Generation and Optimization",
+  "verification_method": "Exact Semantic Scholar paper-ID lookup matched the normalized title.",
+  "verified": true,
+  "year": 2025
+}

@@ -1,0 +1,12 @@
+{
+  "judgments": [
+    {
+      "claim_id": "claim-4-novelty-context",
+      "rationale": "The linked Heuresis source explicitly states that agents produced confirmed fabrications during execution and that detecting them was necessary to keep the search faithful to the task.",
+      "supporting_source_ids": [
+        "paper-49947e5b991037d5"
+      ],
+      "verdict": "supported"
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "arm_blinded": true,
+  "cell_id": "treatment--coreferenceresolutionsupergluewscaccuracy--seed-2",
+  "citation_correctness": 1.0,
+  "claims": [
+    {
+      "claim_id": "claim-1-task-result",
+      "claim_type": "experiment",
+      "failure_modes": [],
+      "resolved_experiment_run_id": "baseline-20260718T070732Z-d1ed92ba",
+      "resolved_source_ids": [],
+      "semantic_rationale": "The linked experiment evidence for run baseline-20260718T070732Z-d1ed92ba marks the run as baseline, valid, and verdict baseline_verified, with aggregate Accuracy listed as 0.6346153846153846.",
+      "structural_checks": {
+        "artifacts_allowed": true,
+        "artifacts_exist": true,
+        "artifacts_present": true,
+        "metrics_exact": true,
+        "metrics_present": true,
+        "run_id_present": true,
+        "run_isolated": true,
+        "run_resolves": true,
+        "run_valid": true,
+        "source_support_absent": true
+      },
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-2-experiment-limitation",
+      "claim_type": "experiment",
+      "failure_modes": [],
+      "resolved_experiment_run_id": "run-20260718T070831Z-3ac48732",
+      "resolved_source_ids": [],
+      "semantic_rationale": "The linked experiment evidence for run run-20260718T070831Z-3ac48732 marks the run as valid_non_improving and reports aggregate Accuracy 0.36538461538461536.",
+      "structural_checks": {
+        "artifacts_allowed": true,
+        "artifacts_exist": true,
+        "artifacts_present": true,
+        "metrics_exact": true,
+        "metrics_present": true,
+        "run_id_present": true,
+        "run_isolated": true,
+        "run_resolves": true,
+        "run_valid": true,
+        "source_support_absent": true
+      },
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-3-literature-context",
+      "claim_type": "literature",
+      "failure_modes": [],
+      "resolved_experiment_run_id": null,
+      "resolved_source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-965b07ca55b0b420",
+        "paper-35ad838f0ac171a7",
+        "paper-69c6e5faa8ef37c2",
+        "paper-e48872d23c4d9e23"
+      ],
+      "semantic_rationale": "The supplied notes describe Autonomous Research Loops and EvoScientist as end-to-end research/discovery agent frameworks, while CliVER, Evidence Coverage Evaluator, and RefLens are described as focused claim/evidence/citation verification or grounding systems included in the reviewed packet.",
+      "structural_checks": {
+        "experiment_support_absent": true,
+        "source_ids_present": true,
+        "source_ids_resolve": true
+      },
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-4-novelty-context",
+      "claim_type": "novelty",
+      "failure_modes": [],
+      "resolved_experiment_run_id": null,
+      "resolved_source_ids": [
+        "paper-49947e5b991037d5"
+      ],
+      "semantic_rationale": "The Heuresis source note explicitly states that agents produced confirmed fabrications during execution and that detecting them was necessary to keep the search faithful to the task.",
+      "structural_checks": {
+        "experiment_support_absent": true,
+        "novelty_sources_bound": true,
+        "source_ids_present": true,
+        "source_ids_resolve": true
+      },
+      "verdict": "supported"
+    }
+  ],
+  "evaluated_at": "2026-07-18T07:14:02.029042+00:00",
+  "evaluator": "hybrid_structural_plus_arm_blinded_codex",
+  "evidence_coverage": 1.0,
+  "experiment_detail_error_rate": 0.0,
+  "failure_mode_count": {},
+  "integrity_violations": [],
+  "protocol_id": "stage2-22e124e44294",
+  "protocol_valid": true,
+  "registry_id": "registry-173c0f31fd45",
+  "schema_version": 1,
+  "unsupported_claim_rate": 0.0,
+  "verifier_abstention_rate": 0.0
+}

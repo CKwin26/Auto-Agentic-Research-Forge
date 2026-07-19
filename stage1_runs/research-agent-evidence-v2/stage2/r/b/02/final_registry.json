@@ -1,0 +1,96 @@
+{
+  "arm": "baseline",
+  "cell_id": "baseline--textualclassificationsickaccuracy--seed-1",
+  "claims": [
+    {
+      "arm": "baseline",
+      "artifact_paths": [
+        "stage2/r/b/02/evidence/baseline-20260718T050113Z-1cfb2bcd/record.json",
+        "stage2/r/b/02/evidence/baseline-20260718T050113Z-1cfb2bcd/trial-001-metrics.json",
+        "stage2/r/b/02/evidence/baseline-20260718T050113Z-1cfb2bcd/trial-002-metrics.json"
+      ],
+      "claim_id": "claim-1",
+      "claim_text": "The verified baseline run baseline-20260718T050113Z-1cfb2bcd achieved Accuracy 0.5686913982878108.",
+      "claim_type": "experiment",
+      "experiment_run_id": "baseline-20260718T050113Z-1cfb2bcd",
+      "metric_values": {
+        "Accuracy": 0.5686913982878108
+      },
+      "run_id": "agent-baseline--textualclassificationsickaccuracy--seed-1",
+      "schema_version": 1,
+      "seed": 1,
+      "source_ids": [],
+      "task_pack": "textualclassificationsickaccuracy"
+    },
+    {
+      "arm": "baseline",
+      "artifact_paths": [
+        "stage2/r/b/02/evidence/run-20260718T050226Z-f8fe2319/record.json",
+        "stage2/r/b/02/evidence/run-20260718T050226Z-f8fe2319/trial-001-metrics.json",
+        "stage2/r/b/02/evidence/run-20260718T050226Z-f8fe2319/trial-002-metrics.json"
+      ],
+      "claim_id": "claim-2",
+      "claim_text": "The evaluated non-baseline run run-20260718T050226Z-f8fe2319 was valid_non_improving and achieved Accuracy 0.286180187525479.",
+      "claim_type": "experiment",
+      "experiment_run_id": "run-20260718T050226Z-f8fe2319",
+      "metric_values": {
+        "Accuracy": 0.286180187525479
+      },
+      "run_id": "agent-baseline--textualclassificationsickaccuracy--seed-1",
+      "schema_version": 1,
+      "seed": 1,
+      "source_ids": [],
+      "task_pack": "textualclassificationsickaccuracy"
+    },
+    {
+      "arm": "baseline",
+      "artifact_paths": [],
+      "claim_id": "claim-3",
+      "claim_text": "The bounded literature packet contains end-to-end research-agent systems and evidence-grounded verification systems.",
+      "claim_type": "literature",
+      "experiment_run_id": null,
+      "metric_values": {},
+      "run_id": "agent-baseline--textualclassificationsickaccuracy--seed-1",
+      "schema_version": 1,
+      "seed": 1,
+      "source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-879e6a747eb8ceb6",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7"
+      ],
+      "task_pack": "textualclassificationsickaccuracy"
+    },
+    {
+      "arm": "baseline",
+      "artifact_paths": [],
+      "claim_id": "claim-4",
+      "claim_text": "Within the bounded reviewed set, a controlled same-backbone ablation of claim-level evidence auditing for reducing unsupported claims while preserving task quality and throughput is identified as an unestablished question.",
+      "claim_type": "novelty",
+      "experiment_run_id": null,
+      "metric_values": {},
+      "run_id": "agent-baseline--textualclassificationsickaccuracy--seed-1",
+      "schema_version": 1,
+      "seed": 1,
+      "source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "task_pack": "textualclassificationsickaccuracy"
+    }
+  ],
+  "created_at": "2026-07-18T05:03:38.733493+00:00",
+  "final_output_text": "The verified baseline run baseline-20260718T050113Z-1cfb2bcd achieved Accuracy 0.5686913982878108.\nThe evaluated non-baseline run run-20260718T050226Z-f8fe2319 was valid_non_improving and achieved Accuracy 0.286180187525479.\nThe bounded literature packet contains end-to-end research-agent systems and evidence-grounded verification systems.\nWithin the bounded reviewed set, a controlled same-backbone ablation of claim-level evidence auditing for reducing unsupported claims while preserving task quality and throughput is identified as an unestablished question.",
+  "protocol_id": "stage2-22e124e44294",
+  "registry_id": "registry-1a3fd50b7d06",
+  "run_id": "agent-baseline--textualclassificationsickaccuracy--seed-1",
+  "schema_version": 1,
+  "seed": 1,
+  "task_pack": "textualclassificationsickaccuracy"
+}

@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "packet_purpose": "Evidence-complete blinded re-review of six material manuscript-v3 claims after the first panel exposed packet-completeness failures.",
+  "amendment_boundary": "Claim texts are unchanged from input_packet.json. Only linked evidence fields were expanded. The first panel and its hash remain preserved.",
+  "blinding_note": "Author identity, prior verdicts, task names, seed values, and descriptive treatment labels are omitted. Conditions and paths use neutral labels.",
+  "items": [
+    {
+      "audit_id": "rr3-claim-01",
+      "claim_type": "experiment",
+      "claim_text": "In the original frozen 18-cell study, the protected automated evaluator labeled 11 of 36 claims in condition A and 3 of 36 claims in condition B as unsupported; the mean paired condition-B-minus-condition-A effect was -0.2222 and the 10,000-resample hierarchical-bootstrap 95% interval was [-0.4167, -0.0833].",
+      "linked_evidence": {
+        "protocol_source": "stage2/protocol.json",
+        "protocol_id": "stage2-22e124e44294",
+        "frozen_at": "2026-07-18T04:48:42.453739+00:00",
+        "design": {"arm_count": 2, "task_count": 3, "seeds": [0, 1, 2], "max_completed_cells": 18, "completed_cells": 18, "pair_count": 9},
+        "result_source": "stage2/evaluations/summary.json",
+        "analysis_status": "protected_evaluator_complete_manual_audit_pending",
+        "condition_A": {"final_claims": 36, "unsupported_claims": 11, "unsupported_claim_rate": 0.3055555555555556},
+        "condition_B": {"final_claims": 36, "unsupported_claims": 3, "unsupported_claim_rate": 0.08333333333333333},
+        "paired_analysis": {"unit": "task-seed registry pair", "effect_definition": "condition B minus condition A", "pair_count": 9, "mean_paired_effect": -0.2222222222222222, "bootstrap_method": "resample three tasks, then resample three seed effects within each sampled task", "bootstrap_resamples": 10000, "ci_percentiles": [2.5, 97.5], "ci95_low": -0.4166666666666667, "ci95_high": -0.08333333333333333},
+        "interpretation_boundary": "Automated protected-evaluator result; human audit pending."
+      }
+    },
+    {
+      "audit_id": "rr3-claim-02",
+      "claim_type": "experiment",
+      "claim_text": "The retrospective component study derived four output paths from the same nine pre-delivery registries without rerunning the upstream controller, conclusion generator, or gate; all 36 branch registries and nine linked evidence trees were hash-bound before evaluator inference.",
+      "linked_evidence": {
+        "source": "post_review/counterfactual_rebranch_v1/protocol.json, protected_manifest.json, results/manifest.json, and audit.json",
+        "protocol_id": "rebranch-3500a068037b",
+        "design_class": "retrospective_frozen_counterfactual_rebranch",
+        "protocol_frozen_at": "2026-07-18T14:33:49.613643+00:00",
+        "inference_completed_at": "2026-07-18T14:34:30.262787+00:00",
+        "pair_count": 9,
+        "paths_per_pair": 4,
+        "branch_registry_hash_count": 36,
+        "evidence_tree_hash_count": 9,
+        "per_pair_binding_fields": ["shared_registry_sha256", "four branch_registry_hashes", "evidence_tree_sha256", "source artifact hashes"],
+        "path_derivations": ["identity branch of frozen input registry", "retain first-pass supported claims", "frozen revised registry before recheck", "frozen final registry after recheck"],
+        "execution_boundary": "The controller, conclusion generator, and gate were not rerun.",
+        "integrity_checks": {"nine_shared_pairs_bound": true, "source_cells_and_evidence_unchanged": true, "protected_inputs_unchanged": true, "result_files_unchanged": true, "passed": true}
+      }
+    },
+    {
+      "audit_id": "rr3-claim-03",
+      "claim_type": "experiment",
+      "claim_text": "A hash-pinned cross-family NLI proxy labeled 5 of 27 evaluable claims in path P0 as non-entailed and 0 evaluable claims in each of paths P1, P2, and P3; for each active path versus P0, the mean paired difference was -0.1852 and the exact two-sided sign-flip p-value was 0.125.",
+      "linked_evidence": {
+        "source": "post_review/counterfactual_rebranch_v1/protocol.json and results/summary.json",
+        "cross_family_definition": "Different architecture and training lineage from the upstream generator/gate; this does not mean human-independent or calibrated.",
+        "upstream_generator_and_gate": {"model_family": "Codex", "backend": "codex:gpt-5.4"},
+        "nli_proxy": {"model_family": "DeBERTa-v3", "model_id": "cross-encoder/nli-deberta-v3-base", "revision": "6c749ce3425cd33b46d187e45b92bbf96ee12ec7", "onnx_sha256": "36784d97274ef019db9f54fd16812f9a460e787703658b0f3b2200999692680b", "labels": ["contradiction", "entailment", "neutral"]},
+        "path_P0": {"evaluable": 27, "entailed": 22, "neutral_or_abstain": 5, "contradiction": 0, "non_entailment_rate": 0.18518518518518517},
+        "path_P1": {"evaluable": 21, "entailed": 21, "neutral_or_abstain": 0, "contradiction": 0, "non_entailment_rate": 0.0},
+        "path_P2": {"evaluable": 27, "entailed": 27, "neutral_or_abstain": 0, "contradiction": 0, "non_entailment_rate": 0.0},
+        "path_P3": {"evaluable": 27, "entailed": 27, "neutral_or_abstain": 0, "contradiction": 0, "non_entailment_rate": 0.0},
+        "paired_analysis_each_active_path": {"pair_count": 9, "mean_difference": -0.18518518518518517, "median_difference": 0.0, "exact_two_sided_sign_flip_pvalue": 0.125},
+        "interpretation_boundary": "Post-hoc uncalibrated proxy; no significance or human-validity claim."
+      }
+    },
+    {
+      "audit_id": "rr3-claim-04",
+      "claim_type": "experiment",
+      "claim_text": "Path P1 retained 22 of 36 claims, whereas paths P2 and P3 each retained 36 of 36; P2 and P3 had identical claim content in all nine pairs, so the recheck stage produced no observed marginal delivery change in this sample.",
+      "linked_evidence": {
+        "source": "post_review/counterfactual_rebranch_v1/results/summary.json and revision_traces.json",
+        "pair_count": 9,
+        "retention": {"P1": {"retained": 22, "initial": 36}, "P2": {"retained": 36, "initial": 36}, "P3": {"retained": 36, "initial": 36}},
+        "pair_level_P2_P3_claim_content_identity": {"pair-01": true, "pair-02": true, "pair-03": true, "pair-04": true, "pair-05": true, "pair-06": true, "pair-07": true, "pair-08": true, "pair-09": true},
+        "revised_to_final": {"claim_trace_count": 36, "change_types": {"unchanged": 36}, "word_delta": 0, "character_delta": 0, "numeric_token_delta": 0},
+        "scope_boundary": "No observed marginal change in this artifact sample; not a general claim that rechecking is useless."
+      }
+    },
+    {
+      "audit_id": "rr3-claim-05",
+      "claim_type": "experiment",
+      "claim_text": "Within this retrospective sample, the proxy improvement is localized to the first verification and delivery decision, while the recheck has no observed marginal effect; this does not establish a prospective causal system effect or preserved scientific informativeness.",
+      "linked_evidence": {
+        "source": "post_review/counterfactual_rebranch_v1/protocol.json, results/summary.json, and validation_report.md",
+        "path_definitions": {"P0": "unaltered pre-verification registry", "P1": "retain claims accepted at first verification; no revision or recheck", "P2": "first verification plus constrained revision; no recheck", "P3": "first verification plus constrained revision plus recheck"},
+        "path_results": {"P0_non_entailment": "5/27", "P1_non_entailment": "0/21", "P2_non_entailment": "0/27", "P3_non_entailment": "0/27", "P1_retention": "22/36", "P2_retention": "36/36", "P3_retention": "36/36"},
+        "recheck_identity": {"P2_equals_P3_on_measured_outcomes": true, "unchanged_claim_traces": "36/36"},
+        "revision_shape": {"changed_claims": 14, "unchanged_claims": 22, "lexical_scope_contraction_proxy": 9, "word_delta": -79},
+        "explicit_limits": ["retrospective post-hoc design", "three tasks", "no human calibration", "lexical proxies are not semantic-preservation ground truth", "not a prospective causal effect"]
+      }
+    },
+    {
+      "audit_id": "rr3-claim-06",
+      "claim_type": "novelty",
+      "claim_text": "Within the frozen set of 12 metadata- and abstract-level sources, the reviewed literature did not establish a same-backbone, same-task, same-budget paired ablation that isolates a claim-evidence gate immediately before delivery.",
+      "linked_evidence": {
+        "source": "literature/screening.json, literature/review.json, and literature_manifest.json",
+        "review_scope": "Bounded abstract/notes-based synthesis of 12 verified 2024-2026 records on autonomous scientific research agents and adjacent evidence-grounding systems.",
+        "included_source_count": 12,
+        "frozen_at": "2026-07-18T04:48:42.520746+00:00",
+        "source_hash_count": 12,
+        "screening_result": "Among the 12 included records, end-to-end agent papers and claim/citation-verification papers occurred as separate groups; no screening record described all of same backbone, same task, same budget, paired gate/no-gate paths, and immediate pre-delivery placement.",
+        "recommended_candidate": "novelty-02",
+        "gap_statement": "The bounded reviewed set does not establish, via controlled ablation, whether inserting a claim-level evidence audit into an end-to-end research agent reduces hallucinated experimental details and unsupported conclusions.",
+        "limitations": ["absence from this set is not evidence that no prior work exists", "abstract/notes based only", "human full-text review is required before publication-grade novelty claims"]
+      }
+    }
+  ]
+}

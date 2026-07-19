@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "panel_id": "rr3-v3-rereview",
+  "persona_id": "tukey",
+  "source_sample_sha256": "6dd333f8a9daf89d0e7ea2f9a766a027e509699fb8fd32faf24cfa5a904e20f7",
+  "blinded": true,
+  "items": [
+    {
+      "audit_id": "rr3-claim-01",
+      "verdict": "unsupported",
+      "rationale": "The counts, mean effect, resample count, and interval endpoints are supplied, but the packet does not identify an 18-cell design, the pairing denominator or unit, or a hierarchical bootstrap procedure. Those omitted design details are material to the statistical claim.",
+      "failure_modes": [
+        "missing_evidence"
+      ],
+      "decisive_evidence": [
+        "paired_analysis gives mean_paired_effect and CI endpoints but no pair count, unit of analysis, hierarchy, or bootstrap method",
+        "linked_evidence contains no field establishing the claimed original frozen 18-cell study"
+      ]
+    },
+    {
+      "audit_id": "rr3-claim-02",
+      "verdict": "unsupported",
+      "rationale": "The packet supports nine pairs, four derivations per pair, and no rerun of the upstream components, but it does not directly establish that 36 branch registries and nine linked evidence trees were hash-bound before evaluator inference.",
+      "failure_modes": [
+        "missing_evidence"
+      ],
+      "decisive_evidence": [
+        "integrity_checks states nine_shared_pairs_bound=true but supplies no hash-binding objects or pre-inference timing",
+        "pair_count=9 and paths_per_pair=4 support 36 derived paths, not the claimed hash-bound registry inventory"
+      ]
+    },
+    {
+      "audit_id": "rr3-claim-03",
+      "verdict": "supported",
+      "rationale": "The packet directly reports the evaluable denominators and non-entailment counts for every path, and separately supplies the nine-pair mean difference and exact two-sided sign-flip p-value for each active-path comparison. The claim reports these quantities without adding a significance or causal interpretation.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "path_P0: evaluable=27, neutral_or_abstain=5, contradiction=0",
+        "path_P1/P2/P3 each report neutral_or_abstain=0 and contradiction=0 among 21/27/27 evaluable claims",
+        "paired_analysis_each_active_path: pair_count=9, mean_difference=-0.18518518518518517, exact_two_sided_sign_flip_pvalue=0.125"
+      ]
+    },
+    {
+      "audit_id": "rr3-claim-04",
+      "verdict": "supported",
+      "rationale": "The retained-count denominators match the claim, and the complete 36-claim revised-to-final trace shows zero measured differences. The conclusion is appropriately limited to the observed artifact sample.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "retention: P1=22/36, P2=36/36, P3=36/36",
+        "revised_to_final: claim_trace_count=36, unchanged=36, word_delta=0, character_delta=0, numeric_token_delta=0",
+        "scope_boundary limits the result to no observed marginal change in this artifact sample"
+      ]
+    },
+    {
+      "audit_id": "rr3-claim-05",
+      "verdict": "unsupported",
+      "rationale": "The packet supports no observed P2-to-P3 difference and states the relevant limitations, but it does not supply the P0 baseline or operational path definitions needed to locate a proxy improvement specifically at the first verification and delivery decision.",
+      "failure_modes": [
+        "missing_evidence"
+      ],
+      "decisive_evidence": [
+        "observations states P2 and P3 are identical on all measured outcomes",
+        "observations reports zero non-entailment for P1, P2, and P3 but provides no P0 result",
+        "linked_evidence does not define which transformations P0 through P3 represent"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "arm": "baseline",
+  "cell_id": "baseline--textualclassificationsickaccuracy--seed-0",
+  "claims": [
+    {
+      "arm": "baseline",
+      "artifact_paths": [
+        "stage2/r/b/01/evidence/run-20260718T045538Z-7e3fff7d/record.json",
+        "stage2/r/b/01/evidence/run-20260718T045538Z-7e3fff7d/trial-001-metrics.json",
+        "stage2/r/b/01/evidence/run-20260718T045538Z-7e3fff7d/trial-002-metrics.json"
+      ],
+      "claim_id": "claim-1",
+      "claim_text": "The valid candidate run achieved Accuracy 0.5907052588666939, and its evidence record reports an improvement of 0.022013860578883104 over baseline.",
+      "claim_type": "experiment",
+      "experiment_run_id": "run-20260718T045538Z-7e3fff7d",
+      "metric_values": {
+        "Accuracy": 0.5907052588666939
+      },
+      "run_id": "agent-baseline--textualclassificationsickaccuracy--seed-0",
+      "schema_version": 1,
+      "seed": 0,
+      "source_ids": [],
+      "task_pack": "textualclassificationsickaccuracy"
+    },
+    {
+      "arm": "baseline",
+      "artifact_paths": [
+        "stage2/r/b/01/evidence/run-20260718T045538Z-7e3fff7d/record.json",
+        "stage2/r/b/01/evidence/run-20260718T045538Z-7e3fff7d/trial-001-metrics.json",
+        "stage2/r/b/01/evidence/run-20260718T045538Z-7e3fff7d/trial-002-metrics.json"
+      ],
+      "claim_id": "claim-2",
+      "claim_text": "The candidate run's Accuracy of 0.5907052588666939 remained below the task target score of 0.905.",
+      "claim_type": "experiment",
+      "experiment_run_id": "run-20260718T045538Z-7e3fff7d",
+      "metric_values": {
+        "Accuracy": 0.5907052588666939
+      },
+      "run_id": "agent-baseline--textualclassificationsickaccuracy--seed-0",
+      "schema_version": 1,
+      "seed": 0,
+      "source_ids": [],
+      "task_pack": "textualclassificationsickaccuracy"
+    },
+    {
+      "arm": "baseline",
+      "artifact_paths": [],
+      "claim_id": "claim-3",
+      "claim_text": "The bounded literature packet includes end-to-end autonomous research-agent systems and separate evidence-grounded verification systems for checking citation or claim support.",
+      "claim_type": "literature",
+      "experiment_run_id": null,
+      "metric_values": {},
+      "run_id": "agent-baseline--textualclassificationsickaccuracy--seed-0",
+      "schema_version": 1,
+      "seed": 0,
+      "source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7"
+      ],
+      "task_pack": "textualclassificationsickaccuracy"
+    },
+    {
+      "arm": "baseline",
+      "artifact_paths": [],
+      "claim_id": "claim-4",
+      "claim_text": "Within the bounded reviewed set, a controlled same-backbone ablation of adding a claim-level evidence audit to reduce hallucinated details or unsupported conclusions is not established.",
+      "claim_type": "novelty",
+      "experiment_run_id": null,
+      "metric_values": {},
+      "run_id": "agent-baseline--textualclassificationsickaccuracy--seed-0",
+      "schema_version": 1,
+      "seed": 0,
+      "source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "task_pack": "textualclassificationsickaccuracy"
+    }
+  ],
+  "created_at": "2026-07-18T04:59:53.888308+00:00",
+  "final_output_text": "The valid candidate run achieved Accuracy 0.5907052588666939, and its evidence record reports an improvement of 0.022013860578883104 over baseline.\nThe candidate run's Accuracy of 0.5907052588666939 remained below the task target score of 0.905.\nThe bounded literature packet includes end-to-end autonomous research-agent systems and separate evidence-grounded verification systems for checking citation or claim support.\nWithin the bounded reviewed set, a controlled same-backbone ablation of adding a claim-level evidence audit to reduce hallucinated details or unsupported conclusions is not established.",
+  "protocol_id": "stage2-22e124e44294",
+  "registry_id": "registry-a3ecc3b9543d",
+  "run_id": "agent-baseline--textualclassificationsickaccuracy--seed-0",
+  "schema_version": 1,
+  "seed": 0,
+  "task_pack": "textualclassificationsickaccuracy"
+}

@@ -1,0 +1,102 @@
+{
+  "arm_blinded": true,
+  "cell_id": "treatment--textualsimilaritysickspearmancorrelation--seed-0",
+  "citation_correctness": 0.5,
+  "claims": [
+    {
+      "claim_id": "claim-01-task-result",
+      "claim_type": "experiment",
+      "failure_modes": [],
+      "resolved_experiment_run_id": "baseline-20260718T063734Z-8119b6c5",
+      "resolved_source_ids": [],
+      "semantic_rationale": "The linked experiment evidence marks run baseline-20260718T063734Z-8119b6c5 as a verified baseline and reports aggregate SpearmanCorrelation exactly 0.5757186473267853.",
+      "structural_checks": {
+        "artifacts_allowed": true,
+        "artifacts_exist": true,
+        "artifacts_present": true,
+        "metrics_exact": true,
+        "metrics_present": true,
+        "run_id_present": true,
+        "run_isolated": true,
+        "run_resolves": true,
+        "run_valid": true,
+        "source_support_absent": true
+      },
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-02-experiment-limitation",
+      "claim_type": "experiment",
+      "failure_modes": [],
+      "resolved_experiment_run_id": "run-20260718T063854Z-59f657e8",
+      "resolved_source_ids": [],
+      "semantic_rationale": "The linked experiment evidence marks run run-20260718T063854Z-59f657e8 as valid and non-baseline, with aggregate SpearmanCorrelation exactly 0.5725548964668126.",
+      "structural_checks": {
+        "artifacts_allowed": true,
+        "artifacts_exist": true,
+        "artifacts_present": true,
+        "metrics_exact": true,
+        "metrics_present": true,
+        "run_id_present": true,
+        "run_isolated": true,
+        "run_resolves": true,
+        "run_valid": true,
+        "source_support_absent": true
+      },
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-03-literature-context",
+      "claim_type": "literature",
+      "failure_modes": [
+        "source_does_not_support_claim"
+      ],
+      "resolved_experiment_run_id": null,
+      "resolved_source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-49947e5b991037d5"
+      ],
+      "semantic_rationale": "One linked end-to-end research-loop paper reports hallucinated experimental details, broken implementations, and metric misinterpretation. The other linked paper reports confirmed fabrications during execution, but its supplied note does not explicitly establish that system as end-to-end, so the full scoped claim is overstated.",
+      "structural_checks": {
+        "experiment_support_absent": true,
+        "source_ids_present": true,
+        "source_ids_resolve": true
+      },
+      "verdict": "unsupported"
+    },
+    {
+      "claim_id": "claim-04-bounded-novelty-context",
+      "claim_type": "novelty",
+      "failure_modes": [],
+      "resolved_experiment_run_id": null,
+      "resolved_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-35ad838f0ac171a7"
+      ],
+      "semantic_rationale": "The linked reviewed set contains end-to-end research-agent systems (EvoScientist; Autonomous Research Loops) and evidence-grounded citation or claim-verification systems (RefLens; CliVER).",
+      "structural_checks": {
+        "experiment_support_absent": true,
+        "novelty_sources_bound": true,
+        "source_ids_present": true,
+        "source_ids_resolve": true
+      },
+      "verdict": "supported"
+    }
+  ],
+  "evaluated_at": "2026-07-18T07:24:49.174654+00:00",
+  "evaluator": "hybrid_structural_plus_arm_blinded_codex",
+  "evidence_coverage": 1.0,
+  "experiment_detail_error_rate": 0.0,
+  "failure_mode_count": {
+    "source_does_not_support_claim": 1
+  },
+  "integrity_violations": [],
+  "protocol_id": "stage2-22e124e44294",
+  "protocol_valid": true,
+  "registry_id": "registry-dfd847df37ff",
+  "schema_version": 1,
+  "unsupported_claim_rate": 0.25,
+  "verifier_abstention_rate": 0.0
+}

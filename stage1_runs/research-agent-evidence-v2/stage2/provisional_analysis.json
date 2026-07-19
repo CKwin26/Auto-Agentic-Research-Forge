@@ -1,0 +1,196 @@
+{
+  "analysis_status": "provisional_human_validation_deferred",
+  "arm_metrics": {
+    "baseline": {
+      "abstained_claims": 1,
+      "citation_correctness": 0.6666666666666666,
+      "evidence_coverage": 1.0,
+      "experiment_detail_error_rate": 0.3333333333333333,
+      "final_claims": 36,
+      "initial_claims": 36,
+      "mean_task_native_score": 0.6005729103167291,
+      "registries": 9,
+      "retention_rate": 1.0,
+      "total_wall_clock_seconds": 2721.128495,
+      "unsupported_claim_rate": 0.3055555555555556,
+      "unsupported_claims": 11,
+      "verifier_abstention_rate": 0.027777777777777776
+    },
+    "treatment": {
+      "abstained_claims": 0,
+      "citation_correctness": 0.8888888888888888,
+      "evidence_coverage": 1.0,
+      "experiment_detail_error_rate": 0.05555555555555555,
+      "final_claims": 36,
+      "initial_claims": 36,
+      "mean_task_native_score": 0.6221338108013964,
+      "registries": 9,
+      "retention_rate": 1.0,
+      "total_wall_clock_seconds": 4514.38356,
+      "unsupported_claim_rate": 0.08333333333333333,
+      "unsupported_claims": 3,
+      "verifier_abstention_rate": 0.0
+    }
+  },
+  "created_at": "2026-07-18T09:34:11.843093+00:00",
+  "human_validation": "deferred",
+  "input_hashes": {
+    "literature/stage1_manifest.json": "8f17b59446d9aab23e4266545724705cef5c39db3c7bc7e27d87681aa07f039f",
+    "stage2/backbone_manifest.json": "6ab9e5595188dacaa9b9b05c771c55254398b75b32985d34aa945ef32b738110",
+    "stage2/evaluations/summary.json": "e1502a4c59e57c01b64178c51069174e4522b755a7f24bb34f0d422447f72c59",
+    "stage2/manual_audit_manifest.json": "c40afad623de9624f7a780bc1fa73d893560644c2750429dfa67cfafa96187a5",
+    "stage2/operator_decisions.json": "dc9e53fd376e9bc070db60b82d54626b74b818f981a969911c8d138c29c9b2c5",
+    "stage2/persona_panel/panel-v1-full/final.json": "83b88309107359f4e86eab2bea19939bbf041d3a930ce1655539ce0bee077d2e",
+    "stage2/protocol.json": "265e1d9b3afb84e3dc680dbf350943123affcb7fee8a3bd8f0825620a911fcb4"
+  },
+  "limitations": [
+    "The preregistered two-human blinded audit has been deferred by the operator.",
+    "Protected-evaluator effects are provisional and do not unlock the preregistered primary analysis.",
+    "The scientist-persona panel is a same-model ensemble, not independent human or cross-model validation.",
+    "The experiment covers three bounded CPU AIRS-lite task packs and does not establish universal generality."
+  ],
+  "metric_scope": "protected automated evaluator proxy",
+  "operator_decision_id": "operator-decision-2026-07-18-defer-human-validation",
+  "paired_analysis": {
+    "effect_definition": "treatment_minus_baseline; negative unsupported-claim effect favors treatment",
+    "hierarchical_bootstrap": {
+      "ci95_high": -0.08333333333333333,
+      "ci95_low": -0.4166666666666667,
+      "median": -0.2222222222222222,
+      "resamples": 10000,
+      "seed": 11540254418846097466
+    },
+    "mean_paired_unsupported_claim_rate_effect": -0.2222222222222222,
+    "paired_cohen_dz": -0.8432740427115677,
+    "pairs": [
+      {
+        "baseline_claim_count": 4,
+        "baseline_unsupported_claim_rate": 0.25,
+        "claim_count_effect": 0,
+        "effect": 0.0,
+        "seed": 0,
+        "task_id": "textualclassificationsickaccuracy",
+        "task_native_score_effect": 0.03424378312270682,
+        "treatment_claim_count": 4,
+        "treatment_unsupported_claim_rate": 0.25
+      },
+      {
+        "baseline_claim_count": 4,
+        "baseline_unsupported_claim_rate": 0.25,
+        "claim_count_effect": 0,
+        "effect": -0.25,
+        "seed": 1,
+        "task_id": "textualclassificationsickaccuracy",
+        "task_native_score_effect": 0.20587036282103555,
+        "treatment_claim_count": 4,
+        "treatment_unsupported_claim_rate": 0.0
+      },
+      {
+        "baseline_claim_count": 4,
+        "baseline_unsupported_claim_rate": 0.5,
+        "claim_count_effect": 0,
+        "effect": -0.5,
+        "seed": 2,
+        "task_id": "textualclassificationsickaccuracy",
+        "task_native_score_effect": -0.04606604158173666,
+        "treatment_claim_count": 4,
+        "treatment_unsupported_claim_rate": 0.0
+      },
+      {
+        "baseline_claim_count": 4,
+        "baseline_unsupported_claim_rate": 0.25,
+        "claim_count_effect": 0,
+        "effect": 0.0,
+        "seed": 0,
+        "task_id": "textualsimilaritysickspearmancorrelation",
+        "task_native_score_effect": 0.0,
+        "treatment_claim_count": 4,
+        "treatment_unsupported_claim_rate": 0.25
+      },
+      {
+        "baseline_claim_count": 4,
+        "baseline_unsupported_claim_rate": 0.25,
+        "claim_count_effect": 0,
+        "effect": 0.0,
+        "seed": 1,
+        "task_id": "textualsimilaritysickspearmancorrelation",
+        "task_native_score_effect": 0.0,
+        "treatment_claim_count": 4,
+        "treatment_unsupported_claim_rate": 0.25
+      },
+      {
+        "baseline_claim_count": 4,
+        "baseline_unsupported_claim_rate": 0.75,
+        "claim_count_effect": 0,
+        "effect": -0.75,
+        "seed": 2,
+        "task_id": "textualsimilaritysickspearmancorrelation",
+        "task_native_score_effect": 0.0,
+        "treatment_claim_count": 4,
+        "treatment_unsupported_claim_rate": 0.0
+      },
+      {
+        "baseline_claim_count": 4,
+        "baseline_unsupported_claim_rate": 0.25,
+        "claim_count_effect": 0,
+        "effect": -0.25,
+        "seed": 0,
+        "task_id": "coreferenceresolutionsupergluewscaccuracy",
+        "task_native_score_effect": 0.0,
+        "treatment_claim_count": 4,
+        "treatment_unsupported_claim_rate": 0.0
+      },
+      {
+        "baseline_claim_count": 4,
+        "baseline_unsupported_claim_rate": 0.25,
+        "claim_count_effect": 0,
+        "effect": -0.25,
+        "seed": 1,
+        "task_id": "coreferenceresolutionsupergluewscaccuracy",
+        "task_native_score_effect": 0.0,
+        "treatment_claim_count": 4,
+        "treatment_unsupported_claim_rate": 0.0
+      },
+      {
+        "baseline_claim_count": 4,
+        "baseline_unsupported_claim_rate": 0.0,
+        "claim_count_effect": 0,
+        "effect": 0.0,
+        "seed": 2,
+        "task_id": "coreferenceresolutionsupergluewscaccuracy",
+        "task_native_score_effect": 0.0,
+        "treatment_claim_count": 4,
+        "treatment_unsupported_claim_rate": 0.0
+      }
+    ],
+    "task_effects": {
+      "coreferenceresolutionsupergluewscaccuracy": -0.16666666666666666,
+      "textualclassificationsickaccuracy": -0.25,
+      "textualsimilaritysickspearmancorrelation": -0.25
+    },
+    "task_native_score_effects": {
+      "coreferenceresolutionsupergluewscaccuracy": 0.0,
+      "textualclassificationsickaccuracy": 0.0646827014540019,
+      "textualsimilaritysickspearmancorrelation": 0.0
+    },
+    "task_native_score_within_absolute_0_02": false,
+    "tasks_with_lower_unsupported_claim_rate": 3
+  },
+  "primary_analysis_interpretable": false,
+  "primary_metric": "unsupported_claim_rate",
+  "protocol_id": "stage2-22e124e44294",
+  "schema_version": 1,
+  "scientist_persona_panel": {
+    "disagreement_count": 4,
+    "ensemble_label": "same-model persona ensemble",
+    "human_adjudication_queue_count": 4,
+    "item_count": 48,
+    "path": "stage2/persona_panel/panel-v1-full/final.json",
+    "sha256": "83b88309107359f4e86eab2bea19939bbf041d3a930ce1655539ce0bee077d2e",
+    "verdict_counts": {
+      "supported": 37,
+      "unsupported": 11
+    }
+  },
+  "synthesis_mode": "provisional_stage2_paired_study"
+}

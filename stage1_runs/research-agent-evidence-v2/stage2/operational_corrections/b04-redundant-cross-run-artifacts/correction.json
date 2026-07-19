@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "corrected_at": "2026-07-18T05:15:05.2664304Z",
+  "protocol_id": "stage2-22e124e44294",
+  "cell_id": "baseline--textualsimilaritysickspearmancorrelation--seed-0",
+  "correction_class": "redundant_evidence_link_normalization",
+  "reason": "The claim finalizer attached three baseline-run artifact paths to claim-2 even though the selected non-baseline record already contains the exact candidate metric and the exact improvement relative to baseline. The frozen structural audit correctly restricts an experiment claim to artifacts belonging to its declared experiment_run_id.",
+  "scope": {
+    "claim_id": "claim-2",
+    "experiment_run_id": "run-20260718T051106Z-fc159872",
+    "removed_artifact_paths": [
+      "stage2/r/b/04/evidence/baseline-20260718T050913Z-0252f7d2/record.json",
+      "stage2/r/b/04/evidence/baseline-20260718T050913Z-0252f7d2/trial-001-metrics.json",
+      "stage2/r/b/04/evidence/baseline-20260718T050913Z-0252f7d2/trial-002-metrics.json"
+    ],
+    "claim_text_changed": false,
+    "final_output_text_changed": false,
+    "metric_values_changed": false,
+    "source_ids_changed": false,
+    "controller_rerun": false,
+    "model_called_again": false
+  },
+  "supporting_record": "stage2/r/b/04/evidence/run-20260718T051106Z-fc159872/record.json",
+  "before": {
+    "registry_id": "registry-42cb20cc0cec",
+    "final_registry_sha256": "a94a635b322099ef39ed60e8cb6befe28e556ba88e56e0045e6de7f9890d51db",
+    "structural_audit_sha256": "7a4421540144e1ddcf7c93e067c73ed9ecd964e8b931b25e62bd6a30d3f180ef",
+    "invalid_record_sha256": "df4398a77f80b3e2b96ee807b8cb4084ee9d494a7cfbbcbfa24a079d2dde7e0f"
+  },
+  "after": {
+    "registry_id": "registry-588c04b1e916",
+    "final_registry_sha256": "d98f1f191b8b159da3374fed87b2e012c5d6ffb45608d9c53ff99189d8ee1c49"
+  }
+}

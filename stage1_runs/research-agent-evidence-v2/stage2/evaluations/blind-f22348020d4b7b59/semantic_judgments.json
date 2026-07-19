@@ -1,0 +1,40 @@
+{
+  "judgments": [
+    {
+      "claim_id": "claim-exp-result",
+      "rationale": "The linked experiment evidence for run-20260718T061648Z-07736a6f reports aggregate Accuracy exactly 0.7745617611088463 for the non-baseline candidate run.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-exp-limit",
+      "rationale": "The linked experiment evidence marks the candidate run as valid=true and isolation_verified=true, and reports aggregate Accuracy exactly 0.7745617611088463.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-lit-context",
+      "rationale": "The linked packet includes whole-system autonomous research-agent frameworks (for example, EvoScientist and Autonomous Research Loops) and also evidence-grounding or claim-verification methods (for example, RefLens, ECE, and CliVER).",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7"
+      ],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-novelty-gap",
+      "rationale": "Within the reviewed sources, some papers study end-to-end autonomous research-agent frameworks (such as EvoScientist and Autonomous Research Loops), while others study evidence-grounding or claim-verification methods (such as RefLens, ECE, and CliVER).",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7"
+      ],
+      "verdict": "supported"
+    }
+  ]
+}

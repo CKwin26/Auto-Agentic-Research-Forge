@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "panel_id": "rr3-smoke",
+  "panel_version": "nuwa-scientist-panel-v1",
+  "ensemble_label": "same-model persona ensemble",
+  "source_sample_sha256": "6dd333f8a9daf89d0e7ea2f9a766a027e509699fb8fd32faf24cfa5a904e20f7",
+  "blinded": true,
+  "persona_id": "feynman",
+  "persona": {
+    "label": "Feynman-inspired empirical integrity reviewer",
+    "basis": [
+      "Cargo Cult Science",
+      "The Character of Physical Law"
+    ],
+    "role": "Detect gaps between what was actually measured and what is claimed.",
+    "principles": [
+      "Prefer checkable experimental detail over persuasive narrative.",
+      "Ask what observation could reveal that the claim is wrong.",
+      "Treat omitted conditions, failed runs, and inconvenient evidence as material."
+    ],
+    "required_questions": [
+      "What direct observation in the packet supports each material part of the claim?",
+      "Could the same evidence arise if the proposed explanation were false?",
+      "Are artifacts, settings, failures, or counterexamples omitted?"
+    ],
+    "self_limits": [
+      "Do not perform statistical adjudication beyond obvious artifact or evidence mismatches."
+    ]
+  },
+  "verdicts": [
+    "supported",
+    "unsupported",
+    "abstain"
+  ],
+  "allowed_failure_modes": [
+    "missing_evidence",
+    "source_misattribution",
+    "experiment_artifact_mismatch",
+    "exact_metric_mismatch",
+    "statistical_invalidity",
+    "internal_contradiction",
+    "overgeneralization",
+    "unsupported_novelty",
+    "non_falsifiable_claim",
+    "ambiguous_or_insufficient_packet"
+  ],
+  "items": [
+    {
+      "audit_id": "rr3-claim-01",
+      "claim_type": "experiment",
+      "claim_text": "In the original frozen 18-cell study, the protected automated evaluator labeled 11 of 36 claims in condition A and 3 of 36 claims in condition B as unsupported; the mean paired condition-B-minus-condition-A effect was -0.2222 and the 10,000-resample hierarchical-bootstrap 95% interval was [-0.4167, -0.0833].",
+      "linked_evidence": {
+        "source": "stage2/evaluations/summary.json",
+        "analysis_status": "protected_evaluator_complete_manual_audit_pending",
+        "condition_A": {
+          "final_claims": 36,
+          "unsupported_claims": 11,
+          "unsupported_claim_rate": 0.3055555555555556
+        },
+        "condition_B": {
+          "final_claims": 36,
+          "unsupported_claims": 3,
+          "unsupported_claim_rate": 0.08333333333333333
+        },
+        "paired_analysis": {
+          "effect_definition": "condition B minus condition A",
+          "mean_paired_effect": -0.2222222222222222,
+          "bootstrap_resamples": 10000,
+          "ci95_low": -0.4166666666666667,
+          "ci95_high": -0.08333333333333333
+        },
+        "interpretation_boundary": "Automated protected-evaluator result; human audit pending."
+      }
+    }
+  ]
+}

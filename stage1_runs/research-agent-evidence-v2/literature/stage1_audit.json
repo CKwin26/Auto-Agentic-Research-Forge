@@ -1,0 +1,40 @@
+{
+  "audited_at": "2026-07-17T16:58:54.641843+00:00",
+  "candidate_count": 138,
+  "checks": {
+    "approval_bound_to_artifacts": true,
+    "discovery_bound_to_latest_search_plan": true,
+    "discovery_record_valid": true,
+    "human_approval_present": true,
+    "included_sources_exist": true,
+    "manifest_bound_to_review": true,
+    "minimum_candidate_pool": true,
+    "minimum_verified_papers": true,
+    "plan_artifacts_in_manifest": true,
+    "plan_binding_copies_match": true,
+    "plan_evidence_binding_valid": true,
+    "provider_diversity": true,
+    "research_plan_has_no_blocking_questions": true,
+    "research_plan_present": true,
+    "research_plan_ready": true,
+    "review_bound_to_latest_discovery": true,
+    "review_citations_resolve": true,
+    "review_schema_valid": true,
+    "screening_bound_to_discovery": true,
+    "screening_decisions_consistent": true,
+    "search_strategy_present": true,
+    "semantic_screening_valid": true,
+    "stage1_artifacts_hash_valid": true
+  },
+  "included_count": 12,
+  "mode": "scientific",
+  "passed": true,
+  "provider_count": 2,
+  "review_id": "review-2026-07-17T153937.084280+0000-3d8078",
+  "schema_version": 1,
+  "verified_paper_count": 12,
+  "violations": [],
+  "warnings": [
+    "one literature provider completed only part of the query plan"
+  ]
+}

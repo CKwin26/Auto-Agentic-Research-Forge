@@ -1,0 +1,9 @@
+{
+  "cell_id": "baseline--textualsimilaritysickspearmancorrelation--seed-0",
+  "invalid_at": "2026-07-18T05:12:34.843632+00:00",
+  "reason": "claim registry structural integrity failure",
+  "schema_version": 1,
+  "violations": [
+    "claim-2: artifacts_allowed"
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "judgments": [
+    {
+      "claim_id": "claim-1",
+      "rationale": "The linked experiment evidence identifies baseline-20260718T062939Z-7be10917 as a valid verified baseline and reports Accuracy 0.5686913982878108, matching the claim exactly.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-2",
+      "rationale": "The linked experiment evidence identifies run-20260718T063354Z-b6d64a03 as a valid non-baseline run with verdict valid_non_improving and Accuracy 0.286180187525479, matching the claim exactly.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-3",
+      "rationale": "The linked packet includes end-to-end research-agent frameworks (Autonomous Research Loops, EvoScientist) and verification or evidence-grounded systems (CliVER, RefLens, ECE), matching the claim’s named examples.",
+      "supporting_source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-965b07ca55b0b420",
+        "paper-35ad838f0ac171a7",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2"
+      ],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-4",
+      "rationale": "The linked novelty-02 sources separate into research-agent frameworks (EvoScientist, Autonomous Research Loops, Heuresis) and evidence-grounded or claim-verification systems (RefLens, ECE, CliVER), as stated.",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "verdict": "supported"
+    }
+  ]
+}

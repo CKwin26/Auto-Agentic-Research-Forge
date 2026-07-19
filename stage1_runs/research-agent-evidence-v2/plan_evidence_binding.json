@@ -1,0 +1,23 @@
+{
+  "created_at": "2026-07-17T16:58:54.545237+00:00",
+  "plan_hash": "565ea1b0ec96d613cef3d64b25a65a3ae38c3d7259a0eef761710392f3d664ad",
+  "plan_id": "plan-2026-07-17T165102.797670+0000-58ebcd",
+  "review_hash": "6fee6151ef50902cc4eeeee3eaf0a8ee4f54657390ac4d8fe9f8e8a72f879504",
+  "review_id": "review-2026-07-17T153937.084280+0000-3d8078",
+  "schema_version": 1,
+  "selected_novelty_id": "novelty-02",
+  "source_ids": [
+    "paper-2a1fa8b99c181771",
+    "paper-2a7771f1bcf8adb2",
+    "paper-35ad838f0ac171a7",
+    "paper-3b6399a19264a862",
+    "paper-49947e5b991037d5",
+    "paper-69c6e5faa8ef37c2",
+    "paper-6c621b0f059e2d3d",
+    "paper-8259991dea6aaecd",
+    "paper-879e6a747eb8ceb6",
+    "paper-96217ebf4f10bd68",
+    "paper-965b07ca55b0b420",
+    "paper-e48872d23c4d9e23"
+  ]
+}

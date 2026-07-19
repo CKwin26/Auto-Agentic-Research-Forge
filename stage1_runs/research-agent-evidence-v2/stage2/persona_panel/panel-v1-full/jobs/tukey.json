@@ -1,0 +1,929 @@
+{
+  "schema_version": 1,
+  "panel_id": "panel-v1-full",
+  "panel_version": "nuwa-scientist-panel-v1",
+  "ensemble_label": "same-model persona ensemble",
+  "source_sample_sha256": "0ef6aff20a330b8e247554971f58999c85290726a949005becc8feffbb30ef6e",
+  "blinded": true,
+  "persona_id": "tukey",
+  "persona": {
+    "label": "Tukey-inspired data and statistics reviewer",
+    "basis": [
+      "The Future of Data Analysis",
+      "Exploratory Data Analysis"
+    ],
+    "role": "Audit whether summaries, comparisons, uncertainty, and study design justify the numerical claim.",
+    "principles": [
+      "Distinguish exploratory patterns from confirmatory conclusions.",
+      "Inspect denominators, pairing, missingness, variability, and multiplicity.",
+      "Prefer robust summaries and visible uncertainty to a single headline number."
+    ],
+    "required_questions": [
+      "Does the statistic match the design and unit of analysis?",
+      "Are uncertainty and variability represented adequately?",
+      "Could missingness, selection, multiplicity, or aggregation reverse the conclusion?"
+    ],
+    "self_limits": [
+      "Do not judge broad theoretical novelty unless it changes statistical validity."
+    ]
+  },
+  "verdicts": [
+    "supported",
+    "unsupported",
+    "abstain"
+  ],
+  "allowed_failure_modes": [
+    "missing_evidence",
+    "source_misattribution",
+    "experiment_artifact_mismatch",
+    "exact_metric_mismatch",
+    "statistical_invalidity",
+    "internal_contradiction",
+    "overgeneralization",
+    "unsupported_novelty",
+    "non_falsifiable_claim",
+    "ambiguous_or_insufficient_packet"
+  ],
+  "items": [
+    {
+      "audit_id": "audit-20118f9cc6fcc8fb",
+      "claim_type": "experiment",
+      "claim_text": "The verified baseline run achieved SpearmanCorrelation 0.5757186473267853.",
+      "linked_evidence": {
+        "claim_id": "claim-01",
+        "claim_text": "The verified baseline run achieved SpearmanCorrelation 0.5757186473267853.",
+        "claim_type": "experiment",
+        "declared_artifact_paths": [
+          "artifact-001",
+          "artifact-002",
+          "artifact-003"
+        ],
+        "declared_metric_values": {
+          "SpearmanCorrelation": 0.5757186473267853
+        },
+        "linked_experiment_evidence": {
+          "aggregate_metrics": {
+            "SpearmanCorrelation": 0.5757186473267853
+          },
+          "artifacts": [
+            "artifact-001",
+            "artifact-002",
+            "artifact-003"
+          ],
+          "improvement": null,
+          "is_baseline": true,
+          "isolation_verified": true,
+          "metric_stddev": {
+            "SpearmanCorrelation": 0.0
+          },
+          "run_id": "baseline-20260718T064442Z-757696e4",
+          "valid": true,
+          "verdict": "baseline_verified"
+        },
+        "linked_experiment_run_id": "baseline-20260718T064442Z-757696e4",
+        "linked_source_ids": [],
+        "linked_source_records": []
+      }
+    },
+    {
+      "audit_id": "audit-24491f81ff1cd82f",
+      "claim_type": "experiment",
+      "claim_text": "The evaluated non-baseline run run-20260718T063354Z-b6d64a03 was recorded as valid_non_improving and achieved Accuracy 0.286180187525479.",
+      "linked_evidence": {
+        "claim_id": "claim-2",
+        "claim_text": "The evaluated non-baseline run run-20260718T063354Z-b6d64a03 was recorded as valid_non_improving and achieved Accuracy 0.286180187525479.",
+        "claim_type": "experiment",
+        "declared_artifact_paths": [
+          "artifact-001",
+          "artifact-002",
+          "artifact-003"
+        ],
+        "declared_metric_values": {
+          "Accuracy": 0.286180187525479
+        },
+        "linked_experiment_evidence": {
+          "aggregate_metrics": {
+            "Accuracy": 0.286180187525479
+          },
+          "artifacts": [
+            "artifact-001",
+            "artifact-002",
+            "artifact-003"
+          ],
+          "improvement": -0.28251121076233177,
+          "is_baseline": false,
+          "isolation_verified": true,
+          "metric_stddev": {
+            "Accuracy": 0.0
+          },
+          "run_id": "run-20260718T063354Z-b6d64a03",
+          "valid": true,
+          "verdict": "valid_non_improving"
+        },
+        "linked_experiment_run_id": "run-20260718T063354Z-b6d64a03",
+        "linked_source_ids": [],
+        "linked_source_records": []
+      }
+    },
+    {
+      "audit_id": "audit-33532701fcc315fa",
+      "claim_type": "experiment",
+      "claim_text": "The verified baseline run achieved Accuracy 0.6346153846153846.",
+      "linked_evidence": {
+        "claim_id": "claim-01",
+        "claim_text": "The verified baseline run achieved Accuracy 0.6346153846153846.",
+        "claim_type": "experiment",
+        "declared_artifact_paths": [
+          "artifact-001",
+          "artifact-002",
+          "artifact-003"
+        ],
+        "declared_metric_values": {
+          "Accuracy": 0.6346153846153846
+        },
+        "linked_experiment_evidence": {
+          "aggregate_metrics": {
+            "Accuracy": 0.6346153846153846
+          },
+          "artifacts": [
+            "artifact-001",
+            "artifact-002",
+            "artifact-003"
+          ],
+          "improvement": null,
+          "is_baseline": true,
+          "isolation_verified": true,
+          "metric_stddev": {
+            "Accuracy": 0.0
+          },
+          "run_id": "baseline-20260718T065855Z-eec56d9f",
+          "valid": true,
+          "verdict": "baseline_verified"
+        },
+        "linked_experiment_run_id": "baseline-20260718T065855Z-eec56d9f",
+        "linked_source_ids": [],
+        "linked_source_records": []
+      }
+    },
+    {
+      "audit_id": "audit-412e94d1820c1a34",
+      "claim_type": "experiment",
+      "claim_text": "The evaluated non-baseline candidate run was recorded as valid_non_improving and achieved Accuracy 0.36538461538461536.",
+      "linked_evidence": {
+        "claim_id": "claim-02",
+        "claim_text": "The evaluated non-baseline candidate run was recorded as valid_non_improving and achieved Accuracy 0.36538461538461536.",
+        "claim_type": "experiment",
+        "declared_artifact_paths": [
+          "artifact-001",
+          "artifact-002",
+          "artifact-003"
+        ],
+        "declared_metric_values": {
+          "Accuracy": 0.36538461538461536
+        },
+        "linked_experiment_evidence": {
+          "aggregate_metrics": {
+            "Accuracy": 0.36538461538461536
+          },
+          "artifacts": [
+            "artifact-001",
+            "artifact-002",
+            "artifact-003"
+          ],
+          "improvement": -0.2692307692307692,
+          "is_baseline": false,
+          "isolation_verified": true,
+          "metric_stddev": {
+            "Accuracy": 0.0
+          },
+          "run_id": "run-20260718T065938Z-497d8189",
+          "valid": true,
+          "verdict": "valid_non_improving"
+        },
+        "linked_experiment_run_id": "run-20260718T065938Z-497d8189",
+        "linked_source_ids": [],
+        "linked_source_records": []
+      }
+    },
+    {
+      "audit_id": "audit-4eb4833b938b06b4",
+      "claim_type": "experiment",
+      "claim_text": "The verified baseline run achieved Accuracy 0.6346153846153846 and received the verdict baseline_verified.",
+      "linked_evidence": {
+        "claim_id": "claim-1",
+        "claim_text": "The verified baseline run achieved Accuracy 0.6346153846153846 and received the verdict baseline_verified.",
+        "claim_type": "experiment",
+        "declared_artifact_paths": [
+          "artifact-001",
+          "artifact-002",
+          "artifact-003"
+        ],
+        "declared_metric_values": {
+          "Accuracy": 0.6346153846153846
+        },
+        "linked_experiment_evidence": {
+          "aggregate_metrics": {
+            "Accuracy": 0.6346153846153846
+          },
+          "artifacts": [
+            "artifact-001",
+            "artifact-002",
+            "artifact-003"
+          ],
+          "improvement": null,
+          "is_baseline": true,
+          "isolation_verified": true,
+          "metric_stddev": {
+            "Accuracy": 0.0
+          },
+          "run_id": "baseline-20260718T052645Z-233ba060",
+          "valid": true,
+          "verdict": "baseline_verified"
+        },
+        "linked_experiment_run_id": "baseline-20260718T052645Z-233ba060",
+        "linked_source_ids": [],
+        "linked_source_records": []
+      }
+    },
+    {
+      "audit_id": "audit-56d00de7d24490bb",
+      "claim_type": "experiment",
+      "claim_text": "The evaluated non-baseline run run-20260718T070345Z-6037e0f3 achieved Accuracy 0.36538461538461536 and was recorded as valid_non_improving with improvement -0.2692307692307692.",
+      "linked_evidence": {
+        "claim_id": "experiment-limitation",
+        "claim_text": "The evaluated non-baseline run run-20260718T070345Z-6037e0f3 achieved Accuracy 0.36538461538461536 and was recorded as valid_non_improving with improvement -0.2692307692307692.",
+        "claim_type": "experiment",
+        "declared_artifact_paths": [
+          "artifact-001",
+          "artifact-002",
+          "artifact-003"
+        ],
+        "declared_metric_values": {
+          "Accuracy": 0.36538461538461536
+        },
+        "linked_experiment_evidence": {
+          "aggregate_metrics": {
+            "Accuracy": 0.36538461538461536
+          },
+          "artifacts": [
+            "artifact-001",
+            "artifact-002",
+            "artifact-003"
+          ],
+          "improvement": -0.2692307692307692,
+          "is_baseline": false,
+          "isolation_verified": true,
+          "metric_stddev": {
+            "Accuracy": 0.0
+          },
+          "run_id": "run-20260718T070345Z-6037e0f3",
+          "valid": true,
+          "verdict": "valid_non_improving"
+        },
+        "linked_experiment_run_id": "run-20260718T070345Z-6037e0f3",
+        "linked_source_ids": [],
+        "linked_source_records": []
+      }
+    },
+    {
+      "audit_id": "audit-5dbc4d8cd3c4c58b",
+      "claim_type": "experiment",
+      "claim_text": "The verified baseline run baseline-20260718T070301Z-b8e67646 achieved Accuracy 0.6346153846153846 and was recorded as baseline_verified.",
+      "linked_evidence": {
+        "claim_id": "task-result",
+        "claim_text": "The verified baseline run baseline-20260718T070301Z-b8e67646 achieved Accuracy 0.6346153846153846 and was recorded as baseline_verified.",
+        "claim_type": "experiment",
+        "declared_artifact_paths": [
+          "artifact-001",
+          "artifact-002",
+          "artifact-003"
+        ],
+        "declared_metric_values": {
+          "Accuracy": 0.6346153846153846
+        },
+        "linked_experiment_evidence": {
+          "aggregate_metrics": {
+            "Accuracy": 0.6346153846153846
+          },
+          "artifacts": [
+            "artifact-001",
+            "artifact-002",
+            "artifact-003"
+          ],
+          "improvement": null,
+          "is_baseline": true,
+          "isolation_verified": true,
+          "metric_stddev": {
+            "Accuracy": 0.0
+          },
+          "run_id": "baseline-20260718T070301Z-b8e67646",
+          "valid": true,
+          "verdict": "baseline_verified"
+        },
+        "linked_experiment_run_id": "baseline-20260718T070301Z-b8e67646",
+        "linked_source_ids": [],
+        "linked_source_records": []
+      }
+    },
+    {
+      "audit_id": "audit-6057d972fe46fdba",
+      "claim_type": "experiment",
+      "claim_text": "The verified baseline run achieved SpearmanCorrelation 0.5757186473267853, which is below the task target score of 0.854.",
+      "linked_evidence": {
+        "claim_id": "claim-1",
+        "claim_text": "The verified baseline run achieved SpearmanCorrelation 0.5757186473267853, which is below the task target score of 0.854.",
+        "claim_type": "experiment",
+        "declared_artifact_paths": [
+          "artifact-001",
+          "artifact-002",
+          "artifact-003"
+        ],
+        "declared_metric_values": {
+          "SpearmanCorrelation": 0.5757186473267853
+        },
+        "linked_experiment_evidence": {
+          "aggregate_metrics": {
+            "SpearmanCorrelation": 0.5757186473267853
+          },
+          "artifacts": [
+            "artifact-001",
+            "artifact-002",
+            "artifact-003"
+          ],
+          "improvement": null,
+          "is_baseline": true,
+          "isolation_verified": true,
+          "metric_stddev": {
+            "SpearmanCorrelation": 0.0
+          },
+          "run_id": "baseline-20260718T051827Z-1593e51a",
+          "valid": true,
+          "verdict": "baseline_verified"
+        },
+        "linked_experiment_run_id": "baseline-20260718T051827Z-1593e51a",
+        "linked_source_ids": [],
+        "linked_source_records": []
+      }
+    },
+    {
+      "audit_id": "audit-770fcecfbec74885",
+      "claim_type": "experiment",
+      "claim_text": "The evaluated non-baseline run was valid_non_improving, with SpearmanCorrelation 0.5725548964668126 and improvement -0.0031637508599727804 relative to the verified baseline.",
+      "linked_evidence": {
+        "claim_id": "claim-02",
+        "claim_text": "The evaluated non-baseline run was valid_non_improving, with SpearmanCorrelation 0.5725548964668126 and improvement -0.0031637508599727804 relative to the verified baseline.",
+        "claim_type": "experiment",
+        "declared_artifact_paths": [
+          "artifact-001",
+          "artifact-002",
+          "artifact-003"
+        ],
+        "declared_metric_values": {
+          "SpearmanCorrelation": 0.5725548964668126
+        },
+        "linked_experiment_evidence": {
+          "aggregate_metrics": {
+            "SpearmanCorrelation": 0.5725548964668126
+          },
+          "artifacts": [
+            "artifact-001",
+            "artifact-002",
+            "artifact-003"
+          ],
+          "improvement": -0.0031637508599727804,
+          "is_baseline": false,
+          "isolation_verified": true,
+          "metric_stddev": {
+            "SpearmanCorrelation": 0.0
+          },
+          "run_id": "run-20260718T064546Z-d7638911",
+          "valid": true,
+          "verdict": "valid_non_improving"
+        },
+        "linked_experiment_run_id": "run-20260718T064546Z-d7638911",
+        "linked_source_ids": [],
+        "linked_source_records": []
+      }
+    },
+    {
+      "audit_id": "audit-7801fcbd7c79f94c",
+      "claim_type": "experiment",
+      "claim_text": "The tested intervention run reports SpearmanCorrelation 0.5725548964668126 and improvement -0.0031637508599727804 relative to baseline.",
+      "linked_evidence": {
+        "claim_id": "claim-2",
+        "claim_text": "The tested intervention run reports SpearmanCorrelation 0.5725548964668126 and improvement -0.0031637508599727804 relative to baseline.",
+        "claim_type": "experiment",
+        "declared_artifact_paths": [
+          "artifact-001",
+          "artifact-002",
+          "artifact-003"
+        ],
+        "declared_metric_values": {
+          "SpearmanCorrelation": 0.5725548964668126
+        },
+        "linked_experiment_evidence": {
+          "aggregate_metrics": {
+            "SpearmanCorrelation": 0.5725548964668126
+          },
+          "artifacts": [
+            "artifact-001",
+            "artifact-002",
+            "artifact-003"
+          ],
+          "improvement": -0.0031637508599727804,
+          "is_baseline": false,
+          "isolation_verified": true,
+          "metric_stddev": {
+            "SpearmanCorrelation": 0.0
+          },
+          "run_id": "run-20260718T065450Z-1b42fcd7",
+          "valid": true,
+          "verdict": "valid_non_improving"
+        },
+        "linked_experiment_run_id": "run-20260718T065450Z-1b42fcd7",
+        "linked_source_ids": [],
+        "linked_source_records": []
+      }
+    },
+    {
+      "audit_id": "audit-7fee2c6f01a430af",
+      "claim_type": "experiment",
+      "claim_text": "The evaluated candidate run achieved Accuracy 0.7745617611088463.",
+      "linked_evidence": {
+        "claim_id": "claim-exp-result",
+        "claim_text": "The evaluated candidate run achieved Accuracy 0.7745617611088463.",
+        "claim_type": "experiment",
+        "declared_artifact_paths": [
+          "artifact-001",
+          "artifact-002",
+          "artifact-003"
+        ],
+        "declared_metric_values": {
+          "Accuracy": 0.7745617611088463
+        },
+        "linked_experiment_evidence": {
+          "aggregate_metrics": {
+            "Accuracy": 0.7745617611088463
+          },
+          "artifacts": [
+            "artifact-001",
+            "artifact-002",
+            "artifact-003"
+          ],
+          "improvement": 0.20587036282103555,
+          "is_baseline": false,
+          "isolation_verified": true,
+          "metric_stddev": {
+            "Accuracy": 0.0
+          },
+          "run_id": "run-20260718T061648Z-07736a6f",
+          "valid": true,
+          "verdict": "candidate_improves"
+        },
+        "linked_experiment_run_id": "run-20260718T061648Z-07736a6f",
+        "linked_source_ids": [],
+        "linked_source_records": []
+      }
+    },
+    {
+      "audit_id": "audit-86c592921d137f31",
+      "claim_type": "experiment",
+      "claim_text": "The only valid non-baseline run was recorded as valid_non_improving with SpearmanCorrelation 0.5725548964668126.",
+      "linked_evidence": {
+        "claim_id": "claim-2",
+        "claim_text": "The only valid non-baseline run was recorded as valid_non_improving with SpearmanCorrelation 0.5725548964668126.",
+        "claim_type": "experiment",
+        "declared_artifact_paths": [
+          "artifact-001",
+          "artifact-002",
+          "artifact-003"
+        ],
+        "declared_metric_values": {
+          "SpearmanCorrelation": 0.5725548964668126
+        },
+        "linked_experiment_evidence": {
+          "aggregate_metrics": {
+            "SpearmanCorrelation": 0.5725548964668126
+          },
+          "artifacts": [
+            "artifact-001",
+            "artifact-002",
+            "artifact-003"
+          ],
+          "improvement": -0.0031637508599727804,
+          "is_baseline": false,
+          "isolation_verified": true,
+          "metric_stddev": {
+            "SpearmanCorrelation": 0.0
+          },
+          "run_id": "run-20260718T051940Z-06ed78c6",
+          "valid": true,
+          "verdict": "valid_non_improving"
+        },
+        "linked_experiment_run_id": "run-20260718T051940Z-06ed78c6",
+        "linked_source_ids": [],
+        "linked_source_records": []
+      }
+    },
+    {
+      "audit_id": "audit-884b9631b126336d",
+      "claim_type": "experiment",
+      "claim_text": "The non-baseline run achieved a SpearmanCorrelation of 0.5725548964668126 and was recorded with an improvement of -0.0031637508599727804 relative to the baseline.",
+      "linked_evidence": {
+        "claim_id": "claim-2",
+        "claim_text": "The non-baseline run achieved a SpearmanCorrelation of 0.5725548964668126 and was recorded with an improvement of -0.0031637508599727804 relative to the baseline.",
+        "claim_type": "experiment",
+        "declared_artifact_paths": [
+          "artifact-001",
+          "artifact-002",
+          "artifact-003"
+        ],
+        "declared_metric_values": {
+          "SpearmanCorrelation": 0.5725548964668126
+        },
+        "linked_experiment_evidence": {
+          "aggregate_metrics": {
+            "SpearmanCorrelation": 0.5725548964668126
+          },
+          "artifacts": [
+            "artifact-001",
+            "artifact-002",
+            "artifact-003"
+          ],
+          "improvement": -0.0031637508599727804,
+          "is_baseline": false,
+          "isolation_verified": true,
+          "metric_stddev": {
+            "SpearmanCorrelation": 0.0
+          },
+          "run_id": "run-20260718T051106Z-fc159872",
+          "valid": true,
+          "verdict": "valid_non_improving"
+        },
+        "linked_experiment_run_id": "run-20260718T051106Z-fc159872",
+        "linked_source_ids": [],
+        "linked_source_records": []
+      }
+    },
+    {
+      "audit_id": "audit-89bf1430e164241e",
+      "claim_type": "experiment",
+      "claim_text": "The evaluated non-baseline run achieved Accuracy 0.36538461538461536 and was recorded as valid_non_improving.",
+      "linked_evidence": {
+        "claim_id": "claim-2",
+        "claim_text": "The evaluated non-baseline run achieved Accuracy 0.36538461538461536 and was recorded as valid_non_improving.",
+        "claim_type": "experiment",
+        "declared_artifact_paths": [
+          "artifact-001",
+          "artifact-002",
+          "artifact-003"
+        ],
+        "declared_metric_values": {
+          "Accuracy": 0.36538461538461536
+        },
+        "linked_experiment_evidence": {
+          "aggregate_metrics": {
+            "Accuracy": 0.36538461538461536
+          },
+          "artifacts": [
+            "artifact-001",
+            "artifact-002",
+            "artifact-003"
+          ],
+          "improvement": -0.2692307692307692,
+          "is_baseline": false,
+          "isolation_verified": true,
+          "metric_stddev": {
+            "Accuracy": 0.0
+          },
+          "run_id": "run-20260718T052540Z-37b32b1f",
+          "valid": true,
+          "verdict": "valid_non_improving"
+        },
+        "linked_experiment_run_id": "run-20260718T052540Z-37b32b1f",
+        "linked_source_ids": [],
+        "linked_source_records": []
+      }
+    },
+    {
+      "audit_id": "audit-8d1b9f7914eb1ff9",
+      "claim_type": "experiment",
+      "claim_text": "The valid candidate run achieved Accuracy 0.5907052588666939, and its evidence record reports an improvement of 0.022013860578883104 over baseline.",
+      "linked_evidence": {
+        "claim_id": "claim-1",
+        "claim_text": "The valid candidate run achieved Accuracy 0.5907052588666939, and its evidence record reports an improvement of 0.022013860578883104 over baseline.",
+        "claim_type": "experiment",
+        "declared_artifact_paths": [
+          "artifact-001",
+          "artifact-002",
+          "artifact-003"
+        ],
+        "declared_metric_values": {
+          "Accuracy": 0.5907052588666939
+        },
+        "linked_experiment_evidence": {
+          "aggregate_metrics": {
+            "Accuracy": 0.5907052588666939
+          },
+          "artifacts": [
+            "artifact-001",
+            "artifact-002",
+            "artifact-003"
+          ],
+          "improvement": 0.022013860578883104,
+          "is_baseline": false,
+          "isolation_verified": true,
+          "metric_stddev": {
+            "Accuracy": 0.0
+          },
+          "run_id": "run-20260718T045538Z-7e3fff7d",
+          "valid": true,
+          "verdict": "candidate_improves"
+        },
+        "linked_experiment_run_id": "run-20260718T045538Z-7e3fff7d",
+        "linked_source_ids": [],
+        "linked_source_records": []
+      }
+    },
+    {
+      "audit_id": "audit-9925a7b8a38a276a",
+      "claim_type": "experiment",
+      "claim_text": "The allowed non-baseline run achieved Accuracy 0.6249490419894007, improving on the verified baseline Accuracy 0.5686913982878108 by 0.05625764370158992.",
+      "linked_evidence": {
+        "claim_id": "claim-1",
+        "claim_text": "The allowed non-baseline run achieved Accuracy 0.6249490419894007, improving on the verified baseline Accuracy 0.5686913982878108 by 0.05625764370158992.",
+        "claim_type": "experiment",
+        "declared_artifact_paths": [
+          "artifact-001",
+          "artifact-002",
+          "artifact-003"
+        ],
+        "declared_metric_values": {
+          "Accuracy": 0.6249490419894007
+        },
+        "linked_experiment_evidence": {
+          "aggregate_metrics": {
+            "Accuracy": 0.6249490419894007
+          },
+          "artifacts": [
+            "artifact-001",
+            "artifact-002",
+            "artifact-003"
+          ],
+          "improvement": 0.05625764370158992,
+          "is_baseline": false,
+          "isolation_verified": true,
+          "metric_stddev": {
+            "Accuracy": 0.0
+          },
+          "run_id": "run-20260718T060515Z-e34e0f23",
+          "valid": true,
+          "verdict": "candidate_improves"
+        },
+        "linked_experiment_run_id": "run-20260718T060515Z-e34e0f23",
+        "linked_source_ids": [],
+        "linked_source_records": []
+      }
+    },
+    {
+      "audit_id": "audit-a5bb4cf9eca5f9ef",
+      "claim_type": "experiment",
+      "claim_text": "The best candidate run did not reach the task target score of 0.905, ending at Accuracy 0.6147574398695475.",
+      "linked_evidence": {
+        "claim_id": "claim-02",
+        "claim_text": "The best candidate run did not reach the task target score of 0.905, ending at Accuracy 0.6147574398695475.",
+        "claim_type": "experiment",
+        "declared_artifact_paths": [
+          "artifact-001",
+          "artifact-002",
+          "artifact-003"
+        ],
+        "declared_metric_values": {
+          "Accuracy": 0.6147574398695475
+        },
+        "linked_experiment_evidence": {
+          "aggregate_metrics": {
+            "Accuracy": 0.6147574398695475
+          },
+          "artifacts": [
+            "artifact-001",
+            "artifact-002",
+            "artifact-003"
+          ],
+          "improvement": 0.04606604158173666,
+          "is_baseline": false,
+          "isolation_verified": true,
+          "metric_stddev": {
+            "Accuracy": 0.0
+          },
+          "run_id": "run-20260718T050731Z-47f2a29c",
+          "valid": true,
+          "verdict": "candidate_improves"
+        },
+        "linked_experiment_run_id": "run-20260718T050731Z-47f2a29c",
+        "linked_source_ids": [],
+        "linked_source_records": []
+      }
+    },
+    {
+      "audit_id": "audit-a842b1d98c582e0b",
+      "claim_type": "experiment",
+      "claim_text": "The candidate run's Accuracy of 0.5907052588666939 remained below the task target score of 0.905.",
+      "linked_evidence": {
+        "claim_id": "claim-2",
+        "claim_text": "The candidate run's Accuracy of 0.5907052588666939 remained below the task target score of 0.905.",
+        "claim_type": "experiment",
+        "declared_artifact_paths": [
+          "artifact-001",
+          "artifact-002",
+          "artifact-003"
+        ],
+        "declared_metric_values": {
+          "Accuracy": 0.5907052588666939
+        },
+        "linked_experiment_evidence": {
+          "aggregate_metrics": {
+            "Accuracy": 0.5907052588666939
+          },
+          "artifacts": [
+            "artifact-001",
+            "artifact-002",
+            "artifact-003"
+          ],
+          "improvement": 0.022013860578883104,
+          "is_baseline": false,
+          "isolation_verified": true,
+          "metric_stddev": {
+            "Accuracy": 0.0
+          },
+          "run_id": "run-20260718T045538Z-7e3fff7d",
+          "valid": true,
+          "verdict": "candidate_improves"
+        },
+        "linked_experiment_run_id": "run-20260718T045538Z-7e3fff7d",
+        "linked_source_ids": [],
+        "linked_source_records": []
+      }
+    },
+    {
+      "audit_id": "audit-b777c25c1053557a",
+      "claim_type": "experiment",
+      "claim_text": "The evaluated non-baseline candidate run achieved Accuracy 0.36538461538461536 and had reported improvement -0.2692307692307692.",
+      "linked_evidence": {
+        "claim_id": "claim-02",
+        "claim_text": "The evaluated non-baseline candidate run achieved Accuracy 0.36538461538461536 and had reported improvement -0.2692307692307692.",
+        "claim_type": "experiment",
+        "declared_artifact_paths": [
+          "artifact-001",
+          "artifact-002",
+          "artifact-003"
+        ],
+        "declared_metric_values": {
+          "Accuracy": 0.36538461538461536
+        },
+        "linked_experiment_evidence": {
+          "aggregate_metrics": {
+            "Accuracy": 0.36538461538461536
+          },
+          "artifacts": [
+            "artifact-001",
+            "artifact-002",
+            "artifact-003"
+          ],
+          "improvement": -0.2692307692307692,
+          "is_baseline": false,
+          "isolation_verified": true,
+          "metric_stddev": {
+            "Accuracy": 0.0
+          },
+          "run_id": "run-20260718T052217Z-e3f6b0d5",
+          "valid": true,
+          "verdict": "valid_non_improving"
+        },
+        "linked_experiment_run_id": "run-20260718T052217Z-e3f6b0d5",
+        "linked_source_ids": [],
+        "linked_source_records": []
+      }
+    },
+    {
+      "audit_id": "audit-ccc8eaf57d0ef832",
+      "claim_type": "experiment",
+      "claim_text": "The verified baseline run achieved Accuracy 0.6346153846153846 on this task.",
+      "linked_evidence": {
+        "claim_id": "claim-01",
+        "claim_text": "The verified baseline run achieved Accuracy 0.6346153846153846 on this task.",
+        "claim_type": "experiment",
+        "declared_artifact_paths": [
+          "artifact-001",
+          "artifact-002",
+          "artifact-003"
+        ],
+        "declared_metric_values": {
+          "Accuracy": 0.6346153846153846
+        },
+        "linked_experiment_evidence": {
+          "aggregate_metrics": {
+            "Accuracy": 0.6346153846153846
+          },
+          "artifacts": [
+            "artifact-001",
+            "artifact-002",
+            "artifact-003"
+          ],
+          "improvement": null,
+          "is_baseline": true,
+          "isolation_verified": true,
+          "metric_stddev": {
+            "Accuracy": 0.0
+          },
+          "run_id": "baseline-20260718T052114Z-d5b39fcd",
+          "valid": true,
+          "verdict": "baseline_verified"
+        },
+        "linked_experiment_run_id": "baseline-20260718T052114Z-d5b39fcd",
+        "linked_source_ids": [],
+        "linked_source_records": []
+      }
+    },
+    {
+      "audit_id": "audit-e54c7ba2b8fade99",
+      "claim_type": "experiment",
+      "claim_text": "The only valid non-baseline run had verdict valid_non_improving and achieved SpearmanCorrelation 0.5160162351235488.",
+      "linked_evidence": {
+        "claim_id": "claim-2",
+        "claim_text": "The only valid non-baseline run had verdict valid_non_improving and achieved SpearmanCorrelation 0.5160162351235488.",
+        "claim_type": "experiment",
+        "declared_artifact_paths": [
+          "artifact-001",
+          "artifact-002",
+          "artifact-003"
+        ],
+        "declared_metric_values": {
+          "SpearmanCorrelation": 0.5160162351235488
+        },
+        "linked_experiment_evidence": {
+          "aggregate_metrics": {
+            "SpearmanCorrelation": 0.5160162351235488
+          },
+          "artifacts": [
+            "artifact-001",
+            "artifact-002",
+            "artifact-003"
+          ],
+          "improvement": -0.05970241220323658,
+          "is_baseline": false,
+          "isolation_verified": true,
+          "metric_stddev": {
+            "SpearmanCorrelation": 0.0
+          },
+          "run_id": "run-20260718T051626Z-e474ff7c",
+          "valid": true,
+          "verdict": "valid_non_improving"
+        },
+        "linked_experiment_run_id": "run-20260718T051626Z-e474ff7c",
+        "linked_source_ids": [],
+        "linked_source_records": []
+      }
+    },
+    {
+      "audit_id": "audit-ef7fb255e184a7de",
+      "claim_type": "experiment",
+      "claim_text": "On seed 2 of textualclassificationsickaccuracy, run-20260718T050731Z-47f2a29c achieved Accuracy 0.6147574398695475, which was 0.04606604158173666 above the registered baseline.",
+      "linked_evidence": {
+        "claim_id": "claim-01",
+        "claim_text": "On seed 2 of textualclassificationsickaccuracy, run-20260718T050731Z-47f2a29c achieved Accuracy 0.6147574398695475, which was 0.04606604158173666 above the registered baseline.",
+        "claim_type": "experiment",
+        "declared_artifact_paths": [
+          "artifact-001",
+          "artifact-002",
+          "artifact-003"
+        ],
+        "declared_metric_values": {
+          "Accuracy": 0.6147574398695475
+        },
+        "linked_experiment_evidence": {
+          "aggregate_metrics": {
+            "Accuracy": 0.6147574398695475
+          },
+          "artifacts": [
+            "artifact-001",
+            "artifact-002",
+            "artifact-003"
+          ],
+          "improvement": 0.04606604158173666,
+          "is_baseline": false,
+          "isolation_verified": true,
+          "metric_stddev": {
+            "Accuracy": 0.0
+          },
+          "run_id": "run-20260718T050731Z-47f2a29c",
+          "valid": true,
+          "verdict": "candidate_improves"
+        },
+        "linked_experiment_run_id": "run-20260718T050731Z-47f2a29c",
+        "linked_source_ids": [],
+        "linked_source_records": []
+      }
+    }
+  ]
+}

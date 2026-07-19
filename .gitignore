@@ -1,0 +1,71 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+.private/
+*.pem
+*.pfx
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# JavaScript
+node_modules/
+.npm-cache/
+.vite/
+research-forge-ui/dist/
+
+# Research Forge local state and generated artifacts
+.cache/
+.rfab/
+workspaces/
+benchmark_runs/
+bundle_runs/
+four_stage_runs/
+idea_runs/
+overnight_runs/
+stage1_runs/*
+!stage1_runs/research-agent-evidence-v2/
+!stage1_runs/research-agent-evidence-v2/**
+output/*
+!output/pdf/
+output/pdf/*
+!output/pdf/research-agent-evidence-v3-paper-en.tex
+!output/pdf/research-agent-evidence-v4-paper-en.tex
+dist/
+build/
+tmp/
+
+# Imported benchmark datasets may be very large. Keep only the three frozen
+# AIRS-lite packs required by the reproducible test and ablation contracts.
+benchmarks/*
+!benchmarks/airs/
+benchmarks/airs/*
+!benchmarks/airs/coreferenceresolutionsupergluewscaccuracy/
+!benchmarks/airs/coreferenceresolutionsupergluewscaccuracy/**
+!benchmarks/airs/textualclassificationsickaccuracy/
+!benchmarks/airs/textualclassificationsickaccuracy/**
+!benchmarks/airs/textualsimilaritysickspearmancorrelation/
+!benchmarks/airs/textualsimilaritysickspearmancorrelation/**
+
+# Local QA captures
+research-forge-ui/qa-*.png
+research-forge-ui/qa-*.jpg
+research-forge-ui/audit-visualization/
+
+# Runtime residue
+*.db
+*.sqlite
+*.log
+
+# Editors and operating systems
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

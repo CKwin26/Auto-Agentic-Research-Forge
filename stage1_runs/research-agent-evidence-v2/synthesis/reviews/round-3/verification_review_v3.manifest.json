@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "review_date": "2026-07-18",
+  "decision": "major_revision",
+  "developmental_review_status": "ready_for_external_human_review",
+  "human_validation_status": "deferred_not_completed",
+  "primary_analysis_interpretable": false,
+  "review_report": {
+    "path": "synthesis/reviews/round-3/verification_review_v3.md",
+    "sha256": "dbfc306b493ae954a3ed80d429dee29d9e11ede77104b503b408ecce674d58ad"
+  },
+  "manuscripts": {
+    "english_pdf": {
+      "path": "output/pdf/research-agent-evidence-v3-paper-en.pdf",
+      "sha256": "ed2b32cf3a49be1521da38fdc3147c0b943846c95bf36cfc07aeccc75908a2c3"
+    },
+    "chinese_pdf": {
+      "path": "output/pdf/research-agent-evidence-v3-paper-zh.pdf",
+      "sha256": "875a244a3044759a36542d677cf0862066db95fc551c7dffb689050a486baace"
+    }
+  },
+  "nuwa": {
+    "ensemble_label": "same-model persona ensemble",
+    "initial_packet_sha256": "6dd333f8a9daf89d0e7ea2f9a766a027e509699fb8fd32faf24cfa5a904e20f7",
+    "evidence_complete_packet_sha256": "f05349a3ceab1a73fb684ef83f94bda59e13acd74d90e9a14836dbdaad8c30cf",
+    "evidence_complete_result_sha256": "9afeefcee3d3b331ea1e0f225e152b0a634cde6d16d1f7cb43ebffadd1d44658",
+    "supported_claims": 5,
+    "unsupported_claims": 1,
+    "human_adjudication_queue": [
+      "rr3-claim-02"
+    ]
+  },
+  "verification": {
+    "tests_passed": 86,
+    "rebranch_audit_passed": "12/12",
+    "fallacy_scan_passed": "11/11",
+    "english_citations": "18/18",
+    "chinese_citations": "14/14"
+  }
+}

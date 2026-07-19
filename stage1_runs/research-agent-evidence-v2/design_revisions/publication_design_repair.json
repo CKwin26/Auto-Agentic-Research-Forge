@@ -1,0 +1,145 @@
+{
+  "contract_id": "pubtarget-e697c2afa2709ca4",
+  "failure_fingerprint": "pubfail-3786930890c17d72",
+  "generated_at": "2026-07-18T17:32:18.178582+00:00",
+  "historical_artifacts_immutable": true,
+  "manuscript_sha256": "63db710117a6e3354076fd55bbe3048b9addc2deff5b5d10a39bd18539364df5",
+  "repair_principle": "科学硬门失败必须修订最早可预防阶段的系统合同和回归测试，不能只润色当前论文。",
+  "repairs": [
+    {
+      "applicability": "新建实验和基于本项目启动的下一版协议；历史冻结协议与结果保持不可变。",
+      "earliest_repair_stage": "stage_1_discovery",
+      "enforcement_points": [
+        "ResearchPlanDraft.metrics",
+        "root_cause_preflight.analyze_root_causes",
+        "study.freeze_stage2_protocol"
+      ],
+      "enforcement_stage": "stage_2_protocol",
+      "regression_tests": [
+        "仅 unsupported_claim_rate 必须失败",
+        "加入 semantic_change 与 informativeness 指标后构念检查通过"
+      ],
+      "repair_id": "repair-5cdb0f34200c",
+      "required_rule_change": "质量/可靠性研究若缺少支持性与信息性双轨构念，计划或协议不得进入 publication 路线。",
+      "root_cause": "科学构念覆盖得分 0.30，低于硬下限 0.55。 代理指标没有完整测量信息性和科学用途。",
+      "source_codes": [
+        "RC-CONSTRUCT-UNDERCOVERAGE",
+        "READINESS-CONSTRUCT-COVERAGE-BELOW-HARD-MINIMUM"
+      ],
+      "status": "active_for_future_runs",
+      "system_gap": "计划批准时只冻结支持性代理指标，没有冻结信息性、删除/保留和语义变化。"
+    },
+    {
+      "applicability": "新建实验和基于本项目启动的下一版协议；历史冻结协议与结果保持不可变。",
+      "earliest_repair_stage": "stage_2_protocol",
+      "enforcement_points": [
+        "study_models.Stage2Protocol",
+        "root_cause_preflight.analyze_root_causes",
+        "study.freeze_stage2_protocol"
+      ],
+      "enforcement_stage": "stage_2_protocol",
+      "regression_tests": [
+        "baseline-then-treatment 整块顺序必须失败",
+        "共享 artifact 加随机分支顺序必须通过识别检查"
+      ],
+      "repair_id": "repair-4bd7ed50f4ed",
+      "required_rule_change": "publication 目标的下游干预比较必须声明内容寻址的共享 artifact 分支；否则冻结失败。",
+      "root_cause": "原始两组没有隔离同一实验产物上的反事实效应。 方法与因果识别得分 0.17，低于硬下限 0.55。",
+      "source_codes": [
+        "RC-COUNTERFACTUAL-NONISOLATION",
+        "READINESS-SCIENTIFIC-IDENTIFICATION-BELOW-HARD-MINIMUM"
+      ],
+      "status": "active_for_future_runs",
+      "system_gap": "协议把独立随机运行误当成配对反事实，没有冻结同一上游 artifact 的分支点与顺序随机化。"
+    },
+    {
+      "applicability": "新建实验和基于本项目启动的下一版协议；历史冻结协议与结果保持不可变。",
+      "earliest_repair_stage": "stage_4_synthesis",
+      "enforcement_points": [
+        "root_cause_preflight",
+        "publication_readiness",
+        "review routing"
+      ],
+      "enforcement_stage": "stage_4_synthesis",
+      "regression_tests": [
+        "延期人审时 publication_submission_ready 必须为 false",
+        "persona panel 不得改变人工验证字段"
+      ],
+      "repair_id": "repair-052787ae61f0",
+      "required_rule_change": "primary_analysis_interpretable=false 时只能进入 developmental review；投稿证书必须拒发。",
+      "root_cause": "当前证据仍是临时性 pilot，而投稿需要可解释的验证结果。",
+      "source_codes": [
+        "RC-MATURITY-TARGET-MISMATCH"
+      ],
+      "status": "deferred_external_validation",
+      "system_gap": "流程完成状态曾可能被误解为 publication 审批资格。"
+    },
+    {
+      "applicability": "新建实验和基于本项目启动的下一版协议；历史冻结协议与结果保持不可变。",
+      "earliest_repair_stage": "stage_2_protocol",
+      "enforcement_points": [
+        "root_cause_preflight.analyze_root_causes",
+        "study.freeze_stage2_protocol"
+      ],
+      "enforcement_stage": "stage_2_protocol",
+      "regression_tests": [
+        "同源且无校准必须阻断下一版 Stage 2 freeze",
+        "跨家族评估器也必须提供校准证据而非仅换模型名"
+      ],
+      "repair_id": "repair-973cda589e37",
+      "required_rule_change": "publication 目标的协议只要仍存在同源测量且无冻结校准，就必须在执行前失败。",
+      "root_cause": "生成器、干预和主评估器没有完成独立校准。 独立测量与校准得分 0.35，低于硬下限 0.60。",
+      "source_codes": [
+        "RC-MEASUREMENT-CIRCULARITY",
+        "READINESS-INDEPENDENT-VALIDATION-BELOW-HARD-MINIMUM"
+      ],
+      "status": "active_for_future_runs",
+      "system_gap": "协议冻结允许生成器、干预器和主评估器同源，却没有独立校准合同。"
+    },
+    {
+      "applicability": "新建实验和基于本项目启动的下一版协议；历史冻结协议与结果保持不可变。",
+      "earliest_repair_stage": "stage_2_protocol",
+      "enforcement_points": [
+        "publication target contract",
+        "study.freeze_stage2_protocol"
+      ],
+      "enforcement_stage": "stage_2_protocol",
+      "regression_tests": [
+        "3 tasks x 3 seeds 在激活修复单后必须失败",
+        "8 tasks x 5 seeds 应满足默认广度合同"
+      ],
+      "repair_id": "repair-a7487fc44a87",
+      "required_rule_change": "publication 修复版协议在冻结前至少声明 8 个异质任务和每任务 5 个种子，或记录有依据的等效功效方案。",
+      "root_cause": "证据广度与稳定性得分 0.53，低于硬下限 0.55。",
+      "source_codes": [
+        "READINESS-EVIDENCE-BREADTH-BELOW-HARD-MINIMUM"
+      ],
+      "status": "active_for_future_runs",
+      "system_gap": "计划允许少量任务和种子完成 pipeline，却没有按投稿目标反推证据广度下限。"
+    },
+    {
+      "applicability": "新建实验和基于本项目启动的下一版协议；历史冻结协议与结果保持不可变。",
+      "earliest_repair_stage": "stage_1_discovery",
+      "enforcement_points": [
+        "Stage 1 literature refresh",
+        "study.freeze_stage2_protocol"
+      ],
+      "enforcement_stage": "stage_2_protocol",
+      "regression_tests": [
+        "激活 novelty 修复且缺 refresh artifact 时冻结失败",
+        "有效 refresh artifact 必须绑定来源与生成时间"
+      ],
+      "repair_id": "repair-c83614b6539a",
+      "required_rule_change": "进入修复版 Stage 2 前必须存在独立的 novelty_refresh.json，绑定检索式、筛选账本和贡献矩阵。",
+      "root_cause": "新颖性与领域定位得分 0.44，低于硬下限 0.50。",
+      "source_codes": [
+        "READINESS-NOVELTY-POSITIONING-BELOW-HARD-MINIMUM"
+      ],
+      "status": "active_for_future_runs",
+      "system_gap": "冻结实验文献包曾同时承担投稿定位，缺少投稿前独立 contextual refresh。"
+    }
+  ],
+  "repeated_failure_policy": "同一 failure fingerprint 再次出现时，系统必须审计上次修复的执行点和回归测试；不得把同一建议换一种文字后再次关闭问题。",
+  "schema_version": 1,
+  "scientific_gate_failed": true
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "女娲科学家审稿委员会"
+  short_description: "用隔离科学人格审核证据、实验、统计和新颖性"
+  default_prompt: "Use $nuwa-scientist-panel to run a blinded scientist-persona review with deterministic aggregation."

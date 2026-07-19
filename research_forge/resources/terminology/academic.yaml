@@ -1,0 +1,109 @@
+schema_version: 1
+pack_id: academic-writing-zh-cn
+language: zh-CN
+version: "1.0.0"
+terms:
+  - term_id: academic-abstract
+    english: abstract
+    chinese: 摘要
+    sense: 论文中概括研究背景、方法、结果与意义的摘要部分
+    domain: academic-writing
+    aliases: []
+    discouraged: []
+    context_keywords: [paper, manuscript, study, keywords, introduction]
+    first_use: chinese_only
+    preserve_english: false
+    source: Research Forge curated academic-writing termbase
+    version: "1.0.0"
+    status: approved
+  - term_id: academic-claim
+    english: claim
+    chinese: 论断
+    sense: 需要由文献或实验结果支持的可核查陈述
+    domain: academic-writing
+    aliases: [claims]
+    discouraged: [主张]
+    context_keywords: [evidence, support, citation, conclusion, statement, registry]
+    first_use: chinese_english
+    preserve_english: false
+    source: Research Forge curated evidence-writing termbase
+    version: "1.0.0"
+    status: approved
+  - term_id: academic-evidence-provenance
+    english: evidence provenance
+    chinese: 证据溯源
+    sense: 记录研究证据来源、处理过程与产物绑定关系的机制
+    domain: academic-writing
+    aliases: [provenance]
+    discouraged: [证据出处追踪]
+    context_keywords: [artifact, source, traceability, registry, audit]
+    first_use: chinese_english
+    preserve_english: false
+    source: Research Forge curated evidence-writing termbase
+    version: "1.0.0"
+    status: approved
+  - term_id: academic-paired-ablation
+    english: paired ablation
+    chinese: 配对消融研究
+    sense: 在配对实验单元中比较有无目标组件的消融设计
+    domain: experimental-methods
+    aliases: [paired ablation study, paired ablation experiment]
+    discouraged: [成对消融]
+    context_keywords: [baseline, treatment, seed, task, effect]
+    first_use: chinese_english
+    preserve_english: false
+    source: Research Forge curated experimental-methods termbase
+    version: "1.0.0"
+    status: approved
+  - term_id: academic-hierarchical-bootstrap
+    english: hierarchical bootstrap
+    chinese: 层级自助法
+    sense: 按数据层级进行有放回重采样的区间估计方法
+    domain: statistics
+    aliases: [hierarchical bootstrap resampling]
+    discouraged: [层级 bootstrap]
+    context_keywords: [resample, interval, confidence, task, seed]
+    first_use: chinese_english
+    preserve_english: false
+    source: Research Forge curated statistical termbase
+    version: "1.0.0"
+    status: approved
+  - term_id: academic-arm
+    english: arm
+    chinese: 实验组
+    sense: 对照实验或干预研究中的一个比较组别
+    domain: experimental-methods
+    aliases: [arms]
+    discouraged: [实验臂]
+    context_keywords: [baseline, treatment, experiment, study, comparison, group]
+    first_use: chinese_english
+    preserve_english: false
+    source: Research Forge curated experimental-methods termbase
+    version: "1.0.0"
+    status: approved
+  - term_id: academic-baseline-arm
+    english: baseline arm
+    chinese: 基线组
+    sense: 不包含目标干预或组件的对照实验组
+    domain: experimental-methods
+    aliases: [baseline group]
+    discouraged: [基线臂]
+    context_keywords: [control, treatment, paired, experiment]
+    first_use: chinese_english
+    preserve_english: false
+    source: Research Forge curated experimental-methods termbase
+    version: "1.0.0"
+    status: approved
+  - term_id: academic-treatment-arm
+    english: treatment arm
+    chinese: 干预组
+    sense: 包含待评估干预或组件的实验组
+    domain: experimental-methods
+    aliases: [treatment group, gated arm]
+    discouraged: [处理组, 治疗臂]
+    context_keywords: [baseline, gate, intervention, paired, experiment]
+    first_use: chinese_english
+    preserve_english: false
+    source: Research Forge curated experimental-methods termbase
+    version: "1.0.0"
+    status: approved

@@ -1,0 +1,41 @@
+{
+  "judgments": [
+    {
+      "claim_id": "claim-1",
+      "rationale": "The linked run evidence directly gives the non-baseline Accuracy (0.6249490419894007) and an improvement value (0.05625764370158992), but it does not directly provide the claimed verified baseline Accuracy of 0.5686913982878108. That exact comparison therefore overstates the bounded evidence.",
+      "supporting_source_ids": [],
+      "verdict": "unsupported"
+    },
+    {
+      "claim_id": "claim-2",
+      "rationale": "The linked experiment evidence identifies run-20260718T060515Z-e34e0f23 as a valid non-baseline run and reports aggregate Accuracy exactly 0.6249490419894007.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-3",
+      "rationale": "The packet includes end-to-end research-agent systems (EvoScientist; Autonomous Research Loops) and also separate evidence-grounding or claim-verification systems (RefLens; CliVER; ECE).",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7"
+      ],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-4",
+      "rationale": "Across the bounded records, the notes describe agent research pipelines, citation/claim verification systems, evaluator accuracy or coverage results, and search strategies, but none establishes a controlled same-backbone ablation where adding a claim-level evidence gate reduces unsupported claims versus the same backbone without that gate.",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "verdict": "supported"
+    }
+  ]
+}

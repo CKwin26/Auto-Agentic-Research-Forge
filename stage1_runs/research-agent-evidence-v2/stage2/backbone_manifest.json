@@ -1,0 +1,135 @@
+{
+  "backend": "codex",
+  "candidate_pool_size": 1,
+  "codex_account_type": "chatgpt",
+  "codex_plan_type": "pro",
+  "codex_sdk_version": "0.1.0b3",
+  "controller_hashes": {
+    "agent_runtime.py": "7520cd37c8cf6ced901ae4a8db2a7b2d08fc7f0f9c124f45a14f59d19965b527",
+    "benchmark.py": "75f81ff9da2de01606e222cf5946c0bdd453b0819b3ae5a9461fe6bea9d6fba0",
+    "benchmark_models.py": "7c78ed6fade82830881fd751aa37bf1534ebad8a605f6bde5a2b31d34c2c1818",
+    "contracts.py": "4e1c114a8c5eafd67e677f1c6c3c12c6a775dec4791c925531ee9f7ca8d2d102",
+    "models.py": "a1c3aedeb2847c7dd7fd2d0d3344aaf2aed9fd5f6cb93d9b42ee4daba0fb9ff5",
+    "research_loop.py": "72fa9cd733998168d9cfc7f1b7ee0c93b4fcb4a511d7bdccef179ff778c2a814",
+    "runner.py": "4b8cb51d85c62e180d19f29d49012fcad287eccc7431e09c7b5711b0b0f9f7b2",
+    "runtime.py": "8a29f2418eb3f98627dad98360cfe493d7c6c791a7fada1e4e1fb047003861da",
+    "service.py": "ea93b28b9f8beb9fc51f6da7428e48850dfc9cd008b1809e3e92adf4d345feb9",
+    "storage.py": "890f3dbcf371a2b85aeef0b012f54e2d6d3812bd1720f28c25c1a2a26fa4a78b"
+  },
+  "controller_run_root": "C:\\Users\\austa\\.research-forge-study\\565ea1b0ec96-r4",
+  "created_at": "2026-07-18T04:48:42.429233+00:00",
+  "deduplicate_candidates": true,
+  "failure_diagnosis": true,
+  "max_invalid_runs": 1,
+  "model": "codex:gpt-5.4",
+  "patience": 1,
+  "plan_hash": "565ea1b0ec96d613cef3d64b25a65a3ae38c3d7259a0eef761710392f3d664ad",
+  "plan_id": "plan-2026-07-17T165102.797670+0000-58ebcd",
+  "prompt_hashes": {
+    "experimenter.md": "cbae1a60ab46740fd762ba10095bcb0795d2f9056196b60919c6664631c6453b",
+    "study_claim_verifier.md": "05fe1c9c4cf63e3e8e602ae8704762a6701238b7cac6275a4e0c6fb0102a085e",
+    "study_finalizer.md": "658bd4e41f45b9ea7b43fc5632f596f65b528a3997087dcc0a76b8226586c4f9",
+    "study_gate_reviser.md": "fef9fb5886e46d67905b1f4028fe4d49150d0674418e251192644c87243e2d5b",
+    "study_gate_verifier.md": "abc10395021ff0e39f2261e42662eac83e54ddad11eea98bce3abb58e758ff2f"
+  },
+  "proposal_attempts_per_iteration": 2,
+  "review_hash": "6fee6151ef50902cc4eeeee3eaf0a8ee4f54657390ac4d8fe9f8e8a72f879504",
+  "review_id": "review-2026-07-17T153937.084280+0000-3d8078",
+  "runtime": {
+    "candidate_evaluator_separated": true,
+    "capabilities": {
+      "actual_python": "3.12.13",
+      "capabilities": [
+        "numpy-array-computing",
+        "scipy-scientific-computing",
+        "pandas-tabular-data",
+        "scikit-learn-classical-ml",
+        "scikit-learn-text-classification"
+      ],
+      "controlled": true,
+      "dependency_policy": "wheel hashes and versions are frozen; runtime package installation is disabled",
+      "environment": "rf-airs-cpu",
+      "errors": [],
+      "installed_packages": {
+        "joblib": "1.5.3",
+        "narwhals": "2.24.0",
+        "numpy": "2.5.1",
+        "pandas": "3.0.3",
+        "python-dateutil": "2.9.0.post0",
+        "scikit-learn": "1.9.0",
+        "scipy": "1.18.0",
+        "six": "1.17.0",
+        "threadpoolctl": "3.6.0",
+        "tzdata": "2026.3"
+      },
+      "network_policy": "disabled by the Research Forge Docker runtime",
+      "packages": {
+        "joblib": "1.5.3",
+        "narwhals": "2.24.0",
+        "numpy": "2.5.1",
+        "pandas": "3.0.3",
+        "python-dateutil": "2.9.0.post0",
+        "scikit-learn": "1.9.0",
+        "scipy": "1.18.0",
+        "six": "1.17.0",
+        "threadpoolctl": "3.6.0",
+        "tzdata": "2026.3"
+      },
+      "platform": "linux/amd64",
+      "python": "3.12",
+      "schema_version": 1,
+      "status": "ok",
+      "verified": true,
+      "version": "v1"
+    },
+    "capabilities_dropped": true,
+    "capability_verified": true,
+    "controlled_environment": true,
+    "image": "rf-airs-cpu:v1",
+    "image_id": "sha256:ed0c4ef7a59bc0587c92b69ef994b1873d0fa9eb84c01ec8ce4f8bb5b126812d",
+    "limits": {
+      "cpus": 1.0,
+      "image": "rf-airs-cpu:v1",
+      "kind": "docker",
+      "max_output_mb": 256,
+      "memory_mb": 2048,
+      "pids_limit": 256,
+      "tmpfs_mb": 512
+    },
+    "network": "none",
+    "no_new_privileges": true,
+    "read_only_rootfs": true,
+    "runtime": "docker"
+  },
+  "schema_version": 1,
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "selected_novelty_id": "novelty-02",
+  "source_hashes": {
+    "paper-2a1fa8b99c181771": "f41de67d733d3119b62be8364ca030cca31a3bde6fbaaddf7d00b600dd1db8c7",
+    "paper-2a7771f1bcf8adb2": "abfca43cb222345dc021de740ff0ab4d0a701698856b0e1ef5879a91833e4c11",
+    "paper-35ad838f0ac171a7": "8eda51f2cfc578ee3d884424558dcd1f00f5e2679a924fd914004e462dd18535",
+    "paper-3b6399a19264a862": "c695edbbacbf6293922952e3b16ae8487dc4ec6a0544811f48958476626b44b4",
+    "paper-49947e5b991037d5": "f08d108dfc01dd69e10d691941b7fbbebf533795b5d886353cf41eafaa91699e",
+    "paper-69c6e5faa8ef37c2": "c8b2d74c529ced5818c65eba7958569ca1191cf74ec9965cbc728c7021fe3e29",
+    "paper-6c621b0f059e2d3d": "a6a34aa4de110031e561acf23405371c27bc3fd0748e697e62fdb71acd17a91b",
+    "paper-8259991dea6aaecd": "33ebf54fec1f1e721838684ffbd7318a10f9b57f7e3170e8861f4218e606775f",
+    "paper-879e6a747eb8ceb6": "4b2bfd97f4fe92f12a66618c9c9d13c34a91ff194323c270654c64ae44549000",
+    "paper-96217ebf4f10bd68": "38352e1a51780f340f1575067aede8de1796c3dac6f9e034951e6ea0c69923e7",
+    "paper-965b07ca55b0b420": "8665f42d28d97a967d18752d4cd1101f096915e9668f810ed8c1f4ab265186b4",
+    "paper-e48872d23c4d9e23": "0834f619fe51d5c27e0512545bdc7990ab7b4c5310b59138cab33949e57450ae"
+  },
+  "task_hashes": {
+    "coreferenceresolutionsupergluewscaccuracy": "8f1da7e60e1255c84e3ef31f5210c24346aa6cf19278119d13b3426e32707833",
+    "textualclassificationsickaccuracy": "ed87279abc02604b3dcce259eeef6f18143cdc6050abf7b71d4b41c5f0fe2f4e",
+    "textualsimilaritysickspearmancorrelation": "04b675a96546deeca71bda6b8741b681d747c98abb2c9c284c39c73185ff6504"
+  },
+  "task_order": [
+    "textualclassificationsickaccuracy",
+    "textualsimilaritysickspearmancorrelation",
+    "coreferenceresolutionsupergluewscaccuracy"
+  ]
+}

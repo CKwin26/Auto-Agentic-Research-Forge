@@ -1,0 +1,306 @@
+{
+  "created_at": "2026-07-17T15:21:46.559683+00:00",
+  "decisions": [
+    {
+      "candidate_id": "candidate-4344df6686c8c36b",
+      "concerns": [
+        "Metadata does not mention citation verification, evidence provenance, or manuscript drafting."
+      ],
+      "criteria_matches": [
+        "end-to-end scientific research agent",
+        "automates idea generation and experiment execution",
+        "explicit novelty evaluation against multiple baselines"
+      ],
+      "decision": "core",
+      "rationale": "The abstract explicitly frames EvoScientist as a multi-agent AI scientist for end-to-end scientific discovery, with idea generation, experiment implementation/execution, persistent memory, and evaluation against 7 state-of-the-art systems on novelty, feasibility, relevance, clarity, and code execution success."
+    },
+    {
+      "candidate_id": "candidate-04aa66d351749737",
+      "concerns": [
+        "Abstract does not specify manuscript drafting, experiment execution, or citation/provenance verification."
+      ],
+      "criteria_matches": [
+        "multi-stage scientific research workflow",
+        "automates literature search and result analysis",
+        "benchmark evaluation against existing baselines"
+      ],
+      "decision": "core",
+      "rationale": "This paper introduces an interactive multi-agent scientific investigation system with agents for planning, data analysis, literature search, and novelty detection, and it reports BixBench gains over existing baselines."
+    },
+    {
+      "candidate_id": "candidate-2dabd2f1e08f663f",
+      "concerns": [
+        "No experiment execution or manuscript drafting is described.",
+        "Not presented as an end-to-end autonomous research agent."
+      ],
+      "criteria_matches": [
+        "novelty evaluation in a scientific workflow",
+        "literature evidence retrieval and validation",
+        "multi-agent hypothesis generation and refinement"
+      ],
+      "decision": "supporting",
+      "rationale": "HypoAgents targets hypothesis generation, literature evidence validation, and iterative refinement using novelty-relevance-feasibility scoring and RAG evidence updates; this is relevant to novelty and claim-grounding components but not the full research lifecycle."
+    },
+    {
+      "candidate_id": "candidate-f3216537cd7d1caf",
+      "concerns": [
+        "Metadata does not report citation-verification or provenance benchmarks.",
+        "Venue/work_type metadata is somewhat ambiguous."
+      ],
+      "criteria_matches": [
+        "end-to-end scientific research agent",
+        "automates literature search, experimentation, analysis, and manuscript drafting",
+        "empirical evaluation with hallucination-related failure analysis"
+      ],
+      "decision": "core",
+      "rationale": "The abstract says the framework automates hypothesis generation, literature search, coding, experiment execution, results analysis, manuscript preparation, and peer-style review, and it explicitly reports hallucinated experimental details as a failure mode."
+    },
+    {
+      "candidate_id": "candidate-4505f2e7358eb198",
+      "concerns": [
+        "Query overlap appears superficial rather than topical."
+      ],
+      "criteria_matches": [],
+      "decision": "exclude",
+      "rationale": "This paper is about reviewer allocation in conference peer review, not AI/LLM scientific research agents, claim grounding, evidence provenance, or novelty assessment for research workflows."
+    },
+    {
+      "candidate_id": "candidate-6316e0332ff47fbe",
+      "concerns": [
+        "Abstract emphasizes user study outcomes rather than baseline comparison or hallucination-rate benchmarking."
+      ],
+      "criteria_matches": [
+        "citation verification in scientific literature",
+        "end-to-end evidence-grounded pipeline",
+        "evidence attribution/provenance display"
+      ],
+      "decision": "supporting",
+      "rationale": "RefLens is an end-to-end citation verification system for scientific papers, grounded in verbatim source spans and citation-level reporting, which directly fits evidence-grounded citation verification in scholarly workflows."
+    },
+    {
+      "candidate_id": "candidate-5b8e0eaad8c881d6",
+      "concerns": [
+        "Domain is enterprise governance rather than scientific research."
+      ],
+      "criteria_matches": [],
+      "decision": "exclude",
+      "rationale": "This article focuses on enterprise data stewardship and governance architectures, not scientific research agents or scholarly claim-evidence verification workflows."
+    },
+    {
+      "candidate_id": "candidate-6e3a484ffdcb331a",
+      "concerns": [
+        "Review article rather than direct technical system/evaluation.",
+        "Domain-specific materials-science scope."
+      ],
+      "criteria_matches": [],
+      "decision": "exclude",
+      "rationale": "This is a systematic review of LLM, RAG, and agent use in crystalline materials discovery rather than a direct research-agent system, citation-verification method, or benchmark central to the review question."
+    },
+    {
+      "candidate_id": "candidate-7a7ff8d02a63417e",
+      "concerns": [
+        "Limited to idea generation rather than end-to-end research workflow.",
+        "No citation/provenance or experiment-evidence verification is described."
+      ],
+      "criteria_matches": [
+        "novelty evaluation for scientific idea generation",
+        "literature or knowledge search to support idea generation",
+        "comparison against state-of-the-art methods"
+      ],
+      "decision": "supporting",
+      "rationale": "Nova improves novelty and diversity of LLM-generated research ideas through iterative planning and external knowledge search, with automated and human novelty evaluation; this is a useful novelty-assessment baseline but not a full research agent."
+    },
+    {
+      "candidate_id": "candidate-cab41d0d6d4c644f",
+      "concerns": [
+        "Not specific to scientific research workflows.",
+        "Venue is absent and work_type is posted-content."
+      ],
+      "criteria_matches": [
+        "claim grounding and evidence attribution evaluation",
+        "unsupported claim identification",
+        "benchmark against baseline methods"
+      ],
+      "decision": "supporting",
+      "rationale": "ECE evaluates whether generated claims are supported by retrieved evidence, including unsupported claim identification and citation quality assessment, and compares against baseline metrics; this is a transferable grounding benchmark for research-agent evaluation."
+    },
+    {
+      "candidate_id": "candidate-7a67c68d86f4ce89",
+      "concerns": [
+        "Venue is absent and work_type metadata is unusual.",
+        "Metadata does not specify citation-level grounding or provenance metrics."
+      ],
+      "criteria_matches": [
+        "end-to-end scientific research agent",
+        "automates literature synthesis, experimentation, and manuscript drafting",
+        "explicit verification loop and evaluation against baselines"
+      ],
+      "decision": "core",
+      "rationale": "ReasFlow is explicitly presented as an end-to-end autonomous scientific discovery agent covering literature synthesis, algorithm design, theorem proving, experimentation, and manuscript preparation, with an internal verification loop and baseline comparisons."
+    },
+    {
+      "candidate_id": "candidate-22774584d0d7e396",
+      "concerns": [
+        "Focus is on search strategies rather than full manuscript/citation workflows.",
+        "Venue/work_type are unspecified."
+      ],
+      "criteria_matches": [
+        "autonomous research agent evaluation",
+        "novelty assessment with explicit search baselines",
+        "analysis of fabricated or unsupported outputs"
+      ],
+      "decision": "core",
+      "rationale": "Heuresis directly evaluates autonomous AI research agents across quality, diversity, and novelty, and it reports detected fabrications during execution, making it highly relevant to novelty assessment and unsupported outputs in research agents."
+    },
+    {
+      "candidate_id": "candidate-466766cb685b7777",
+      "concerns": [
+        "Focus is publication-dynamics analysis rather than automated research workflows."
+      ],
+      "criteria_matches": [],
+      "decision": "exclude",
+      "rationale": "This study measures claim changes from preprint to publication, but it is not an AI research-agent system or a benchmark of citation grounding, provenance, or hallucination for scientific assistants."
+    },
+    {
+      "candidate_id": "candidate-9e4d34af3a3720b6",
+      "concerns": [
+        "Patent-search domain is not the target scientific workflow.",
+        "No AI/LLM research-agent component is described."
+      ],
+      "criteria_matches": [],
+      "decision": "exclude",
+      "rationale": "The paper addresses patent-dataset construction and prior-art search quality, which is outside the target scope of autonomous scientific research agents and scholarly claim-evidence verification."
+    },
+    {
+      "candidate_id": "candidate-e78514b168b615cb",
+      "concerns": [
+        "Scientific-research context is absent."
+      ],
+      "criteria_matches": [],
+      "decision": "exclude",
+      "rationale": "This is a general governance architecture for autonomous agents, not a scientific research workflow system or a paper on citation, claim verification, provenance, or novelty assessment in research."
+    },
+    {
+      "candidate_id": "candidate-c9d588e333fbec67",
+      "concerns": [
+        "Patent domain reduces transferability to the review question.",
+        "Venue is absent and work_type is posted-content."
+      ],
+      "criteria_matches": [],
+      "decision": "exclude",
+      "rationale": "Although it performs claim-aware retrieval and novelty assessment, the pipeline is centered on patent examination rather than scientific research assistants or scholarly claim-evidence workflows."
+    },
+    {
+      "candidate_id": "candidate-5475898599c1b168",
+      "concerns": [
+        "Conference abstract format limits evidence depth.",
+        "Appears closer to literature summarization or inference than verification."
+      ],
+      "criteria_matches": [],
+      "decision": "exclude",
+      "rationale": "This cancer-focused pipeline searches PubMed and summarizes abstracts to infer drug-gene relationships, but the supplied metadata does not show claim-evidence verification, provenance tracking, or a broader autonomous research workflow."
+    },
+    {
+      "candidate_id": "candidate-0c4f0def4a32a079",
+      "concerns": [
+        "Clinical decision support rather than a scientific research workflow.",
+        "Venue is absent and work_type is posted-content."
+      ],
+      "criteria_matches": [
+        "citation-grounded and evidence-traceable generation",
+        "benchmark for hallucination and unsupported conclusions",
+        "multi-stage agent workflow with retrieval and evaluation"
+      ],
+      "decision": "supporting",
+      "rationale": "MedAgent provides a structured evidence-retrieval and citation-grounded generation workflow, explicitly targets hallucinated citations and unsupported conclusions, and includes an independent evaluation benchmark; this is a strong methodological support paper despite the clinical domain."
+    },
+    {
+      "candidate_id": "candidate-92572f76f0a70e5e",
+      "concerns": [
+        "Commentary or history style rather than technical scholarship."
+      ],
+      "criteria_matches": [],
+      "decision": "exclude",
+      "rationale": "This is a historical overview of AI for scientific discovery rather than a direct technical system, benchmark, or empirical evaluation relevant to the review question."
+    },
+    {
+      "candidate_id": "candidate-ed4b1dd0f5307a34",
+      "concerns": [
+        "Title-only record with no abstract.",
+        "Unclear whether the method targets scientific research workflows."
+      ],
+      "criteria_matches": [],
+      "decision": "exclude",
+      "rationale": "The title suggests LLM-based claim verification, but no abstract or research-workflow context is supplied, so there is not enough evidence to include it conservatively."
+    },
+    {
+      "candidate_id": "candidate-8b3100f2892720de",
+      "concerns": [
+        "Acute-care biomarker domain rather than general research-agent setting.",
+        "No manuscript or citation-level provenance workflow is described."
+      ],
+      "criteria_matches": [
+        "multi-agent scientific discovery workflow",
+        "literature grounding and novelty assessment",
+        "benchmark against baselines with faithfulness metric"
+      ],
+      "decision": "supporting",
+      "rationale": "TriAgent combines quantitative data analysis with literature-grounded validation and novelty assessment for biomarker discovery, and reports faithfulness and baseline comparisons; it is a directly relevant domain-specific support system."
+    },
+    {
+      "candidate_id": "candidate-8f791fc76e67eddb",
+      "concerns": [
+        "Focused on claim verification rather than full autonomous research workflows."
+      ],
+      "criteria_matches": [
+        "scientific claim verification",
+        "end-to-end retrieval-augmented evidence pipeline",
+        "benchmark against datasets and human experts"
+      ],
+      "decision": "supporting",
+      "rationale": "CliVER is an end-to-end retrieval-augmented scientific claim verification system with sentence extraction, PICO-based reasoning, labeled datasets, and clinician comparison, making it a strong supporting benchmark for claim grounding."
+    }
+  ],
+  "discovery_id": "discovery-2026-07-17T151524.143318+0000-35e67c",
+  "evaluated_candidate_ids": [
+    "candidate-4344df6686c8c36b",
+    "candidate-04aa66d351749737",
+    "candidate-2dabd2f1e08f663f",
+    "candidate-f3216537cd7d1caf",
+    "candidate-4505f2e7358eb198",
+    "candidate-6316e0332ff47fbe",
+    "candidate-5b8e0eaad8c881d6",
+    "candidate-6e3a484ffdcb331a",
+    "candidate-7a7ff8d02a63417e",
+    "candidate-cab41d0d6d4c644f",
+    "candidate-7a67c68d86f4ce89",
+    "candidate-22774584d0d7e396",
+    "candidate-466766cb685b7777",
+    "candidate-9e4d34af3a3720b6",
+    "candidate-e78514b168b615cb",
+    "candidate-c9d588e333fbec67",
+    "candidate-5475898599c1b168",
+    "candidate-0c4f0def4a32a079",
+    "candidate-92572f76f0a70e5e",
+    "candidate-ed4b1dd0f5307a34",
+    "candidate-8b3100f2892720de",
+    "candidate-8f791fc76e67eddb"
+  ],
+  "included_source_ids": [
+    "paper-965b07ca55b0b420",
+    "paper-879e6a747eb8ceb6",
+    "paper-3b6399a19264a862",
+    "paper-8259991dea6aaecd",
+    "paper-e48872d23c4d9e23",
+    "paper-2a1fa8b99c181771",
+    "paper-69c6e5faa8ef37c2",
+    "paper-2a7771f1bcf8adb2",
+    "paper-49947e5b991037d5",
+    "paper-96217ebf4f10bd68",
+    "paper-6c621b0f059e2d3d",
+    "paper-35ad838f0ac171a7"
+  ],
+  "model": "codex:gpt-5.4",
+  "schema_version": 1,
+  "screening_id": "screening-2026-07-17T152146.559125+0000-d85c60"
+}

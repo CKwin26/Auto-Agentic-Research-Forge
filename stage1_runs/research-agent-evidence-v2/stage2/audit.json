@@ -1,0 +1,30 @@
+{
+  "audited_at": "2026-07-18T17:31:32.954037+00:00",
+  "baseline_cells_completed": 9,
+  "checks": {
+    "backbone_manifest_valid": true,
+    "controller_run_root_is_ascii_absolute": true,
+    "controller_snapshots_unchanged": true,
+    "docker_isolation_frozen": true,
+    "factorial_design_exact": true,
+    "frozen_artifacts_unchanged": true,
+    "live_controller_matches_frozen": false,
+    "plan_and_review_binding_valid": true,
+    "prompt_stack_unchanged": true,
+    "protected_artifacts_unchanged": true,
+    "protocol_bound_to_backbone": true,
+    "protocol_schema_valid": true,
+    "source_packet_unchanged": true,
+    "stage1_gate_still_valid": true,
+    "task_snapshots_unchanged": true
+  },
+  "docker_isolation_frozen": true,
+  "passed": false,
+  "planned_cells": 18,
+  "protocol_id": "stage2-22e124e44294",
+  "schema_version": 1,
+  "treatment_cells_completed": 9,
+  "violations": [
+    "the live shared controller differs from the frozen Stage 2 snapshot"
+  ]
+}

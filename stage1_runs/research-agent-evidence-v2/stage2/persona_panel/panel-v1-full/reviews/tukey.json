@@ -1,0 +1,224 @@
+{
+  "schema_version": 1,
+  "panel_id": "panel-v1-full",
+  "persona_id": "tukey",
+  "source_sample_sha256": "0ef6aff20a330b8e247554971f58999c85290726a949005becc8feffbb30ef6e",
+  "blinded": true,
+  "items": [
+    {
+      "audit_id": "audit-20118f9cc6fcc8fb",
+      "verdict": "supported",
+      "rationale": "The baseline status and exact SpearmanCorrelation value are directly recorded, so this descriptive run-level claim does not require an inferential uncertainty estimate.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence: is_baseline=true, verdict=baseline_verified, aggregate_metrics.SpearmanCorrelation=0.5757186473267853"
+      ]
+    },
+    {
+      "audit_id": "audit-24491f81ff1cd82f",
+      "verdict": "supported",
+      "rationale": "The run identifier, validity verdict, and exact Accuracy value all match the linked run record.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence: run_id=run-20260718T063354Z-b6d64a03, verdict=valid_non_improving, aggregate_metrics.Accuracy=0.286180187525479"
+      ]
+    },
+    {
+      "audit_id": "audit-33532701fcc315fa",
+      "verdict": "supported",
+      "rationale": "The linked record explicitly marks the run as a verified baseline and gives the claimed Accuracy exactly.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence: is_baseline=true, verdict=baseline_verified, aggregate_metrics.Accuracy=0.6346153846153846"
+      ]
+    },
+    {
+      "audit_id": "audit-412e94d1820c1a34",
+      "verdict": "supported",
+      "rationale": "The non-baseline status, valid_non_improving verdict, and exact Accuracy value are directly represented in the same evidence record.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence: is_baseline=false, valid=true, verdict=valid_non_improving, aggregate_metrics.Accuracy=0.36538461538461536"
+      ]
+    },
+    {
+      "audit_id": "audit-4eb4833b938b06b4",
+      "verdict": "supported",
+      "rationale": "Both the exact Accuracy and the baseline_verified verdict match explicit fields in the linked baseline record.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence: is_baseline=true, aggregate_metrics.Accuracy=0.6346153846153846, verdict=baseline_verified"
+      ]
+    },
+    {
+      "audit_id": "audit-56d00de7d24490bb",
+      "verdict": "supported",
+      "rationale": "The run ID, exact Accuracy, exact improvement, and valid_non_improving verdict all correspond to the linked non-baseline record.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence: run_id=run-20260718T070345Z-6037e0f3, aggregate_metrics.Accuracy=0.36538461538461536, improvement=-0.2692307692307692, verdict=valid_non_improving"
+      ]
+    },
+    {
+      "audit_id": "audit-5dbc4d8cd3c4c58b",
+      "verdict": "supported",
+      "rationale": "The linked baseline record directly supplies the claimed run ID, exact Accuracy, and baseline_verified verdict.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence: run_id=baseline-20260718T070301Z-b8e67646, aggregate_metrics.Accuracy=0.6346153846153846, verdict=baseline_verified"
+      ]
+    },
+    {
+      "audit_id": "audit-6057d972fe46fdba",
+      "verdict": "unsupported",
+      "rationale": "The baseline metric is recorded, but the packet supplies no task-target field or value from which the asserted 0.854 comparison can be checked.",
+      "failure_modes": [
+        "missing_evidence"
+      ],
+      "decisive_evidence": [
+        "linked_experiment_evidence.aggregate_metrics contains only SpearmanCorrelation=0.5757186473267853; no task target score is supplied"
+      ]
+    },
+    {
+      "audit_id": "audit-770fcecfbec74885",
+      "verdict": "supported",
+      "rationale": "The non-baseline run record directly matches the verdict, exact SpearmanCorrelation, and exact recorded improvement stated in the claim.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence: is_baseline=false, verdict=valid_non_improving, aggregate_metrics.SpearmanCorrelation=0.5725548964668126, improvement=-0.0031637508599727804"
+      ]
+    },
+    {
+      "audit_id": "audit-7801fcbd7c79f94c",
+      "verdict": "supported",
+      "rationale": "The tested non-baseline record directly reports the exact SpearmanCorrelation and improvement claimed.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence: is_baseline=false, valid=true, aggregate_metrics.SpearmanCorrelation=0.5725548964668126, improvement=-0.0031637508599727804"
+      ]
+    },
+    {
+      "audit_id": "audit-7fee2c6f01a430af",
+      "verdict": "supported",
+      "rationale": "The linked valid candidate record gives the claimed Accuracy exactly; the claim makes no broader uncertainty or population inference.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence: valid=true, verdict=candidate_improves, aggregate_metrics.Accuracy=0.7745617611088463"
+      ]
+    },
+    {
+      "audit_id": "audit-86c592921d137f31",
+      "verdict": "unsupported",
+      "rationale": "One valid non-baseline run is documented, but no denominator, run inventory, or selection record establishes that it was the only valid non-baseline run.",
+      "failure_modes": [
+        "missing_evidence",
+        "overgeneralization"
+      ],
+      "decisive_evidence": [
+        "linked_experiment_evidence supplies only run_id=run-20260718T051940Z-06ed78c6; no list or count of all non-baseline runs is supplied"
+      ]
+    },
+    {
+      "audit_id": "audit-884b9631b126336d",
+      "verdict": "supported",
+      "rationale": "The exact SpearmanCorrelation and recorded improvement are both explicit in the linked non-baseline run record.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence: is_baseline=false, aggregate_metrics.SpearmanCorrelation=0.5725548964668126, improvement=-0.0031637508599727804"
+      ]
+    },
+    {
+      "audit_id": "audit-89bf1430e164241e",
+      "verdict": "supported",
+      "rationale": "The evidence directly records a valid non-baseline run with the claimed Accuracy and valid_non_improving verdict.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence: is_baseline=false, valid=true, aggregate_metrics.Accuracy=0.36538461538461536, verdict=valid_non_improving"
+      ]
+    },
+    {
+      "audit_id": "audit-8d1b9f7914eb1ff9",
+      "verdict": "supported",
+      "rationale": "The candidate record is valid and directly reports both the exact Accuracy and the exact improvement over baseline stated in the claim.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence: valid=true, verdict=candidate_improves, aggregate_metrics.Accuracy=0.5907052588666939, improvement=0.022013860578883104"
+      ]
+    },
+    {
+      "audit_id": "audit-9925a7b8a38a276a",
+      "verdict": "unsupported",
+      "rationale": "The candidate Accuracy and improvement are recorded, and their difference is arithmetically compatible with the stated baseline value, but the packet does not contain a baseline record establishing that value as a verified baseline or an explicit allowed-run designation.",
+      "failure_modes": [
+        "missing_evidence"
+      ],
+      "decisive_evidence": [
+        "linked_experiment_evidence contains candidate aggregate_metrics.Accuracy=0.6249490419894007 and improvement=0.05625764370158992 but no baseline run, baseline verdict, or allowed-run field"
+      ]
+    },
+    {
+      "audit_id": "audit-a5bb4cf9eca5f9ef",
+      "verdict": "unsupported",
+      "rationale": "The candidate Accuracy is recorded, but neither a candidate comparison set establishing 'best' nor the asserted task target of 0.905 is supplied.",
+      "failure_modes": [
+        "missing_evidence",
+        "overgeneralization"
+      ],
+      "decisive_evidence": [
+        "linked_experiment_evidence supplies one run with aggregate_metrics.Accuracy=0.6147574398695475; it supplies no candidate ranking set or task target score"
+      ]
+    },
+    {
+      "audit_id": "audit-a842b1d98c582e0b",
+      "verdict": "unsupported",
+      "rationale": "The candidate Accuracy is directly supported, but the packet has no task-target field supporting the comparison to 0.905.",
+      "failure_modes": [
+        "missing_evidence"
+      ],
+      "decisive_evidence": [
+        "linked_experiment_evidence.aggregate_metrics.Accuracy=0.5907052588666939, with no task target score supplied"
+      ]
+    },
+    {
+      "audit_id": "audit-b777c25c1053557a",
+      "verdict": "supported",
+      "rationale": "The linked non-baseline candidate record directly matches both the exact Accuracy and the exact reported improvement.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence: is_baseline=false, aggregate_metrics.Accuracy=0.36538461538461536, improvement=-0.2692307692307692"
+      ]
+    },
+    {
+      "audit_id": "audit-ccc8eaf57d0ef832",
+      "verdict": "supported",
+      "rationale": "The linked record marks the run as a verified baseline and gives the claimed task-level Accuracy exactly.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence: is_baseline=true, verdict=baseline_verified, aggregate_metrics.Accuracy=0.6346153846153846"
+      ]
+    },
+    {
+      "audit_id": "audit-e54c7ba2b8fade99",
+      "verdict": "unsupported",
+      "rationale": "The linked run's validity, verdict, and metric are supported, but a single record cannot establish the claim that it was the only valid non-baseline run without a complete run denominator.",
+      "failure_modes": [
+        "missing_evidence",
+        "overgeneralization"
+      ],
+      "decisive_evidence": [
+        "linked_experiment_evidence supplies only run_id=run-20260718T051626Z-e474ff7c; no complete non-baseline run inventory or count is supplied"
+      ]
+    },
+    {
+      "audit_id": "audit-ef7fb255e184a7de",
+      "verdict": "unsupported",
+      "rationale": "The run ID, Accuracy, and improvement are recorded, but the packet contains no seed field or task identifier supporting the seed-2 and textualclassificationsickaccuracy qualifiers.",
+      "failure_modes": [
+        "missing_evidence"
+      ],
+      "decisive_evidence": [
+        "linked_experiment_evidence contains run_id=run-20260718T050731Z-47f2a29c, aggregate_metrics.Accuracy=0.6147574398695475, and improvement=0.04606604158173666 but no seed or task-name field"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "judgments": [
+    {
+      "claim_id": "claim-exp-result",
+      "rationale": "The linked experiment evidence for run-20260718T061648Z-07736a6f reports aggregate Accuracy = 0.7745617611088463, matching the claim exactly.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-exp-limit",
+      "rationale": "The linked experiment evidence marks the run as valid=true and isolation_verified=true, and reports aggregate Accuracy = 0.7745617611088463, which together directly support the full claim.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-novelty-gap",
+      "rationale": "The supplied records include papers explicitly about end-to-end autonomous research-agent frameworks (for example EvoScientist, Autonomous Research Loops, and Heuresis) and others explicitly about evidence-grounding or claim/citation verification (for example RefLens, Evidence Coverage Evaluator, and Retrieval augmented scientific claim verification).",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-49947e5b991037d5",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7"
+      ],
+      "verdict": "supported"
+    }
+  ]
+}

@@ -1,0 +1,272 @@
+{
+  "schema_version": 1,
+  "panel_id": "panel-v1-full",
+  "persona_id": "popper",
+  "source_sample_sha256": "0ef6aff20a330b8e247554971f58999c85290726a949005becc8feffbb30ef6e",
+  "blinded": true,
+  "items": [
+    {
+      "audit_id": "audit-05fe62b553253bd3",
+      "verdict": "supported",
+      "rationale": "Each named system is directly characterized in its linked record as verifying scientific claims, evidence coverage, or citations, so the bounded literature claim is refutable by those records and supported by them.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "CliVER: 'an end-to-end scientific Claim VERification system'",
+        "ECE: 'a comprehensive framework for assessing evidence coverage'",
+        "RefLens: 'an end-to-end system that automates citation verification'"
+      ]
+    },
+    {
+      "audit_id": "audit-22b4b75f627eb46f",
+      "verdict": "supported",
+      "rationale": "The two linked records jointly enumerate every material failure mode in the claim, including the fact that fabrication detection was necessary.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Autonomous Research Loops: 'hallucination of experimental details, broken implementations, and misinterpretation of metrics'",
+        "Heuresis: '40 confirmed fabrications across 1,628 scored runs', with detecting them 'necessary to keep the search faithful to the task'"
+      ]
+    },
+    {
+      "audit_id": "audit-23bff17ea945f8c2",
+      "verdict": "supported",
+      "rationale": "The explicit six-record comparison set divides into three whole research-agent frameworks and three claim, grounding, or citation-verification systems. The claim is confined to that supplied set rather than asserting global novelty.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Autonomous Research Loops automates 'the entire life cycle of machine learning research'; EvoScientist is an 'end-to-end scientific discovery' framework; Heuresis enables 'open-ended scientific exploration'",
+        "CliVER verifies scientific claims; ECE assesses evidence coverage; RefLens automates citation verification"
+      ]
+    },
+    {
+      "audit_id": "audit-250dd2af10c9b4fa",
+      "verdict": "supported",
+      "rationale": "Within the six cited records, the research-agent and evidence-verification ingredients are explicitly present as distinct systems; no broader prior-art claim is made.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "EvoScientist, Autonomous Research Loops, and Heuresis are described as research or scientific-exploration frameworks",
+        "RefLens, ECE, and CliVER are described respectively as citation-verification, evidence-coverage, and scientific-claim-verification systems"
+      ]
+    },
+    {
+      "audit_id": "audit-3e05fbd1e2ef7ed0",
+      "verdict": "supported",
+      "rationale": "The linked packet directly contains whole-workflow autonomous research systems and distinct systems that check citation or claim support, matching the claim's bounded scope.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Autonomous Research Loops supports workflows from hypothesis generation through peer-style review; EvoScientist performs end-to-end scientific discovery",
+        "RefLens performs evidence-grounded citation verification; CliVER supports or refutes scientific claims; ECE scores claim-evidence pairs"
+      ]
+    },
+    {
+      "audit_id": "audit-4331a3908f9bbd4a",
+      "verdict": "supported",
+      "rationale": "The claim is a falsifiable absence statement restricted to the six supplied records. They describe research-agent systems and verification systems separately, while the packet supplies no same-backbone gated-versus-ungated experiment.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence: null; linked_experiment_run_id: null",
+        "The linked records describe EvoScientist/Autonomous Research Loops/Heuresis separately from RefLens/ECE/CliVER and report no same-backbone evidence-gate ablation"
+      ]
+    },
+    {
+      "audit_id": "audit-48eca2d0133f804c",
+      "verdict": "supported",
+      "rationale": "All five named examples are present and their linked descriptions directly establish the claimed system categories.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Autonomous Research Loops automates the research life cycle, and EvoScientist is a multi-agent AI scientist framework",
+        "CliVER verifies scientific claims, ECE assesses evidence coverage, and RefLens verifies citations"
+      ]
+    },
+    {
+      "audit_id": "audit-578ba12611b156ba",
+      "verdict": "supported",
+      "rationale": "The Heuresis record states the claimed necessity nearly verbatim, leaving a clear refuter: a record not making that report.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Heuresis: 'detecting them was necessary to keep the search faithful to the task'"
+      ]
+    },
+    {
+      "audit_id": "audit-5cf12abb439b2b4b",
+      "verdict": "supported",
+      "rationale": "Across the explicit bounded comparison set, no record reports a before/after or gated/ungated same-backbone study; the records instead document separate agent and verification systems.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence: null; linked_experiment_run_id: null",
+        "None of the six linked source records reports adding a claim-level evidence audit to the same end-to-end agent backbone and comparing before versus after"
+      ]
+    },
+    {
+      "audit_id": "audit-5f47de88ba717d87",
+      "verdict": "supported",
+      "rationale": "The packet directly includes both claimed classes: research-agent studies documenting hallucination or fabrication and verification studies grounding claims or citations in retrieved evidence.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Autonomous Research Loops reports hallucinated experimental details; Heuresis reports 40 confirmed fabrications",
+        "RefLens extracts verbatim spans from original sources, ECE scores claim-evidence pairs, and CliVER retrieves abstracts and supporting or refuting sentences"
+      ]
+    },
+    {
+      "audit_id": "audit-62c77ef22383c8ab",
+      "verdict": "supported",
+      "rationale": "Each system-specific statement, including the exact Heuresis denominator, maps directly to its linked record without expanding beyond what those records report.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "EvoScientist reports higher 'novelty, feasibility, relevance, and clarity' and improved 'code execution success rates'",
+        "Autonomous Research Loops reports hallucination, broken implementations, and metric misinterpretation",
+        "Heuresis reports '40 confirmed fabrications across 1,628 scored runs'"
+      ]
+    },
+    {
+      "audit_id": "audit-715996bd5088610c",
+      "verdict": "supported",
+      "rationale": "The bounded negative claim exposes a concrete refuter—a linked same-backbone intervention with direct before/after measurements—but the six records and experiment fields contain none.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence: null; linked_experiment_run_id: null",
+        "The linked source records report no direct before/after measurement of a claim-level audit added to the same research-agent backbone"
+      ]
+    },
+    {
+      "audit_id": "audit-73fe7c35606cee51",
+      "verdict": "supported",
+      "rationale": "The bounded packet visibly includes both asserted system categories; the claim does not elevate that observation into an unbounded novelty conclusion.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "EvoScientist, Autonomous Research Loops, and Heuresis are end-to-end or open-ended research-agent systems",
+        "RefLens, ECE, and CliVER perform citation, evidence-coverage, or scientific-claim verification"
+      ]
+    },
+    {
+      "audit_id": "audit-76f9f301ca24bd38",
+      "verdict": "supported",
+      "rationale": "The six linked records span whole-system research-agent frameworks and separate methods dedicated to grounding or verifying evidence, claims, and citations.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Autonomous Research Loops, EvoScientist, and Heuresis cover broad research workflows or scientific exploration",
+        "RefLens, ECE, and CliVER respectively verify citations, assess grounding coverage, and verify scientific claims"
+      ]
+    },
+    {
+      "audit_id": "audit-84606c8040556e3d",
+      "verdict": "supported",
+      "rationale": "Every named system is present, and the descriptions directly distinguish multi-agent research systems from evidence-grounding or citation/claim-verification systems.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Autonomous Research Loops, EvoScientist, and Heuresis are described as agent frameworks for research workflows or exploration",
+        "CliVER, Evidence Coverage Evaluator, and RefLens are described as verification or grounding systems"
+      ]
+    },
+    {
+      "audit_id": "audit-8a19a3c898222f11",
+      "verdict": "supported",
+      "rationale": "The five named sources are linked and their records directly establish the two claimed categories.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Autonomous Research Loops and EvoScientist are end-to-end research-agent frameworks",
+        "CliVER, RefLens, and ECE verify claims, citations, and evidence coverage respectively"
+      ]
+    },
+    {
+      "audit_id": "audit-98686536d7c49395",
+      "verdict": "supported",
+      "rationale": "The broad but bounded existence claim is directly met by multiple linked research-agent and verification-system records.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "EvoScientist, Autonomous Research Loops, and Deep Research are research-agent systems",
+        "RefLens, ECE, and CliVER are evidence-grounded verification systems"
+      ]
+    },
+    {
+      "audit_id": "audit-9a3e5e3c6a10458c",
+      "verdict": "supported",
+      "rationale": "Each named standalone verification system is linked to a record whose stated task matches the claim precisely.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "RefLens: 'automates citation verification'",
+        "ECE: 'assessing evidence coverage in RAG-generated answers'",
+        "CliVER: 'Retrieval augmented scientific claim verification'"
+      ]
+    },
+    {
+      "audit_id": "audit-9ee0b2650331b46d",
+      "verdict": "supported",
+      "rationale": "The packet contains clear examples of end-to-end research agents and distinct systems that ground or verify claims and citations, exactly as asserted.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Autonomous Research Loops and EvoScientist are end-to-end research-agent systems",
+        "RefLens, ECE, and CliVER are separate citation, grounding, or claim-verification systems"
+      ]
+    },
+    {
+      "audit_id": "audit-a6589d57e2fc15ce",
+      "verdict": "supported",
+      "rationale": "The three linked records separately support broad workflow automation and each listed limitation; the claim reports documented issues rather than generalizing their rates beyond the studies.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Autonomous Research Loops automates the research life cycle and reports 'hallucination of experimental details'",
+        "Heuresis reports 'reward-hacking techniques during execution'",
+        "Deep Research reports 'challenges inherent to automated novelty assessment'"
+      ]
+    },
+    {
+      "audit_id": "audit-b18dc484e7aebb28",
+      "verdict": "supported",
+      "rationale": "As a bounded candidate formulation, the intervention and comparator are explicit and falsifiable. The linked records supply the separate agent and audit ingredients without claiming that the comparison has already been run.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Autonomous Research Loops and EvoScientist provide end-to-end research-agent backbones",
+        "RefLens, ECE, and CliVER provide claim-, evidence-, or citation-audit mechanisms; linked_experiment_evidence is null"
+      ]
+    },
+    {
+      "audit_id": "audit-d43120dd62f02af8",
+      "verdict": "supported",
+      "rationale": "The question is explicitly bounded and exposes measurable refuters—unsupported-claim rate, task quality, and throughput under the same backbone. No linked record supplies that controlled comparison.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence: null; linked_experiment_run_id: null",
+        "The six linked records contain separate research-agent and verification systems but no same-backbone ablation measuring unsupported claims, task quality, and throughput"
+      ]
+    },
+    {
+      "audit_id": "audit-da8fc05325f510b8",
+      "verdict": "supported",
+      "rationale": "The candidate names a concrete intervention, backbone class, comparator, and outcome. In the bounded six-record set, the components are separate and no record establishes the proposed gated-versus-ungated ablation.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "RefLens performs evidence-grounded citation verification and ECE assesses claim-level evidence coverage",
+        "EvoScientist and Autonomous Research Loops are end-to-end research-agent systems; no linked record reports the proposed same-backbone gate ablation"
+      ]
+    },
+    {
+      "audit_id": "audit-e55418df53ab7e8c",
+      "verdict": "supported",
+      "rationale": "The supplied candidate is falsifiable and carefully limited to the bounded set. That set provides no experiment simultaneously testing the audit's effects on unsupported claims, hallucinations, quality, and throughput under a fixed backbone.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence: null; linked_experiment_run_id: null",
+        "None of the six linked source records reports a controlled same-backbone audit ablation with unsupported-claim, hallucination, task-quality, and throughput outcomes"
+      ]
+    },
+    {
+      "audit_id": "audit-e6426715cf45d416",
+      "verdict": "supported",
+      "rationale": "The two linked research-agent records directly enumerate all four asserted execution failure modes.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Autonomous Research Loops: 'hallucination of experimental details, broken implementations, and misinterpretation of metrics'",
+        "Heuresis: '40 confirmed fabrications across 1,628 scored runs'"
+      ]
+    },
+    {
+      "audit_id": "audit-ea397cb12584ed0b",
+      "verdict": "supported",
+      "rationale": "The negative claim is confined to the reviewed set and states a clear possible refuter: a controlled same-backbone audit ablation measuring hallucinated details and unsupported conclusions. No such experiment appears in the packet.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence: null; linked_experiment_run_id: null",
+        "The linked records describe research agents and evidence-verification systems separately and do not report the claimed controlled ablation"
+      ]
+    }
+  ]
+}

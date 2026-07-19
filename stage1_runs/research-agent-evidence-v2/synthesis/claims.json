@@ -1,0 +1,294 @@
+{
+  "analysis_status": "provisional_human_validation_deferred",
+  "claims": [
+    {
+      "claim_id": "background-bounded-literature",
+      "evidence_paths": [
+        "literature/review.json",
+        "literature/sources/paper-2a1fa8b99c181771.json",
+        "literature/sources/paper-2a7771f1bcf8adb2.json",
+        "literature/sources/paper-35ad838f0ac171a7.json",
+        "literature/sources/paper-3b6399a19264a862.json",
+        "literature/sources/paper-49947e5b991037d5.json",
+        "literature/sources/paper-69c6e5faa8ef37c2.json",
+        "literature/sources/paper-6c621b0f059e2d3d.json",
+        "literature/sources/paper-8259991dea6aaecd.json",
+        "literature/sources/paper-879e6a747eb8ceb6.json",
+        "literature/sources/paper-96217ebf4f10bd68.json",
+        "literature/sources/paper-965b07ca55b0b420.json",
+        "literature/sources/paper-e48872d23c4d9e23.json"
+      ],
+      "evidence_sha256": {
+        "literature/review.json": "6fee6151ef50902cc4eeeee3eaf0a8ee4f54657390ac4d8fe9f8e8a72f879504",
+        "literature/sources/paper-2a1fa8b99c181771.json": "f41de67d733d3119b62be8364ca030cca31a3bde6fbaaddf7d00b600dd1db8c7",
+        "literature/sources/paper-2a7771f1bcf8adb2.json": "abfca43cb222345dc021de740ff0ab4d0a701698856b0e1ef5879a91833e4c11",
+        "literature/sources/paper-35ad838f0ac171a7.json": "8eda51f2cfc578ee3d884424558dcd1f00f5e2679a924fd914004e462dd18535",
+        "literature/sources/paper-3b6399a19264a862.json": "c695edbbacbf6293922952e3b16ae8487dc4ec6a0544811f48958476626b44b4",
+        "literature/sources/paper-49947e5b991037d5.json": "f08d108dfc01dd69e10d691941b7fbbebf533795b5d886353cf41eafaa91699e",
+        "literature/sources/paper-69c6e5faa8ef37c2.json": "c8b2d74c529ced5818c65eba7958569ca1191cf74ec9965cbc728c7021fe3e29",
+        "literature/sources/paper-6c621b0f059e2d3d.json": "a6a34aa4de110031e561acf23405371c27bc3fd0748e697e62fdb71acd17a91b",
+        "literature/sources/paper-8259991dea6aaecd.json": "33ebf54fec1f1e721838684ffbd7318a10f9b57f7e3170e8861f4218e606775f",
+        "literature/sources/paper-879e6a747eb8ceb6.json": "4b2bfd97f4fe92f12a66618c9c9d13c34a91ff194323c270654c64ae44549000",
+        "literature/sources/paper-96217ebf4f10bd68.json": "38352e1a51780f340f1575067aede8de1796c3dac6f9e034951e6ea0c69923e7",
+        "literature/sources/paper-965b07ca55b0b420.json": "8665f42d28d97a967d18752d4cd1101f096915e9668f810ed8c1f4ab265186b4",
+        "literature/sources/paper-e48872d23c4d9e23.json": "0834f619fe51d5c27e0512545bdc7990ab7b4c5310b59138cab33949e57450ae"
+      },
+      "kind": "background",
+      "provisional": false,
+      "reported_metrics": {},
+      "schema_version": 1,
+      "source_ids": [
+        "paper-2a1fa8b99c181771",
+        "paper-2a7771f1bcf8adb2",
+        "paper-35ad838f0ac171a7",
+        "paper-3b6399a19264a862",
+        "paper-49947e5b991037d5",
+        "paper-69c6e5faa8ef37c2",
+        "paper-6c621b0f059e2d3d",
+        "paper-8259991dea6aaecd",
+        "paper-879e6a747eb8ceb6",
+        "paper-96217ebf4f10bd68",
+        "paper-965b07ca55b0b420",
+        "paper-e48872d23c4d9e23"
+      ],
+      "statement": "The frozen Stage 1 review registered 12 verified sources spanning autonomous research agents, evidence verification, and research-agent reliability."
+    },
+    {
+      "claim_id": "method-frozen-paired-design",
+      "evidence_paths": [
+        "stage2/protocol.json",
+        "stage2/backbone_manifest.json"
+      ],
+      "evidence_sha256": {
+        "stage2/backbone_manifest.json": "6ab9e5595188dacaa9b9b05c771c55254398b75b32985d34aa945ef32b738110",
+        "stage2/protocol.json": "265e1d9b3afb84e3dc680dbf350943123affcb7fee8a3bd8f0825620a911fcb4"
+      },
+      "kind": "method",
+      "provisional": false,
+      "reported_metrics": {},
+      "schema_version": 1,
+      "source_ids": [],
+      "statement": "The preregistered study used a frozen 2-arm by 3-task by 3-seed paired design, for exactly 18 cells."
+    },
+    {
+      "claim_id": "method-claim-evidence-gate",
+      "evidence_paths": [
+        "stage2/protocol.json"
+      ],
+      "evidence_sha256": {
+        "stage2/protocol.json": "265e1d9b3afb84e3dc680dbf350943123affcb7fee8a3bd8f0825620a911fcb4"
+      },
+      "kind": "method",
+      "provisional": false,
+      "reported_metrics": {},
+      "schema_version": 1,
+      "source_ids": [],
+      "statement": "The treatment changed only the pre-delivery claim-evidence path by applying one reject-revise-recheck cycle; the baseline used the shared finalizer without verifier revision."
+    },
+    {
+      "claim_id": "result-unsupported-claim-rate",
+      "evidence_paths": [
+        "stage2/evaluations/summary.json",
+        "stage2/provisional_analysis.json"
+      ],
+      "evidence_sha256": {
+        "stage2/evaluations/summary.json": "e1502a4c59e57c01b64178c51069174e4522b755a7f24bb34f0d422447f72c59",
+        "stage2/provisional_analysis.json": "7f5e2bf8668c2e496a18162ac0145a0541d972ce51b2ca6b11a5d019e7eafe89"
+      },
+      "kind": "result",
+      "provisional": true,
+      "reported_metrics": {
+        "baseline_unsupported_claim_rate": 0.3055555555555556,
+        "treatment_minus_baseline": -0.22222222222222227,
+        "treatment_unsupported_claim_rate": 0.08333333333333333
+      },
+      "schema_version": 1,
+      "source_ids": [],
+      "statement": "The protected automated evaluator estimated unsupported-claim rates of 30.5556% for baseline and 8.3333% for treatment, a treatment-minus-baseline difference of -22.22 percentage points."
+    },
+    {
+      "claim_id": "result-paired-effect",
+      "evidence_paths": [
+        "stage2/evaluations/summary.json",
+        "stage2/provisional_analysis.json"
+      ],
+      "evidence_sha256": {
+        "stage2/evaluations/summary.json": "e1502a4c59e57c01b64178c51069174e4522b755a7f24bb34f0d422447f72c59",
+        "stage2/provisional_analysis.json": "7f5e2bf8668c2e496a18162ac0145a0541d972ce51b2ca6b11a5d019e7eafe89"
+      },
+      "kind": "result",
+      "provisional": true,
+      "reported_metrics": {
+        "bootstrap_ci95_high": -0.08333333333333333,
+        "bootstrap_ci95_low": -0.4166666666666667,
+        "bootstrap_resamples": 10000.0,
+        "mean_paired_effect": -0.2222222222222222,
+        "paired_cohen_dz": -0.8432740427115677
+      },
+      "schema_version": 1,
+      "source_ids": [],
+      "statement": "Across nine paired task-seed cells, the mean unsupported-claim-rate effect was -0.2222; the preregistered 10,000-resample hierarchical bootstrap interval was [-0.4167, -0.0833]."
+    },
+    {
+      "claim_id": "result-experiment-detail-error",
+      "evidence_paths": [
+        "stage2/evaluations/summary.json",
+        "stage2/provisional_analysis.json"
+      ],
+      "evidence_sha256": {
+        "stage2/evaluations/summary.json": "e1502a4c59e57c01b64178c51069174e4522b755a7f24bb34f0d422447f72c59",
+        "stage2/provisional_analysis.json": "7f5e2bf8668c2e496a18162ac0145a0541d972ce51b2ca6b11a5d019e7eafe89"
+      },
+      "kind": "result",
+      "provisional": true,
+      "reported_metrics": {
+        "baseline_experiment_detail_error_rate": 0.3333333333333333,
+        "treatment_experiment_detail_error_rate": 0.05555555555555555
+      },
+      "schema_version": 1,
+      "source_ids": [],
+      "statement": "The automated experiment-detail error rate was 33.3333% for baseline and 5.5556% for treatment."
+    },
+    {
+      "claim_id": "result-citation-correctness",
+      "evidence_paths": [
+        "stage2/evaluations/summary.json",
+        "stage2/provisional_analysis.json"
+      ],
+      "evidence_sha256": {
+        "stage2/evaluations/summary.json": "e1502a4c59e57c01b64178c51069174e4522b755a7f24bb34f0d422447f72c59",
+        "stage2/provisional_analysis.json": "7f5e2bf8668c2e496a18162ac0145a0541d972ce51b2ca6b11a5d019e7eafe89"
+      },
+      "kind": "result",
+      "provisional": true,
+      "reported_metrics": {
+        "baseline_citation_correctness": 0.6666666666666666,
+        "treatment_citation_correctness": 0.8888888888888888
+      },
+      "schema_version": 1,
+      "source_ids": [],
+      "statement": "Automated citation correctness was 66.6667% for baseline and 88.8889% for treatment."
+    },
+    {
+      "claim_id": "result-task-native-score",
+      "evidence_paths": [
+        "stage2/evaluations/summary.json",
+        "stage2/provisional_analysis.json"
+      ],
+      "evidence_sha256": {
+        "stage2/evaluations/summary.json": "e1502a4c59e57c01b64178c51069174e4522b755a7f24bb34f0d422447f72c59",
+        "stage2/provisional_analysis.json": "7f5e2bf8668c2e496a18162ac0145a0541d972ce51b2ca6b11a5d019e7eafe89"
+      },
+      "kind": "result",
+      "provisional": true,
+      "reported_metrics": {
+        "baseline_mean_task_native_score": 0.6005729103167291,
+        "treatment_mean_task_native_score": 0.6221338108013964
+      },
+      "schema_version": 1,
+      "source_ids": [],
+      "statement": "Mean task-native score was 0.60057 for baseline and 0.62213 for treatment in this bounded matrix."
+    },
+    {
+      "claim_id": "result-runtime-cost",
+      "evidence_paths": [
+        "stage2/evaluations/summary.json",
+        "stage2/provisional_analysis.json"
+      ],
+      "evidence_sha256": {
+        "stage2/evaluations/summary.json": "e1502a4c59e57c01b64178c51069174e4522b755a7f24bb34f0d422447f72c59",
+        "stage2/provisional_analysis.json": "7f5e2bf8668c2e496a18162ac0145a0541d972ce51b2ca6b11a5d019e7eafe89"
+      },
+      "kind": "result",
+      "provisional": true,
+      "reported_metrics": {
+        "baseline_wall_clock_seconds": 2721.128495,
+        "relative_runtime_increase": 0.6590115344773531,
+        "treatment_wall_clock_seconds": 4514.38356
+      },
+      "schema_version": 1,
+      "source_ids": [],
+      "statement": "Total measured wall-clock time was 2721.13 seconds for baseline and 4514.38 seconds for treatment, a relative increase of 65.90%."
+    },
+    {
+      "claim_id": "result-claim-retention",
+      "evidence_paths": [
+        "stage2/evaluations/summary.json",
+        "stage2/provisional_analysis.json"
+      ],
+      "evidence_sha256": {
+        "stage2/evaluations/summary.json": "e1502a4c59e57c01b64178c51069174e4522b755a7f24bb34f0d422447f72c59",
+        "stage2/provisional_analysis.json": "7f5e2bf8668c2e496a18162ac0145a0541d972ce51b2ca6b11a5d019e7eafe89"
+      },
+      "kind": "result",
+      "provisional": true,
+      "reported_metrics": {
+        "baseline_final_claims": 36.0,
+        "baseline_retention_rate": 1.0,
+        "treatment_final_claims": 36.0,
+        "treatment_retention_rate": 1.0
+      },
+      "schema_version": 1,
+      "source_ids": [],
+      "statement": "Both arms retained all 36 final claims in the protected evaluation, so the observed automated reliability difference was not produced by lower final claim count."
+    },
+    {
+      "claim_id": "result-same-model-persona-panel",
+      "evidence_paths": [
+        "stage2/persona_panel/panel-v1-full/final.json"
+      ],
+      "evidence_sha256": {
+        "stage2/persona_panel/panel-v1-full/final.json": "83b88309107359f4e86eab2bea19939bbf041d3a930ce1655539ce0bee077d2e"
+      },
+      "kind": "result",
+      "provisional": true,
+      "reported_metrics": {
+        "panel_disagreements": 4.0,
+        "panel_items": 48.0,
+        "panel_supported": 37.0,
+        "panel_unsupported": 11.0
+      },
+      "schema_version": 1,
+      "source_ids": [],
+      "statement": "A supplementary same-model scientist-persona panel reviewed 48 blinded claims and returned 37 supported, 11 unsupported, and 4 mixed-vote cases."
+    },
+    {
+      "claim_id": "limitation-human-validation-deferred",
+      "evidence_paths": [
+        "stage2/operator_decisions.json",
+        "stage2/manual_audit_manifest.json",
+        "stage2/provisional_analysis.json"
+      ],
+      "evidence_sha256": {
+        "stage2/manual_audit_manifest.json": "c40afad623de9624f7a780bc1fa73d893560644c2750429dfa67cfafa96187a5",
+        "stage2/operator_decisions.json": "dc9e53fd376e9bc070db60b82d54626b74b818f981a969911c8d138c29c9b2c5",
+        "stage2/provisional_analysis.json": "7f5e2bf8668c2e496a18162ac0145a0541d972ce51b2ca6b11a5d019e7eafe89"
+      },
+      "kind": "limitation",
+      "provisional": false,
+      "reported_metrics": {},
+      "schema_version": 1,
+      "source_ids": [],
+      "statement": "The preregistered two-human blinded claim audit is deferred; consequently the primary analysis remains uninterpretable under the frozen protocol and every effect reported here is provisional."
+    },
+    {
+      "claim_id": "limitation-bounded-task-suite",
+      "evidence_paths": [
+        "stage2/protocol.json"
+      ],
+      "evidence_sha256": {
+        "stage2/protocol.json": "265e1d9b3afb84e3dc680dbf350943123affcb7fee8a3bd8f0825620a911fcb4"
+      },
+      "kind": "limitation",
+      "provisional": false,
+      "reported_metrics": {},
+      "schema_version": 1,
+      "source_ids": [],
+      "statement": "The evidence comes from three CPU AIRS-lite task packs, three seeds, one frozen Codex backbone, and one claim-gate implementation; it does not establish universal generality."
+    }
+  ],
+  "human_validation": "deferred",
+  "protocol_id": "stage2-22e124e44294",
+  "schema_version": 1,
+  "synthesis_mode": "provisional_stage2_paired_study"
+}

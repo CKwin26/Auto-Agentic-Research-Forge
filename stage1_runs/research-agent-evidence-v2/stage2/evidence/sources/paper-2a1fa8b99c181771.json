@@ -1,0 +1,26 @@
+{
+  "added_at": "2026-07-17T15:21:46.539580+00:00",
+  "authors": [
+    "Xiang Hu",
+    "Hongyu Fu",
+    "Jinge Wang",
+    "Yifeng Wang",
+    "Zhikun Li",
+    "Renjun Xu",
+    "Yu Lu",
+    "Yaochu Jin",
+    "Lili Pan",
+    "Zhenzhong Lan"
+  ],
+  "locator": "https://doi.org/10.48550/arxiv.2410.14255",
+  "notes": "Scientific innovation is pivotal for humanity, and harnessing large language models (LLMs) to generate research ideas could transform discovery. However, existing LLMs often produce simplistic and repetitive suggestions due to their limited ability in acquiring external knowledge for innovation. To address this problem, we introduce an enhanced planning and search methodology designed to boost the creative potential of LLM-based systems. Our approach involves an iterative process to purposely plan the retrieval of external knowledge, progressively enriching the idea generation with broader and deeper insights. Validation through automated and human assessments indicates that our framework substantially elevates the quality of generated ideas, particularly in novelty and diversity. The number of unique novel ideas produced by our framework is 3.4 times higher than without it. Moreover, our method outperforms the current state-of-the-art, generating at least 2.5 times more top-rated ideas based on 170 seed papers in a Swiss Tournament evaluation.",
+  "origin": "discovery",
+  "origin_id": "discovery-2026-07-17T151524.143318+0000-35e67c",
+  "schema_version": 1,
+  "source_id": "paper-2a1fa8b99c181771",
+  "source_type": "paper",
+  "title": "Nova: An Iterative Planning and Search Approach to Enhance Novelty and Diversity of LLM Generated Ideas",
+  "verification_method": "Exact Semantic Scholar paper-ID lookup matched the normalized title.",
+  "verified": true,
+  "year": 2024
+}

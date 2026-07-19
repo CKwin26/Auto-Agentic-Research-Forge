@@ -1,0 +1,28 @@
+{
+  "added_at": "2026-07-17T15:21:46.529584+00:00",
+  "authors": [
+    "Yougang Lyu",
+    "Xi Zhang",
+    "Xinhao Yi",
+    "Yuyue Zhao",
+    "Shuyu Guo",
+    "Wenxiang Hu",
+    "Jan Piotrowski",
+    "Jakub Kaliski",
+    "Jacopo Urbani",
+    "Zaiqiao Meng",
+    "Lu Zhou",
+    "Xiaohu Yan"
+  ],
+  "locator": "https://doi.org/10.48550/arxiv.2603.08127",
+  "notes": "The increasing adoption of Large Language Models (LLMs) has enabled AI scientists to perform complex end-to-end scientific discovery tasks requiring coordination of specialized roles, including idea generation and experimental execution. However, most state-of-the-art AI scientist systems rely on static, hand-designed pipelines and fail to adapt based on accumulated interaction histories. As a result, these systems overlook promising research directions, repeat failed experiments, and pursue infeasible ideas. To address this, we introduce EvoScientist, an evolving multi-agent AI scientist framework that continuously improves research strategies through persistent memory and self-evolution. EvoScientist comprises three specialized agents: a Researcher Agent (RA) for scientific idea generation, an Engineer Agent (EA) for experiment implementation and execution, and an Evolution Manager Agent (EMA) that distills insights from prior interactions into reusable knowledge. EvoScientist contains two persistent memory modules: (i) an ideation memory, which summarizes feasible research directions from top-ranked ideas while recording previously unsuccessful directions; and (ii) an experimentation memory, which captures effective data processing and model training strategies derived from code search trajectories and best-performing implementations. These modules enable the RA and EA to retrieve relevant prior strategies, improving idea quality and code execution success rates over time. Experiments show that EvoScientist outperforms 7 open-source and commercial state-of-the-art systems in scientific idea generation, achieving higher novelty, feasibility, relevance, and clarity via automatic and human evaluation. EvoScientist also substantially improves code execution success rates through multi-agent evolution, demonstrating persistent memory's effectiveness for end-to-end scientific discovery.",
+  "origin": "discovery",
+  "origin_id": "discovery-2026-07-17T151524.143318+0000-35e67c",
+  "schema_version": 1,
+  "source_id": "paper-965b07ca55b0b420",
+  "source_type": "paper",
+  "title": "EvoScientist: Towards Multi-Agent Evolving AI Scientists for End-to-End Scientific Discovery",
+  "verification_method": "Exact Semantic Scholar paper-ID lookup matched the normalized title.",
+  "verified": true,
+  "year": 2026
+}

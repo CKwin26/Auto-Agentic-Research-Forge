@@ -1,0 +1,18 @@
+{
+  "active_attempt_seconds": 334.21900000000005,
+  "arm": "baseline",
+  "cell_id": "baseline--textualclassificationsickaccuracy--seed-2",
+  "completed_at": "2026-07-18T05:09:13.187864+00:00",
+  "controller_output": "C:\\Users\\austa\\.research-forge-study\\565ea1b0ec96-r4\\b03",
+  "controller_report_hash": "99aa2a5239399eb805811c7260e8d0c17bcaa9cf1464abb766b9b515354af8b2",
+  "protocol_id": "stage2-22e124e44294",
+  "registry_hash": "496ea8c8e44e2b5b54d6421571d1435628d8e3b368de36ce69fdc2797a05c109",
+  "schema_version": 1,
+  "seed": 2,
+  "source_controller_report_hash": "99aa2a5239399eb805811c7260e8d0c17bcaa9cf1464abb766b9b515354af8b2",
+  "structural_audit_hash": "15f47cdbcdf05779fb8f6d076d8681a2dd8274f1448e847fec685bb3c2be20e7",
+  "task_id": "textualclassificationsickaccuracy",
+  "task_native_score": 0.6147574398695475,
+  "wall_clock_definition": "cell_manifest.created_at_to_complete.completed_at",
+  "wall_clock_seconds": 334.19203
+}

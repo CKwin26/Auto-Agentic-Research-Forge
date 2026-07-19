@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "task_id": "rf-coupled-max",
+  "title": "Coupled two-parameter maximization",
+  "description": "Improve a protected response that depends on two coupled parameters, testing whether the loop can preserve and promote multi-parameter evidence.",
+  "source": "rfbench",
+  "primary_metric": "score",
+  "metric_description": "Protected coupled response score; higher is better.",
+  "direction": "maximize",
+  "baseline_score": 0.75,
+  "target_score": 1.0,
+  "optimal_score": 1.0,
+  "baseline_parameters": {"x": 0.0, "y": 0.0},
+  "parameter_guidance": {
+    "x": "bounded real value in [-4, 4]",
+    "y": "bounded real value in [-4, 4]"
+  },
+  "candidate_parameters": [{"x": 0.5, "y": -0.5}, {"x": 1.0, "y": -1.0}],
+  "seeds": [0, 1, 2],
+  "max_iterations": 2,
+  "timeout_seconds": 30,
+  "required_repeats": 2,
+  "min_delta": 0.0,
+  "reproducibility_tolerance": 0.0,
+  "starter_entrypoint": "run_experiment.py",
+  "evaluator_entrypoint": "evaluate.py",
+  "compute_tier": "cpu",
+  "runnable": true
+}

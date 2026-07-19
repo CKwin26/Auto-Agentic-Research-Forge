@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "gate_id": "manuscript-depth-v1",
+  "path": "C:\\Users\\austa\\Documents\\自动研究器\\output\\pdf\\research-agent-evidence-v4-paper-zh.tex",
+  "source_sha256": "bf07c06617e686fd325df817168bacfb13cc1e1d23c3f4d9904cfec8b13f066f",
+  "format": "latex",
+  "language": "zh",
+  "profile": "journal-article-zh-v1",
+  "unit": "han_chars",
+  "passed": true,
+  "total_count": 11309,
+  "reference_count": 18,
+  "duplicate_paragraph_ratio": 0.0,
+  "sections": {
+    "abstract": {
+      "heading": "Abstract",
+      "count": 356,
+      "paragraphs": 2,
+      "subsections": 0,
+      "citations": 0,
+      "numeric_tokens": 35
+    },
+    "introduction": {
+      "heading": "引言",
+      "count": 1452,
+      "paragraphs": 7,
+      "subsections": 0,
+      "citations": 5,
+      "numeric_tokens": 2
+    },
+    "related_work": {
+      "heading": "相关工作",
+      "count": 1752,
+      "paragraphs": 11,
+      "subsections": 3,
+      "citations": 16,
+      "numeric_tokens": 4
+    },
+    "methods": {
+      "heading": "方法",
+      "count": 2729,
+      "paragraphs": 17,
+      "subsections": 7,
+      "citations": 2,
+      "numeric_tokens": 59
+    },
+    "results": {
+      "heading": "结果",
+      "count": 2048,
+      "paragraphs": 16,
+      "subsections": 5,
+      "citations": 0,
+      "numeric_tokens": 153
+    },
+    "discussion": {
+      "heading": "讨论",
+      "count": 2600,
+      "paragraphs": 17,
+      "subsections": 6,
+      "citations": 1,
+      "numeric_tokens": 24
+    },
+    "conclusion": {
+      "heading": "结论",
+      "count": 372,
+      "paragraphs": 2,
+      "subsections": 0,
+      "citations": 0,
+      "numeric_tokens": 11
+    }
+  },
+  "checks": {
+    "section_present_abstract": true,
+    "section_present_introduction": true,
+    "section_present_related_work": true,
+    "section_present_methods": true,
+    "section_present_results": true,
+    "section_present_discussion": true,
+    "section_present_conclusion": true,
+    "minimum_total_depth": true,
+    "minimum_section_depth_abstract": true,
+    "minimum_section_depth_introduction": true,
+    "minimum_section_depth_related_work": true,
+    "minimum_section_depth_methods": true,
+    "minimum_section_depth_results": true,
+    "minimum_section_depth_discussion": true,
+    "minimum_section_depth_conclusion": true,
+    "maximum_abstract_depth": true,
+    "minimum_paragraphs_introduction": true,
+    "minimum_paragraphs_related_work": true,
+    "minimum_paragraphs_methods": true,
+    "minimum_paragraphs_results": true,
+    "minimum_paragraphs_discussion": true,
+    "minimum_paragraphs_conclusion": true,
+    "minimum_subsections_methods": true,
+    "minimum_subsections_results": true,
+    "minimum_subsections_discussion": true,
+    "minimum_references": true,
+    "minimum_related_work_citations": true,
+    "minimum_result_numeric_grounding": true,
+    "maximum_duplicate_paragraph_ratio": true
+  },
+  "violations": [],
+  "warnings": [
+    "This is an internal anti-compression gate, not a venue word-limit rule.",
+    "Passing length and structure checks does not establish scientific validity or claim support."
+  ]
+}

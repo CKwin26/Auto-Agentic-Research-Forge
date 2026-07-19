@@ -1,0 +1,103 @@
+{
+  "arm_blinded": true,
+  "cell_id": "treatment--textualclassificationsickaccuracy--seed-2",
+  "citation_correctness": 1.0,
+  "claims": [
+    {
+      "claim_id": "claim-1",
+      "claim_type": "experiment",
+      "failure_modes": [],
+      "resolved_experiment_run_id": "baseline-20260718T062939Z-7be10917",
+      "resolved_source_ids": [],
+      "semantic_rationale": "The linked experiment evidence identifies baseline-20260718T062939Z-7be10917 as a valid verified baseline and reports Accuracy 0.5686913982878108, matching the claim exactly.",
+      "structural_checks": {
+        "artifacts_allowed": true,
+        "artifacts_exist": true,
+        "artifacts_present": true,
+        "metrics_exact": true,
+        "metrics_present": true,
+        "run_id_present": true,
+        "run_isolated": true,
+        "run_resolves": true,
+        "run_valid": true,
+        "source_support_absent": true
+      },
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-2",
+      "claim_type": "experiment",
+      "failure_modes": [],
+      "resolved_experiment_run_id": "run-20260718T063354Z-b6d64a03",
+      "resolved_source_ids": [],
+      "semantic_rationale": "The linked experiment evidence identifies run-20260718T063354Z-b6d64a03 as a valid non-baseline run with verdict valid_non_improving and Accuracy 0.286180187525479, matching the claim exactly.",
+      "structural_checks": {
+        "artifacts_allowed": true,
+        "artifacts_exist": true,
+        "artifacts_present": true,
+        "metrics_exact": true,
+        "metrics_present": true,
+        "run_id_present": true,
+        "run_isolated": true,
+        "run_resolves": true,
+        "run_valid": true,
+        "source_support_absent": true
+      },
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-3",
+      "claim_type": "literature",
+      "failure_modes": [],
+      "resolved_experiment_run_id": null,
+      "resolved_source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-965b07ca55b0b420",
+        "paper-35ad838f0ac171a7",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2"
+      ],
+      "semantic_rationale": "The linked packet includes end-to-end research-agent frameworks (Autonomous Research Loops, EvoScientist) and verification or evidence-grounded systems (CliVER, RefLens, ECE), matching the claim’s named examples.",
+      "structural_checks": {
+        "experiment_support_absent": true,
+        "source_ids_present": true,
+        "source_ids_resolve": true
+      },
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-4",
+      "claim_type": "novelty",
+      "failure_modes": [],
+      "resolved_experiment_run_id": null,
+      "resolved_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "semantic_rationale": "The linked novelty-02 sources separate into research-agent frameworks (EvoScientist, Autonomous Research Loops, Heuresis) and evidence-grounded or claim-verification systems (RefLens, ECE, CliVER), as stated.",
+      "structural_checks": {
+        "experiment_support_absent": true,
+        "novelty_sources_bound": true,
+        "source_ids_present": true,
+        "source_ids_resolve": true
+      },
+      "verdict": "supported"
+    }
+  ],
+  "evaluated_at": "2026-07-18T07:28:42.748816+00:00",
+  "evaluator": "hybrid_structural_plus_arm_blinded_codex",
+  "evidence_coverage": 1.0,
+  "experiment_detail_error_rate": 0.0,
+  "failure_mode_count": {},
+  "integrity_violations": [],
+  "protocol_id": "stage2-22e124e44294",
+  "protocol_valid": true,
+  "registry_id": "registry-fb4301875165",
+  "schema_version": 1,
+  "unsupported_claim_rate": 0.0,
+  "verifier_abstention_rate": 0.0
+}

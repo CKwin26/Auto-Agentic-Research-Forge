@@ -1,0 +1,19 @@
+{
+  "added_at": "2026-07-17T15:21:46.546580+00:00",
+  "authors": [
+    "Fuqiang Wang",
+    "Zhicai Guo",
+    "Zhikang Ye"
+  ],
+  "locator": "https://doi.org/10.64898/2026.06.15.26355735",
+  "notes": "Abstract Evidence-based medicine demands clinical answers that are not only fluent and medically plausible, but also anchored in traceable evidence, tailored to patient-specific clinical questions, sensitive to the hierarchy of evidence, and respectful of clinical safety boundaries. While general-purpose large language models (LLMs) exhibit strong medical language generation ability, they tend to lean on parametric memory, underuse retrieved evidence, hallucinate citations, conflate evidence levels, and draw conclusions that are not fully supported by the underlying literature. Such limitations pose particular risks in clinical decision support, where answer reliability, evidence traceability, and reasoning consistency are paramount. To address these issues, we present MedAgent, an evidence-based medical agent trained through an end-to-end pipeline that integrates supervised fine-tuning (SFT) cold start, reward modeling, and Group Relative Policy Optimization (GRPO). The agent is designed to execute a structured workflow encompassing clinical question understanding, PICO extraction, evidence retrieval, evidence stratification, citation-grounded answer generation, and quality evaluation. Specifically, a Qwen2.5-14B-Instruct backbone is first cold-started on 200 human-verified agent trajectories, equipping it with tool invocation, PICO parsing, structured response generation, and citation faithfulness. Next, a Qwen2.57B reward model is trained on 2,099 pairwise preference samples to provide semantic-level quality signals for evidence-based responses. Finally, GRPO reinforcement learning is conducted in a retrieval-augmented agent environment, where every rollout involves real evidence retrieval and is scored jointly by rule-based rewards and reward-model signals. To avoid over-reliance on training rewards, we further construct an independent evidence-based medical evaluation benchmark, MedTrustBench, which contains 200 clinical questions spanning 10 specialties and four difficulty levels. Each question is annotated with standardized PICO elements and rubric-based scoring criteria. The benchmark includes 1,187 rubrics across seven dimensions: question relevance, evidence hierarchy, evidence quality and timeliness, evidence-answer consistency, completeness and depth, logical rigor, and medical terminology. Under an identical RAG pipeline, retrieval tool, retrieval configuration, and evaluation protocol, MedAgentv17 attains 78.6 points, outperforming GPT-4.1 (75.3) and approaching GPT-5.4 (80.3). These results show that a 14B domain-aligned model can surpass strong general-purpose baselines on specialized evidence-based medical reasoning, while delivering practical advantages in cost, privacy, controllability, and hospital-oriented private deployment. The model and associated datasets are publicly released at https://www.modelscope.cn/profile/InfoxmedModel .",
+  "origin": "discovery",
+  "origin_id": "discovery-2026-07-17T151524.143318+0000-35e67c",
+  "schema_version": 1,
+  "source_id": "paper-96217ebf4f10bd68",
+  "source_type": "paper",
+  "title": "MedAgent: A Retrieval-Augmented Clinical Decision Support Agent with Verifiable Evidence Grounding for Evidence-Based Medicine",
+  "verification_method": "Exact Crossref DOI lookup matched the normalized title.",
+  "verified": true,
+  "year": 2026
+}

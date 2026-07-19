@@ -1,0 +1,10 @@
+{
+  "judgments": [
+    {
+      "claim_id": "claim-2",
+      "rationale": "The supplied experiment evidence directly marks the run as non-baseline (is_baseline=false), valid, and reports aggregate Accuracy of 0.6249490419894007; the deterministic checks also mark the run and metric match as true.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    }
+  ]
+}

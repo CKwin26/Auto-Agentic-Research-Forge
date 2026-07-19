@@ -1,0 +1,43 @@
+{
+  "audited_at": "2026-07-18T14:33:48.801098+00:00",
+  "checks": {
+    "baseline_matrix_complete": false,
+    "no_invalid_treatment_cells": true,
+    "orchestration_implementation_frozen": true,
+    "stage2_protocol_valid": false,
+    "treatment_cells_integral": true,
+    "treatment_matrix_not_oversubscribed": true,
+    "treatment_order_is_prefix": true
+  },
+  "complete": false,
+  "completed_cells": 9,
+  "expected_cells": 9,
+  "final_claims": 36,
+  "initial_claims": 36,
+  "passed": false,
+  "protocol_id": "stage2-22e124e44294",
+  "removed_claims": 0,
+  "schema_version": 1,
+  "task_native_scores": {
+    "coreferenceresolutionsupergluewscaccuracy": [
+      0.6346153846153846,
+      0.6346153846153846,
+      0.6346153846153846
+    ],
+    "textualclassificationsickaccuracy": [
+      0.6249490419894007,
+      0.7745617611088463,
+      0.5686913982878108
+    ],
+    "textualsimilaritysickspearmancorrelation": [
+      0.5757186473267853,
+      0.5757186473267853,
+      0.5757186473267853
+    ]
+  },
+  "total_wall_clock_seconds": 4514.38356,
+  "violations": [
+    "frozen Stage 2 protocol failed audit",
+    "baseline matrix is not complete"
+  ]
+}

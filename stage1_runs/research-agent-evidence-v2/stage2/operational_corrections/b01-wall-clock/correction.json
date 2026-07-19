@@ -1,0 +1,10 @@
+{
+  "cell_id": "baseline--textualclassificationsickaccuracy--seed-0",
+  "corrected_at": "2026-07-18T05:00:49.693498+00:00",
+  "corrected_complete_hash": "dfdd548169f674fec3d3e453b2c53f8b7db45e5eea72eeb4889bcdc9050ee04b",
+  "corrected_wall_clock_seconds": 659.983124,
+  "old_wall_clock_seconds": 90.75,
+  "original_complete_hash": "b9a5846c86d466863d4c406b8c0d7f6a685075c2ec370699c7f716c59751fdf7",
+  "reason": "The original value covered only the final resumed attempt, not the preregistered start-to-final-artifact interval.",
+  "schema_version": 1
+}

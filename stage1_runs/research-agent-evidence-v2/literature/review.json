@@ -1,0 +1,139 @@
+{
+  "created_at": "2026-07-17T15:39:37.084280+00:00",
+  "discovery_id": "discovery-2026-07-17T151524.143318+0000-35e67c",
+  "model": "codex:gpt-5.4",
+  "review_id": "review-2026-07-17T153937.084280+0000-3d8078",
+  "schema_version": 1,
+  "synthesis": {
+    "evidence_limitations": [
+      "Coverage is bounded to the 12 verified records supplied here; absence from this set is not evidence that no prior work exists.",
+      "This synthesis is abstract/notes-based only; several records may reflect titles, abstracts, or curator notes rather than full-paper inspection, so methodological and baseline details may be incomplete.",
+      "Provider coverage is likely skewed toward recent English-language papers discoverable through Semantic Scholar, Crossref, or similar indexing, and may miss older, venue-specific, or non-indexed related work.",
+      "The reviewed evaluations are domain-specific and only partly comparable across computational biology, machine learning experimentation, acute care biomarker discovery, clinical decision support, and applied mathematics.",
+      "Human review of the shortlisted full papers, appendices, benchmark definitions, and baseline tables is required before making publication-grade claims about novelty, exact metric superiority, or the absence of prior integrated benchmarks."
+    ],
+    "novelty_candidates": [
+      {
+        "differentiator": "This would join end-to-end agent tasks with claim-level evidence auditing and experiment-trace provenance, instead of evaluating task accuracy, novelty, or faithfulness in isolation.",
+        "falsification_risk": "This candidate would be weakened if full papers outside the reviewed notes already contain such a joint benchmark, or if a simple combination of existing separate benchmarks already predicts reliability without needing a new integrated design.",
+        "gap_statement": "The bounded reviewed set does not establish a unified benchmark for end-to-end research agents that simultaneously measures citation verification, experiment-evidence provenance, novelty judgment quality, hallucination, and unsupported conclusions under matched tools or retrieval budgets.",
+        "novelty_id": "novelty-01",
+        "proposed_question": "Can a single benchmark that combines claim-evidence annotations, executed experiment traces, and expert novelty rubrics distinguish research-agent quality better than current single-axis evaluations?",
+        "source_ids": [
+          "paper-879e6a747eb8ceb6",
+          "paper-8259991dea6aaecd",
+          "paper-e48872d23c4d9e23",
+          "paper-69c6e5faa8ef37c2",
+          "paper-96217ebf4f10bd68",
+          "paper-35ad838f0ac171a7"
+        ]
+      },
+      {
+        "differentiator": "Unlike standalone verification papers or whole-system reports, this is a same-backbone intervention study with direct before/after measurement on evidence coverage, citation correctness, hallucinated detail rate, and final artifact quality.",
+        "falsification_risk": "This candidate could fail if the audit layer adds latency without measurable faithfulness gains, if agents route around the checker, or if prior literature already reports equivalent ablations in full text not visible in the reviewed records.",
+        "gap_statement": "The bounded reviewed set does not establish, via controlled ablation, whether inserting a claim-level evidence audit into an end-to-end research agent reduces hallucinated experimental details and unsupported conclusions.",
+        "novelty_id": "novelty-02",
+        "proposed_question": "On a fixed set of research tasks, does adding a RefLens- or ECE-style claim-evidence gate to an EvoScientist- or Autonomous-Research-Loops-style system reduce unsupported claims relative to the same backbone without the gate, while preserving task quality and throughput?",
+        "source_ids": [
+          "paper-965b07ca55b0b420",
+          "paper-8259991dea6aaecd",
+          "paper-e48872d23c4d9e23",
+          "paper-69c6e5faa8ef37c2",
+          "paper-35ad838f0ac171a7",
+          "paper-49947e5b991037d5"
+        ]
+      },
+      {
+        "differentiator": "This candidate makes evidence provenance a first-class machine-checkable object that bridges literature-grounding tools with experiment-execution loops.",
+        "falsification_risk": "This gap would narrow if full versions of existing systems already log comparable trace structures, or if human reviewers do not obtain enough auditing benefit to justify the overhead.",
+        "gap_statement": "The bounded reviewed set does not establish a standardized provenance representation that links each final manuscript claim both to retrieved literature passages and, when relevant, to executed experiment artifacts.",
+        "novelty_id": "novelty-03",
+        "proposed_question": "Can a provenance graph that requires every manuscript claim to point to a source passage and an experiment artifact reduce reviewer-detected unsupported conclusions and make human auditing faster?",
+        "source_ids": [
+          "paper-e48872d23c4d9e23",
+          "paper-69c6e5faa8ef37c2",
+          "paper-8259991dea6aaecd",
+          "paper-965b07ca55b0b420",
+          "paper-2a7771f1bcf8adb2"
+        ]
+      },
+      {
+        "differentiator": "This candidate ties novelty adjudication to the same evidence trail used for claim verification, rather than treating novelty as a mostly free-form score.",
+        "falsification_risk": "This proposal would be undermined if existing novelty benchmarks already enforce evidence-backed labels, or if annotators cannot reach acceptable agreement even with retrieved prior-work packets.",
+        "gap_statement": "The bounded reviewed set does not establish a high-agreement novelty benchmark in which novelty labels are explicitly justified by retrieved prior-work evidence rather than mainly by overall judge scores, search outcomes, or domain-specific heuristics.",
+        "novelty_id": "novelty-04",
+        "proposed_question": "Can an evidence-backed novelty benchmark that requires retrieval of the closest prior work and a justification of why a proposal is incremental, partially novel, or novel improve the reliability of novelty evaluation?",
+        "source_ids": [
+          "paper-2a1fa8b99c181771",
+          "paper-49947e5b991037d5",
+          "paper-6c621b0f059e2d3d",
+          "paper-879e6a747eb8ceb6",
+          "paper-3b6399a19264a862"
+        ]
+      }
+    ],
+    "recommended_novelty_id": "novelty-02",
+    "review_scope": "Bounded abstract/notes-based synthesis of 12 verified 2024-2026 records on autonomous scientific research agents and adjacent evidence-grounding systems, focused on how the reviewed records address literature claims, experiment evidence, novelty assessment, citation verification, provenance, hallucination, and unsupported conclusions.",
+    "schema_version": 1,
+    "themes": [
+      {
+        "label": "End-to-end multi-agent research loops",
+        "source_ids": [
+          "paper-965b07ca55b0b420",
+          "paper-879e6a747eb8ceb6",
+          "paper-8259991dea6aaecd",
+          "paper-2a7771f1bcf8adb2"
+        ],
+        "summary": "The reviewed records describe several systems that span large portions of the research cycle rather than a single subtask. EvoScientist, Deep Research, Autonomous Research Loops, and ReasFlow each combine multiple roles such as idea generation, literature search, experiment execution, writing, or review, often with memory or verification loops. Their reported evaluations mainly emphasize downstream task or artifact quality such as idea-quality scores, BixBench accuracy, code-execution success, or reviewer-style scoring, rather than direct claim-level citation auditing.",
+        "theme_id": "theme-01"
+      },
+      {
+        "label": "Novelty is explicit, but difficult to validate robustly",
+        "source_ids": [
+          "paper-3b6399a19264a862",
+          "paper-2a1fa8b99c181771",
+          "paper-49947e5b991037d5",
+          "paper-6c621b0f059e2d3d",
+          "paper-879e6a747eb8ceb6"
+        ],
+        "summary": "The reviewed records show multiple ways of operationalizing novelty: Bayesian evidence-updated hypothesis refinement in HypoAgents, iterative retrieval planning in Nova, quality-diversity search in Heuresis, and grounded-versus-novel biomarker classification in TriAgent. These papers report gains in ELO, novelty/diversity counts, topic adherence, or faithfulness against baselines, yet the same bounded set also signals difficulty in reliable novelty judgment: Heuresis reports rare truly novel high-quality ideas, and Deep Research notes challenges inherent to automated novelty assessment.",
+        "theme_id": "theme-02"
+      },
+      {
+        "label": "Evidence-grounded verification is strongest at claim and citation level",
+        "source_ids": [
+          "paper-e48872d23c4d9e23",
+          "paper-35ad838f0ac171a7",
+          "paper-69c6e5faa8ef37c2",
+          "paper-96217ebf4f10bd68"
+        ],
+        "summary": "In the reviewed records, the clearest evidence-grounding evaluations come from systems focused on claims or citations rather than whole autonomous research loops. RefLens centers citation verification with source-linked evidence display; CliVER uses retrieval, sentence selection, and PICO-based support/refute/neutral prediction; ECE scores evidence coverage and unsupported claims; MedAgent evaluates evidence-answer consistency, evidence hierarchy, and citation-grounded answering under a fixed RAG setup. Together, these works provide reusable audit primitives for larger research agents.",
+        "theme_id": "theme-03"
+      },
+      {
+        "label": "Hallucination, fabrication, and unsupported conclusions remain active failure modes",
+        "source_ids": [
+          "paper-8259991dea6aaecd",
+          "paper-49947e5b991037d5",
+          "paper-96217ebf4f10bd68",
+          "paper-69c6e5faa8ef37c2"
+        ],
+        "summary": "The bounded reviewed set does not portray current autonomous research agents as reliably self-verifying. Autonomous Research Loops explicitly reports hallucinated experimental details, broken implementations, and metric misinterpretation; Heuresis reports confirmed fabrications and reward hacking during search; MedAgent is motivated by citation hallucination and conclusions not fully supported by literature; ECE is designed to surface unsupported claims. In this set, faithfulness is often handled through failure analysis or domain-specific safeguards rather than a universal end-to-end criterion.",
+        "theme_id": "theme-04"
+      },
+      {
+        "label": "Benchmarking is rich but fragmented across domains and axes",
+        "source_ids": [
+          "paper-879e6a747eb8ceb6",
+          "paper-96217ebf4f10bd68",
+          "paper-35ad838f0ac171a7",
+          "paper-6c621b0f059e2d3d",
+          "paper-69c6e5faa8ef37c2",
+          "paper-49947e5b991037d5"
+        ],
+        "summary": "The reviewed records benchmark different slices of the problem against different baselines: Deep Research uses BixBench; MedAgent uses MedTrustBench against GPT-4.1 and GPT-5.4 under an identical pipeline; CliVER uses CoVERt, SciFact, and clinician comparison; TriAgent compares against CoT-ReAct on topic adherence and faithfulness; ECE compares against keyword matching, BERTScore, and direct NLI; Heuresis compares six search strategies over 3,222 scored runs. Within this bounded set, the evidence supports axis-specific benchmarking, but not a shared protocol that jointly scores citation verification, experiment provenance, novelty assessment, hallucination, and unsupported conclusions.",
+        "theme_id": "theme-05"
+      }
+    ]
+  }
+}

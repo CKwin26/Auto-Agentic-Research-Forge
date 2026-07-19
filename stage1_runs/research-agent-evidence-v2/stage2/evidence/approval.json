@@ -1,0 +1,25 @@
+{
+  "approved_at": "2026-07-17T16:58:53.898841+00:00",
+  "discovery_id": "discovery-2026-07-17T151524.143318+0000-35e67c",
+  "included_source_ids": [
+    "paper-965b07ca55b0b420",
+    "paper-879e6a747eb8ceb6",
+    "paper-3b6399a19264a862",
+    "paper-8259991dea6aaecd",
+    "paper-e48872d23c4d9e23",
+    "paper-2a1fa8b99c181771",
+    "paper-69c6e5faa8ef37c2",
+    "paper-2a7771f1bcf8adb2",
+    "paper-49947e5b991037d5",
+    "paper-96217ebf4f10bd68",
+    "paper-6c621b0f059e2d3d",
+    "paper-35ad838f0ac171a7"
+  ],
+  "note": "User explicitly approved this exact review ID and selected novelty-02 on 2026-07-17.",
+  "review_hash": "6fee6151ef50902cc4eeeee3eaf0a8ee4f54657390ac4d8fe9f8e8a72f879504",
+  "review_id": "review-2026-07-17T153937.084280+0000-3d8078",
+  "schema_version": 1,
+  "screening_hash": "5d05f2ad0ed77e879a7ae9a687dd72e6ee8003408610579ffdb17f3f38ce0a08",
+  "screening_id": "screening-2026-07-17T152146.559125+0000-d85c60",
+  "selected_novelty_id": "novelty-02"
+}

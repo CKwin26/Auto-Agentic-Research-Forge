@@ -1,0 +1,9 @@
+{
+  "file_hashes": {
+    "study_models.py": "39d1655e44f43963538609c8d2933281bc1935b27ebdec93b2ee2b5933b9532b",
+    "study_runner.py": "2ac7d4647c58d6135608b8ea41ec3ac9125122e5b90c0ff9035d413b0ec644a8"
+  },
+  "implementation_version": "treatment-and-blinded-evaluation-v1",
+  "protocol_id": "stage2-22e124e44294",
+  "schema_version": 1
+}

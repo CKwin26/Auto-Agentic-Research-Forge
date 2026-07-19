@@ -1,0 +1,95 @@
+{
+  "arm": "treatment",
+  "cell_id": "treatment--textualclassificationsickaccuracy--seed-2",
+  "claims": [
+    {
+      "arm": "treatment",
+      "artifact_paths": [
+        "stage2/r/t/03/evidence/baseline-20260718T062939Z-7be10917/record.json",
+        "stage2/r/t/03/evidence/baseline-20260718T062939Z-7be10917/trial-001-metrics.json",
+        "stage2/r/t/03/evidence/baseline-20260718T062939Z-7be10917/trial-002-metrics.json"
+      ],
+      "claim_id": "claim-1",
+      "claim_text": "The verified baseline run baseline-20260718T062939Z-7be10917 achieved Accuracy 0.5686913982878108.",
+      "claim_type": "experiment",
+      "experiment_run_id": "baseline-20260718T062939Z-7be10917",
+      "metric_values": {
+        "Accuracy": 0.5686913982878108
+      },
+      "run_id": "agent-treatment--textualclassificationsickaccuracy--seed-2",
+      "schema_version": 1,
+      "seed": 2,
+      "source_ids": [],
+      "task_pack": "textualclassificationsickaccuracy"
+    },
+    {
+      "arm": "treatment",
+      "artifact_paths": [
+        "stage2/r/t/03/evidence/run-20260718T063354Z-b6d64a03/record.json",
+        "stage2/r/t/03/evidence/run-20260718T063354Z-b6d64a03/trial-001-metrics.json",
+        "stage2/r/t/03/evidence/run-20260718T063354Z-b6d64a03/trial-002-metrics.json"
+      ],
+      "claim_id": "claim-2",
+      "claim_text": "The evaluated non-baseline run run-20260718T063354Z-b6d64a03 was recorded as valid_non_improving and achieved Accuracy 0.286180187525479.",
+      "claim_type": "experiment",
+      "experiment_run_id": "run-20260718T063354Z-b6d64a03",
+      "metric_values": {
+        "Accuracy": 0.286180187525479
+      },
+      "run_id": "agent-treatment--textualclassificationsickaccuracy--seed-2",
+      "schema_version": 1,
+      "seed": 2,
+      "source_ids": [],
+      "task_pack": "textualclassificationsickaccuracy"
+    },
+    {
+      "arm": "treatment",
+      "artifact_paths": [],
+      "claim_id": "claim-3",
+      "claim_text": "Within the reviewed literature packet, the sources include end-to-end research-agent frameworks and evidence-grounded verification systems, including Autonomous Research Loops, EvoScientist, CliVER, RefLens, and ECE.",
+      "claim_type": "literature",
+      "experiment_run_id": null,
+      "metric_values": {},
+      "run_id": "agent-treatment--textualclassificationsickaccuracy--seed-2",
+      "schema_version": 1,
+      "seed": 2,
+      "source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-965b07ca55b0b420",
+        "paper-35ad838f0ac171a7",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2"
+      ],
+      "task_pack": "textualclassificationsickaccuracy"
+    },
+    {
+      "arm": "treatment",
+      "artifact_paths": [],
+      "claim_id": "claim-4",
+      "claim_text": "Within the reviewed sources cited for novelty-02, the adjacent ingredients are present as separate lines of work: research-agent frameworks (EvoScientist, Autonomous Research Loops, Heuresis) and evidence-grounded or claim-verification systems (RefLens, ECE, CliVER).",
+      "claim_type": "novelty",
+      "experiment_run_id": null,
+      "metric_values": {},
+      "run_id": "agent-treatment--textualclassificationsickaccuracy--seed-2",
+      "schema_version": 1,
+      "seed": 2,
+      "source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "task_pack": "textualclassificationsickaccuracy"
+    }
+  ],
+  "created_at": "2026-07-18T06:37:32.789990+00:00",
+  "final_output_text": "The verified baseline run baseline-20260718T062939Z-7be10917 achieved Accuracy 0.5686913982878108.\nThe evaluated non-baseline run run-20260718T063354Z-b6d64a03 was recorded as valid_non_improving and achieved Accuracy 0.286180187525479.\nWithin the reviewed literature packet, the sources include end-to-end research-agent frameworks and evidence-grounded verification systems, including Autonomous Research Loops, EvoScientist, CliVER, RefLens, and ECE.\nWithin the reviewed sources cited for novelty-02, the adjacent ingredients are present as separate lines of work: research-agent frameworks (EvoScientist, Autonomous Research Loops, Heuresis) and evidence-grounded or claim-verification systems (RefLens, ECE, CliVER).",
+  "protocol_id": "stage2-22e124e44294",
+  "registry_id": "registry-fb4301875165",
+  "run_id": "agent-treatment--textualclassificationsickaccuracy--seed-2",
+  "schema_version": 1,
+  "seed": 2,
+  "task_pack": "textualclassificationsickaccuracy"
+}

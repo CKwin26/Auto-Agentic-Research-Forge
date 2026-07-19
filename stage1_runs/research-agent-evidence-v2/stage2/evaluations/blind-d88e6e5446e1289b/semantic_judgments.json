@@ -1,0 +1,41 @@
+{
+  "judgments": [
+    {
+      "claim_id": "claim-1",
+      "rationale": "The linked experiment evidence marks baseline-20260718T051537Z-54e75d11 as a valid baseline run with verdict baseline_verified and aggregate SpearmanCorrelation 0.5757186473267853.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-2",
+      "rationale": "The linked experiment evidence supports that run-20260718T051626Z-e474ff7c was a valid non-baseline run with verdict valid_non_improving and SpearmanCorrelation 0.5160162351235488, but the bounded evidence does not establish that it was the only valid non-baseline run.",
+      "supporting_source_ids": [],
+      "verdict": "unsupported"
+    },
+    {
+      "claim_id": "claim-3",
+      "rationale": "The packet includes end-to-end AI research agent systems (EvoScientist; Autonomous Research Loops) and standalone verification frameworks for citations/claims (RefLens, ECE, CliVER).",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7"
+      ],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-4",
+      "rationale": "Within the bounded source notes, none of the papers reports a same-backbone before/after intervention study directly measuring whether a claim-level evidence audit reduces hallucinated experimental details or unsupported conclusions; they instead describe agent systems, verification tools, evidence-coverage evaluation, or fabrication detection.",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "verdict": "supported"
+    }
+  ]
+}

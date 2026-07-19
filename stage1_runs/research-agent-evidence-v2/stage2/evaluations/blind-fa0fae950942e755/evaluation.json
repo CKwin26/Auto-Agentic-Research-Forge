@@ -1,0 +1,108 @@
+{
+  "arm_blinded": true,
+  "cell_id": "baseline--textualclassificationsickaccuracy--seed-2",
+  "citation_correctness": 1.0,
+  "claims": [
+    {
+      "claim_id": "claim-01",
+      "claim_type": "experiment",
+      "failure_modes": [
+        "experiment_artifact_does_not_support_claim"
+      ],
+      "resolved_experiment_run_id": "run-20260718T050731Z-47f2a29c",
+      "resolved_source_ids": [],
+      "semantic_rationale": "The linked experiment evidence supports the run ID, Accuracy 0.6147574398695475, and an improvement of 0.04606604158173666, but it does not identify seed 2 or the textualclassificationsickaccuracy task, so the full scoped claim is not directly supported.",
+      "structural_checks": {
+        "artifacts_allowed": true,
+        "artifacts_exist": true,
+        "artifacts_present": true,
+        "metrics_exact": true,
+        "metrics_present": true,
+        "run_id_present": true,
+        "run_isolated": true,
+        "run_resolves": true,
+        "run_valid": true,
+        "source_support_absent": true
+      },
+      "verdict": "unsupported"
+    },
+    {
+      "claim_id": "claim-02",
+      "claim_type": "experiment",
+      "failure_modes": [
+        "experiment_artifact_does_not_support_claim"
+      ],
+      "resolved_experiment_run_id": "run-20260718T050731Z-47f2a29c",
+      "resolved_source_ids": [],
+      "semantic_rationale": "The linked experiment evidence supports the ending Accuracy 0.6147574398695475, but it does not show that this run was the best candidate run or that the task target score was 0.905, so material parts of the claim are not established.",
+      "structural_checks": {
+        "artifacts_allowed": true,
+        "artifacts_exist": true,
+        "artifacts_present": true,
+        "metrics_exact": true,
+        "metrics_present": true,
+        "run_id_present": true,
+        "run_isolated": true,
+        "run_resolves": true,
+        "run_valid": true,
+        "source_support_absent": true
+      },
+      "verdict": "unsupported"
+    },
+    {
+      "claim_id": "claim-03",
+      "claim_type": "literature",
+      "failure_modes": [],
+      "resolved_experiment_run_id": null,
+      "resolved_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-35ad838f0ac171a7"
+      ],
+      "semantic_rationale": "The packet includes end-to-end scientific-agent systems with persistent memory or automated research loops (EvoScientist; Autonomous Research Loops) and separate evidence-grounded verification systems for citation or claim support (RefLens; CliVER).",
+      "structural_checks": {
+        "experiment_support_absent": true,
+        "source_ids_present": true,
+        "source_ids_resolve": true
+      },
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-04",
+      "claim_type": "novelty",
+      "failure_modes": [],
+      "resolved_experiment_run_id": null,
+      "resolved_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "semantic_rationale": "Across the bounded records, some papers describe research-agent systems and others describe separate verification or evidence-audit systems, but none of the supplied records reports a controlled same-backbone before/after ablation adding a claim-level evidence audit to an end-to-end research-agent system.",
+      "structural_checks": {
+        "experiment_support_absent": true,
+        "novelty_sources_bound": true,
+        "source_ids_present": true,
+        "source_ids_resolve": true
+      },
+      "verdict": "supported"
+    }
+  ],
+  "evaluated_at": "2026-07-18T07:30:28.403023+00:00",
+  "evaluator": "hybrid_structural_plus_arm_blinded_codex",
+  "evidence_coverage": 1.0,
+  "experiment_detail_error_rate": 1.0,
+  "failure_mode_count": {
+    "experiment_artifact_does_not_support_claim": 2
+  },
+  "integrity_violations": [],
+  "protocol_id": "stage2-22e124e44294",
+  "protocol_valid": true,
+  "registry_id": "registry-80125920a27a",
+  "schema_version": 1,
+  "unsupported_claim_rate": 0.5,
+  "verifier_abstention_rate": 0.0
+}

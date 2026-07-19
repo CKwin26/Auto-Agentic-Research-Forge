@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "failed_at": "2026-07-18T06:08:56.4925360Z",
+  "protocol_id": "stage2-22e124e44294",
+  "cell_id": "treatment--textualclassificationsickaccuracy--seed-0",
+  "stage": "gate_recheck",
+  "failure_class": "model_output_invariant_violation",
+  "error": "judgment introduced an unlinked source ID: claim-2",
+  "scientific_verdict_accepted": false,
+  "raw_invalid_output_persisted": false,
+  "controller_rerun": false,
+  "initial_finalizer_rerun": false,
+  "reviser_rerun": false,
+  "resume_policy": "Retry only the missing recheck because the prior response violated the deterministic linked-source invariant and no verdict was accepted or persisted.",
+  "pre_failure_hashes": {
+    "gate_first_pass.json": "862e32c170cf06b3c9906962259c14a0381e5ed98d7bc73832a83bb0f63ef18c",
+    "revised_registry.json": "8aec61325a30ea92d6d2afd43e232b5d53a5f88a7935bd580b1cc949030cab3c",
+    "revised_structural_audit.json": "535fa2cfaf9628977a4a6dc5f5ac6da04c61d42538e26da583d71c9ed094b8bc"
+  }
+}

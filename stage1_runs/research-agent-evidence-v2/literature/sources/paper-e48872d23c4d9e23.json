@@ -1,0 +1,24 @@
+{
+  "added_at": "2026-07-17T15:21:46.538580+00:00",
+  "authors": [
+    "SeungHoo Lee",
+    "JuneHyoung Kwon",
+    "Jooweon Choi",
+    "JungMin Yun",
+    "Seunguk Yu",
+    "Yoonji Lee",
+    "Jinhee Jang",
+    "YoungBin Kim"
+  ],
+  "locator": "https://doi.org/10.1609/aaai.v40i48.42361",
+  "notes": "Accurate citation is critical, yet error rates remain high across scientific literature. We present RefLens, an end-to-end system that automates citation verification from PDF parsing to interactive report generation. Unlike summary- or embedding-based approaches, RefLens performs evidence-grounded verification by extracting verbatim spans from original sources and displaying citation-level cards and a paper-level dashboard. In a 35-participant study, users rated value (M=4.34), trust (M=4.15), and usability (M=4.19) highly, with strong adoption intention (M=4.28).",
+  "origin": "discovery",
+  "origin_id": "discovery-2026-07-17T151524.143318+0000-35e67c",
+  "schema_version": 1,
+  "source_id": "paper-e48872d23c4d9e23",
+  "source_type": "paper",
+  "title": "RefLens: End-to-End Evidence-Grounded Citation Verification with LLM Agents",
+  "verification_method": "Exact Crossref DOI lookup matched the normalized title.",
+  "verified": true,
+  "year": 2026
+}

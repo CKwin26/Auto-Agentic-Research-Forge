@@ -1,0 +1,230 @@
+{
+  "arms": [
+    {
+      "arm": "baseline",
+      "initial_finalizer": "Use the shared frozen finalizer and emit candidate evidence links without verifier-based rejection or revision.",
+      "removal_after_failed_recheck": false,
+      "revision_limit": 0,
+      "verification_gate": "disabled"
+    },
+    {
+      "arm": "treatment",
+      "initial_finalizer": "Use the same shared frozen finalizer before any verifier feedback or claim revision is introduced.",
+      "removal_after_failed_recheck": true,
+      "revision_limit": 1,
+      "verification_gate": "reject_revise_recheck"
+    }
+  ],
+  "backbone_manifest_hash": "6ab9e5595188dacaa9b9b05c771c55254398b75b32985d34aa945ef32b738110",
+  "bootstrap_resamples": 10000,
+  "cells": [
+    {
+      "arm": "baseline",
+      "cell_id": "baseline--textualclassificationsickaccuracy--seed-0",
+      "seed": 0,
+      "sequence": 1,
+      "task_id": "textualclassificationsickaccuracy"
+    },
+    {
+      "arm": "baseline",
+      "cell_id": "baseline--textualclassificationsickaccuracy--seed-1",
+      "seed": 1,
+      "sequence": 2,
+      "task_id": "textualclassificationsickaccuracy"
+    },
+    {
+      "arm": "baseline",
+      "cell_id": "baseline--textualclassificationsickaccuracy--seed-2",
+      "seed": 2,
+      "sequence": 3,
+      "task_id": "textualclassificationsickaccuracy"
+    },
+    {
+      "arm": "baseline",
+      "cell_id": "baseline--textualsimilaritysickspearmancorrelation--seed-0",
+      "seed": 0,
+      "sequence": 4,
+      "task_id": "textualsimilaritysickspearmancorrelation"
+    },
+    {
+      "arm": "baseline",
+      "cell_id": "baseline--textualsimilaritysickspearmancorrelation--seed-1",
+      "seed": 1,
+      "sequence": 5,
+      "task_id": "textualsimilaritysickspearmancorrelation"
+    },
+    {
+      "arm": "baseline",
+      "cell_id": "baseline--textualsimilaritysickspearmancorrelation--seed-2",
+      "seed": 2,
+      "sequence": 6,
+      "task_id": "textualsimilaritysickspearmancorrelation"
+    },
+    {
+      "arm": "baseline",
+      "cell_id": "baseline--coreferenceresolutionsupergluewscaccuracy--seed-0",
+      "seed": 0,
+      "sequence": 7,
+      "task_id": "coreferenceresolutionsupergluewscaccuracy"
+    },
+    {
+      "arm": "baseline",
+      "cell_id": "baseline--coreferenceresolutionsupergluewscaccuracy--seed-1",
+      "seed": 1,
+      "sequence": 8,
+      "task_id": "coreferenceresolutionsupergluewscaccuracy"
+    },
+    {
+      "arm": "baseline",
+      "cell_id": "baseline--coreferenceresolutionsupergluewscaccuracy--seed-2",
+      "seed": 2,
+      "sequence": 9,
+      "task_id": "coreferenceresolutionsupergluewscaccuracy"
+    },
+    {
+      "arm": "treatment",
+      "cell_id": "treatment--textualclassificationsickaccuracy--seed-0",
+      "seed": 0,
+      "sequence": 10,
+      "task_id": "textualclassificationsickaccuracy"
+    },
+    {
+      "arm": "treatment",
+      "cell_id": "treatment--textualclassificationsickaccuracy--seed-1",
+      "seed": 1,
+      "sequence": 11,
+      "task_id": "textualclassificationsickaccuracy"
+    },
+    {
+      "arm": "treatment",
+      "cell_id": "treatment--textualclassificationsickaccuracy--seed-2",
+      "seed": 2,
+      "sequence": 12,
+      "task_id": "textualclassificationsickaccuracy"
+    },
+    {
+      "arm": "treatment",
+      "cell_id": "treatment--textualsimilaritysickspearmancorrelation--seed-0",
+      "seed": 0,
+      "sequence": 13,
+      "task_id": "textualsimilaritysickspearmancorrelation"
+    },
+    {
+      "arm": "treatment",
+      "cell_id": "treatment--textualsimilaritysickspearmancorrelation--seed-1",
+      "seed": 1,
+      "sequence": 14,
+      "task_id": "textualsimilaritysickspearmancorrelation"
+    },
+    {
+      "arm": "treatment",
+      "cell_id": "treatment--textualsimilaritysickspearmancorrelation--seed-2",
+      "seed": 2,
+      "sequence": 15,
+      "task_id": "textualsimilaritysickspearmancorrelation"
+    },
+    {
+      "arm": "treatment",
+      "cell_id": "treatment--coreferenceresolutionsupergluewscaccuracy--seed-0",
+      "seed": 0,
+      "sequence": 16,
+      "task_id": "coreferenceresolutionsupergluewscaccuracy"
+    },
+    {
+      "arm": "treatment",
+      "cell_id": "treatment--coreferenceresolutionsupergluewscaccuracy--seed-1",
+      "seed": 1,
+      "sequence": 17,
+      "task_id": "coreferenceresolutionsupergluewscaccuracy"
+    },
+    {
+      "arm": "treatment",
+      "cell_id": "treatment--coreferenceresolutionsupergluewscaccuracy--seed-2",
+      "seed": 2,
+      "sequence": 18,
+      "task_id": "coreferenceresolutionsupergluewscaccuracy"
+    }
+  ],
+  "claim_schema_path": "stage2/claim_schema.json",
+  "frozen_at": "2026-07-18T04:48:42.453739+00:00",
+  "hypothesis": "Relative to the no-gate baseline, the gated treatment will lower unsupported_claim_rate on the pooled frozen claim registry and in at least 2 of 3 task packs, increase citation correctness and evidence coverage, lower experiment-detail error rate, and keep task-native score within an absolute 0.02 of baseline in each task pack.",
+  "integrity_fail_closed": true,
+  "manual_audit": {
+    "adjudication_required": true,
+    "claims_per_task_arm": 8,
+    "false_positive_threshold": 0.15,
+    "independent_auditors": 2,
+    "target_non_unsupported_per_task_arm": 4,
+    "target_unsupported_per_task_arm": 4,
+    "total_claims": 48
+  },
+  "max_completed_cells": 18,
+  "plan_hash": "565ea1b0ec96d613cef3d64b25a65a3ae38c3d7259a0eef761710392f3d664ad",
+  "plan_id": "plan-2026-07-17T165102.797670+0000-58ebcd",
+  "primary_metric": "unsupported_claim_rate",
+  "protected_evaluator": "hybrid_structural_plus_arm_blinded_codex",
+  "protocol_id": "stage2-22e124e44294",
+  "protocol_revision": 4,
+  "research_question": "On the fixed CPU AIRS-lite task suite and fixed Research Forge/Codex backbone, does adding a pre-delivery claim-evidence rejection/revision gate reduce unsupported factual conclusion claims in final outputs versus the same backbone without the gate, when model, non-gate prompts, retrieval set, runtime cap, iteration budget, and task order are held fixed?",
+  "review_hash": "6fee6151ef50902cc4eeeee3eaf0a8ee4f54657390ac4d8fe9f8e8a72f879504",
+  "review_id": "review-2026-07-17T153937.084280+0000-3d8078",
+  "schema_version": 1,
+  "secondary_metrics": [
+    "citation_correctness",
+    "experiment_detail_error_rate",
+    "evidence_coverage",
+    "task_native_score",
+    "wall_clock_runtime_seconds",
+    "verifier_abstention_rate",
+    "failure_mode_count",
+    "audit_false_positive_rate"
+  ],
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "selected_novelty_id": "novelty-02",
+  "stop_conditions": [
+    "Stop data collection after exactly 18 completed runs: 2 arms × 3 tasks × 3 seeds. No interim expansion, reranking, or cherry-picked reruns are allowed.",
+    "Stop and mark the study invalid on any integrity failure: mismatch in frozen model or retrieval manifest between arms; schema non-compliance; missing claim registry; missing exact source IDs for literature or novelty claims; missing run IDs or exact metric values for experiment claims; missing or unreadable experiment artifact; protected-evaluator configuration drift; or broken audit blinding.",
+    "Stop and mark the primary analysis invalid if the adjudicated blinded audit estimates audit_false_positive_rate > 0.15 on audited claims that the protected evaluator labeled unsupported; if the planned unsupported-claim quota is not met, audit all available such claims and apply the same threshold."
+  ],
+  "tasks": [
+    {
+      "baseline_score": 0.5686913982878108,
+      "direction": "maximize",
+      "iteration_cap": 1,
+      "primary_metric": "Accuracy",
+      "snapshot_path": "stage2/task_packs/textualclassificationsickaccuracy",
+      "target_score": 0.905,
+      "task_hash": "ed87279abc02604b3dcce259eeef6f18143cdc6050abf7b71d4b41c5f0fe2f4e",
+      "task_id": "textualclassificationsickaccuracy",
+      "timeout_seconds": 120
+    },
+    {
+      "baseline_score": 0.5757186473267853,
+      "direction": "maximize",
+      "iteration_cap": 1,
+      "primary_metric": "SpearmanCorrelation",
+      "snapshot_path": "stage2/task_packs/textualsimilaritysickspearmancorrelation",
+      "target_score": 0.854,
+      "task_hash": "04b675a96546deeca71bda6b8741b681d747c98abb2c9c284c39c73185ff6504",
+      "task_id": "textualsimilaritysickspearmancorrelation",
+      "timeout_seconds": 120
+    },
+    {
+      "baseline_score": 0.6346153846153846,
+      "direction": "maximize",
+      "iteration_cap": 1,
+      "primary_metric": "Accuracy",
+      "snapshot_path": "stage2/task_packs/coreferenceresolutionsupergluewscaccuracy",
+      "target_score": 0.962,
+      "task_hash": "8f1da7e60e1255c84e3ef31f5210c24346aa6cf19278119d13b3426e32707833",
+      "task_id": "coreferenceresolutionsupergluewscaccuracy",
+      "timeout_seconds": 120
+    }
+  ],
+  "title": "Paired Ablation of Pre-Delivery Claim-Evidence Gating in a Research Forge/Codex Autonomous Research Agent",
+  "treatment_gate": "structural_plus_frozen_codex_gate"
+}

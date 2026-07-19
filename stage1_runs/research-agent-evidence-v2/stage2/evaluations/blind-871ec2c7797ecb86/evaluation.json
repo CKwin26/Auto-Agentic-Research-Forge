@@ -1,0 +1,105 @@
+{
+  "arm_blinded": true,
+  "cell_id": "baseline--textualsimilaritysickspearmancorrelation--seed-0",
+  "citation_correctness": 0.5,
+  "claims": [
+    {
+      "claim_id": "claim-1",
+      "claim_type": "experiment",
+      "failure_modes": [],
+      "resolved_experiment_run_id": "baseline-20260718T050913Z-0252f7d2",
+      "resolved_source_ids": [],
+      "semantic_rationale": "The linked experiment evidence marks baseline-20260718T050913Z-0252f7d2 as a valid verified baseline run and reports SpearmanCorrelation = 0.5757186473267853, matching the claim.",
+      "structural_checks": {
+        "artifacts_allowed": true,
+        "artifacts_exist": true,
+        "artifacts_present": true,
+        "metrics_exact": true,
+        "metrics_present": true,
+        "run_id_present": true,
+        "run_isolated": true,
+        "run_resolves": true,
+        "run_valid": true,
+        "source_support_absent": true
+      },
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-2",
+      "claim_type": "experiment",
+      "failure_modes": [],
+      "resolved_experiment_run_id": "run-20260718T051106Z-fc159872",
+      "resolved_source_ids": [],
+      "semantic_rationale": "The linked experiment evidence marks run-20260718T051106Z-fc159872 as a valid non-baseline run and reports SpearmanCorrelation = 0.5725548964668126 with improvement = -0.0031637508599727804 versus baseline, matching the claim.",
+      "structural_checks": {
+        "artifacts_allowed": true,
+        "artifacts_exist": true,
+        "artifacts_present": true,
+        "metrics_exact": true,
+        "metrics_present": true,
+        "run_id_present": true,
+        "run_isolated": true,
+        "run_resolves": true,
+        "run_valid": true,
+        "source_support_absent": true
+      },
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-3",
+      "claim_type": "literature",
+      "failure_modes": [],
+      "resolved_experiment_run_id": null,
+      "resolved_source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-49947e5b991037d5",
+        "paper-35ad838f0ac171a7",
+        "paper-e48872d23c4d9e23"
+      ],
+      "semantic_rationale": "Autonomous Research Loops describes an end-to-end LLM research workflow and reports hallucinated experimental details, while Heuresis reports confirmed fabrications in autonomous research-agent runs. CliVER is a claim-verification system for support/refute judgments, and RefLens is an evidence-grounded citation-checking system.",
+      "structural_checks": {
+        "experiment_support_absent": true,
+        "source_ids_present": true,
+        "source_ids_resolve": true
+      },
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-4",
+      "claim_type": "novelty",
+      "failure_modes": [
+        "unsupported_novelty_comparison_claim"
+      ],
+      "resolved_experiment_run_id": null,
+      "resolved_source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-49947e5b991037d5",
+        "paper-35ad838f0ac171a7",
+        "paper-69c6e5faa8ef37c2",
+        "paper-e48872d23c4d9e23"
+      ],
+      "semantic_rationale": "The linked records show end-to-end research agents with hallucination/fabrication failure modes and separate verification or evidence-audit systems, but they do not explicitly establish the stronger bounded-set claim that controlled ablations tested inserting a claim-level evidence audit into a research agent and showed reduced hallucinated experimental details or unsupported conclusions.",
+      "structural_checks": {
+        "experiment_support_absent": true,
+        "novelty_sources_bound": true,
+        "source_ids_present": true,
+        "source_ids_resolve": true
+      },
+      "verdict": "unsupported"
+    }
+  ],
+  "evaluated_at": "2026-07-18T07:23:07.187413+00:00",
+  "evaluator": "hybrid_structural_plus_arm_blinded_codex",
+  "evidence_coverage": 1.0,
+  "experiment_detail_error_rate": 0.0,
+  "failure_mode_count": {
+    "unsupported_novelty_comparison_claim": 1
+  },
+  "integrity_violations": [],
+  "protocol_id": "stage2-22e124e44294",
+  "protocol_valid": true,
+  "registry_id": "registry-588c04b1e916",
+  "schema_version": 1,
+  "unsupported_claim_rate": 0.25,
+  "verifier_abstention_rate": 0.0
+}

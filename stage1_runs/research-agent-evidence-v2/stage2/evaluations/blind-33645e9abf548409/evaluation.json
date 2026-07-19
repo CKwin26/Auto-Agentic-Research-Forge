@@ -1,0 +1,107 @@
+{
+  "arm_blinded": true,
+  "cell_id": "treatment--textualclassificationsickaccuracy--seed-0",
+  "citation_correctness": 1.0,
+  "claims": [
+    {
+      "claim_id": "claim-1",
+      "claim_type": "experiment",
+      "failure_modes": [
+        "experiment_artifact_does_not_support_claim"
+      ],
+      "resolved_experiment_run_id": "run-20260718T060515Z-e34e0f23",
+      "resolved_source_ids": [],
+      "semantic_rationale": "The linked run evidence directly gives the non-baseline Accuracy (0.6249490419894007) and an improvement value (0.05625764370158992), but it does not directly provide the claimed verified baseline Accuracy of 0.5686913982878108. That exact comparison therefore overstates the bounded evidence.",
+      "structural_checks": {
+        "artifacts_allowed": true,
+        "artifacts_exist": true,
+        "artifacts_present": true,
+        "metrics_exact": true,
+        "metrics_present": true,
+        "run_id_present": true,
+        "run_isolated": true,
+        "run_resolves": true,
+        "run_valid": true,
+        "source_support_absent": true
+      },
+      "verdict": "unsupported"
+    },
+    {
+      "claim_id": "claim-2",
+      "claim_type": "experiment",
+      "failure_modes": [],
+      "resolved_experiment_run_id": "run-20260718T060515Z-e34e0f23",
+      "resolved_source_ids": [],
+      "semantic_rationale": "The linked experiment evidence identifies run-20260718T060515Z-e34e0f23 as a valid non-baseline run and reports aggregate Accuracy exactly 0.6249490419894007.",
+      "structural_checks": {
+        "artifacts_allowed": true,
+        "artifacts_exist": true,
+        "artifacts_present": true,
+        "metrics_exact": true,
+        "metrics_present": true,
+        "run_id_present": true,
+        "run_isolated": true,
+        "run_resolves": true,
+        "run_valid": true,
+        "source_support_absent": true
+      },
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-3",
+      "claim_type": "literature",
+      "failure_modes": [],
+      "resolved_experiment_run_id": null,
+      "resolved_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7"
+      ],
+      "semantic_rationale": "The packet includes end-to-end research-agent systems (EvoScientist; Autonomous Research Loops) and also separate evidence-grounding or claim-verification systems (RefLens; CliVER; ECE).",
+      "structural_checks": {
+        "experiment_support_absent": true,
+        "source_ids_present": true,
+        "source_ids_resolve": true
+      },
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-4",
+      "claim_type": "novelty",
+      "failure_modes": [],
+      "resolved_experiment_run_id": null,
+      "resolved_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "semantic_rationale": "Across the bounded records, the notes describe agent research pipelines, citation/claim verification systems, evaluator accuracy or coverage results, and search strategies, but none establishes a controlled same-backbone ablation where adding a claim-level evidence gate reduces unsupported claims versus the same backbone without that gate.",
+      "structural_checks": {
+        "experiment_support_absent": true,
+        "novelty_sources_bound": true,
+        "source_ids_present": true,
+        "source_ids_resolve": true
+      },
+      "verdict": "supported"
+    }
+  ],
+  "evaluated_at": "2026-07-18T07:17:02.119532+00:00",
+  "evaluator": "hybrid_structural_plus_arm_blinded_codex",
+  "evidence_coverage": 1.0,
+  "experiment_detail_error_rate": 0.5,
+  "failure_mode_count": {
+    "experiment_artifact_does_not_support_claim": 1
+  },
+  "integrity_violations": [],
+  "protocol_id": "stage2-22e124e44294",
+  "protocol_valid": true,
+  "registry_id": "registry-4e3b7ff2dee3",
+  "schema_version": 1,
+  "unsupported_claim_rate": 0.25,
+  "verifier_abstention_rate": 0.0
+}

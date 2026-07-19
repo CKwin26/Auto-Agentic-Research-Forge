@@ -1,0 +1,506 @@
+{
+  "schema_version": 1,
+  "panel_id": "panel-v1-full",
+  "persona_id": "shannon",
+  "source_sample_sha256": "0ef6aff20a330b8e247554971f58999c85290726a949005becc8feffbb30ef6e",
+  "blinded": true,
+  "items": [
+    {
+      "audit_id": "audit-05fe62b553253bd3",
+      "verdict": "supported",
+      "rationale": "The three linked records operationally map CliVER to scientific-claim verification, ECE to evidence-coverage evaluation, and RefLens to citation verification, matching the stated comparison classes.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "CliVER notes: 'an end-to-end scientific Claim VERification system'",
+        "ECE notes: 'a comprehensive framework for assessing evidence coverage'",
+        "RefLens notes: 'automates citation verification'"
+      ]
+    },
+    {
+      "audit_id": "audit-20118f9cc6fcc8fb",
+      "verdict": "supported",
+      "rationale": "The baseline status and exact SpearmanCorrelation value both map directly to fields in the experiment record.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence.aggregate_metrics.SpearmanCorrelation = 0.5757186473267853",
+        "linked_experiment_evidence.is_baseline = true; verdict = baseline_verified"
+      ]
+    },
+    {
+      "audit_id": "audit-22b4b75f627eb46f",
+      "verdict": "supported",
+      "rationale": "The cited records explicitly enumerate the four claimed failure phenomena and state that fabrication detection was necessary.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Autonomous Research Loops notes: 'hallucination of experimental details, broken implementations, and misinterpretation of metrics'",
+        "Heuresis notes: '40 confirmed fabrications across 1,628 scored runs', and 'detecting them was necessary'"
+      ]
+    },
+    {
+      "audit_id": "audit-23bff17ea945f8c2",
+      "verdict": "supported",
+      "rationale": "The source descriptions consistently distinguish whole research-pipeline systems from systems whose operational object is claim, coverage, or citation verification.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Autonomous Research Loops, EvoScientist, and Heuresis notes describe end-to-end or open-ended research pipelines",
+        "CliVER, ECE, and RefLens notes describe claim verification, evidence coverage, and citation verification, respectively"
+      ]
+    },
+    {
+      "audit_id": "audit-24491f81ff1cd82f",
+      "verdict": "supported",
+      "rationale": "Run identity, verdict, and exact Accuracy all correspond directly to the linked experiment fields.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence.run_id = run-20260718T063354Z-b6d64a03",
+        "aggregate_metrics.Accuracy = 0.286180187525479; verdict = valid_non_improving"
+      ]
+    },
+    {
+      "audit_id": "audit-250dd2af10c9b4fa",
+      "verdict": "supported",
+      "rationale": "All six named systems have source records whose operational descriptions place them in the two stated lines of work.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "EvoScientist, Autonomous Research Loops, and Heuresis records describe research-agent frameworks",
+        "RefLens, ECE, and CliVER records describe evidence-grounded citation, coverage, or claim verification"
+      ]
+    },
+    {
+      "audit_id": "audit-33532701fcc315fa",
+      "verdict": "supported",
+      "rationale": "The exact Accuracy is recorded for a valid baseline with a baseline_verified verdict.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence.aggregate_metrics.Accuracy = 0.6346153846153846",
+        "linked_experiment_evidence.is_baseline = true; verdict = baseline_verified"
+      ]
+    },
+    {
+      "audit_id": "audit-3e05fbd1e2ef7ed0",
+      "verdict": "supported",
+      "rationale": "The linked records include end-to-end research agents and separately define systems that check evidence support for claims or citations.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "EvoScientist and Autonomous Research Loops notes describe end-to-end scientific research workflows",
+        "RefLens, ECE, and CliVER notes operationalize citation, evidence-coverage, and claim verification"
+      ]
+    },
+    {
+      "audit_id": "audit-412e94d1820c1a34",
+      "verdict": "supported",
+      "rationale": "The exact Accuracy and valid_non_improving classification are explicit in the linked non-baseline record.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence.aggregate_metrics.Accuracy = 0.36538461538461536",
+        "linked_experiment_evidence.is_baseline = false; verdict = valid_non_improving"
+      ]
+    },
+    {
+      "audit_id": "audit-4331a3908f9bbd4a",
+      "verdict": "supported",
+      "rationale": "Within the explicitly bounded six-record set, the records describe research-agent systems and verification systems separately, and none transmits a controlled same-backbone gated-versus-ungated comparison.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_source_records comprise EvoScientist, Autonomous Research Loops, RefLens, ECE, CliVER, and Heuresis",
+        "No linked source record describes a same-backbone claim-level evidence-gate ablation"
+      ]
+    },
+    {
+      "audit_id": "audit-48eca2d0133f804c",
+      "verdict": "supported",
+      "rationale": "Each named system maps to the claimed category through its linked title and operational description.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Autonomous Research Loops and EvoScientist notes describe end-to-end research-agent systems",
+        "CliVER, Evidence Coverage Evaluator, and RefLens notes describe standalone verification functions"
+      ]
+    },
+    {
+      "audit_id": "audit-4eb4833b938b06b4",
+      "verdict": "supported",
+      "rationale": "The claimed Accuracy and verdict exactly match the linked baseline record.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence.aggregate_metrics.Accuracy = 0.6346153846153846",
+        "linked_experiment_evidence.verdict = baseline_verified"
+      ]
+    },
+    {
+      "audit_id": "audit-56d00de7d24490bb",
+      "verdict": "supported",
+      "rationale": "The run ID, Accuracy, improvement, and verdict each have an exact corresponding experiment field.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "run_id = run-20260718T070345Z-6037e0f3; aggregate_metrics.Accuracy = 0.36538461538461536",
+        "improvement = -0.2692307692307692; verdict = valid_non_improving"
+      ]
+    },
+    {
+      "audit_id": "audit-578ba12611b156ba",
+      "verdict": "supported",
+      "rationale": "The Heuresis record states the claimed necessity of detecting fabrications without adding scope beyond that record.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Heuresis notes: '40 confirmed fabrications across 1,628 scored runs), and detecting them was necessary to keep the search faithful to the task'"
+      ]
+    },
+    {
+      "audit_id": "audit-5cf12abb439b2b4b",
+      "verdict": "supported",
+      "rationale": "The bounded records cover the two adjacent component classes but contain no before/after same-backbone experiment adding a claim-level audit.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "The six linked records describe research-agent frameworks or verification systems",
+        "No linked record reports a controlled same-backbone before/after claim-level evidence-audit ablation"
+      ]
+    },
+    {
+      "audit_id": "audit-5dbc4d8cd3c4c58b",
+      "verdict": "supported",
+      "rationale": "The exact run identifier, Accuracy, and baseline verdict are all directly transmitted by the experiment record.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "run_id = baseline-20260718T070301Z-b8e67646; aggregate_metrics.Accuracy = 0.6346153846153846",
+        "is_baseline = true; verdict = baseline_verified"
+      ]
+    },
+    {
+      "audit_id": "audit-5f47de88ba717d87",
+      "verdict": "supported",
+      "rationale": "The first source group reports the stated research-agent failures, while the second group explicitly checks support against retrieved or original evidence.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Autonomous Research Loops reports hallucinated experimental details; Heuresis reports confirmed fabrications",
+        "RefLens, ECE, and CliVER notes describe citation, evidence-coverage, and scientific-claim verification"
+      ]
+    },
+    {
+      "audit_id": "audit-6057d972fe46fdba",
+      "verdict": "unsupported",
+      "rationale": "The baseline metric is present, but the exact task target 0.854 has no corresponding target field or other independent evidence in the packet, so the below-target comparison is not fully transmitted.",
+      "failure_modes": [
+        "missing_evidence"
+      ],
+      "decisive_evidence": [
+        "declared_metric_values contains only SpearmanCorrelation = 0.5757186473267853",
+        "linked_experiment_evidence contains no task-target field for 0.854"
+      ]
+    },
+    {
+      "audit_id": "audit-62c77ef22383c8ab",
+      "verdict": "supported",
+      "rationale": "Every qualitative and quantitative subclaim appears explicitly in the corresponding source note.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "EvoScientist notes report higher novelty, feasibility, relevance, clarity, and improved code-execution success",
+        "Autonomous Research Loops notes list the three failures; Heuresis notes report 40 fabrications across 1,628 runs"
+      ]
+    },
+    {
+      "audit_id": "audit-715996bd5088610c",
+      "verdict": "supported",
+      "rationale": "None of the six bounded records reports direct same-backbone before/after measurement of the stated evidence-audit intervention and outcomes.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_source_records contain three research-agent frameworks and three verification systems",
+        "No linked record describes a same-backbone intervention study measuring hallucinated details or unsupported conclusions before and after the audit"
+      ]
+    },
+    {
+      "audit_id": "audit-73fe7c35606cee51",
+      "verdict": "supported",
+      "rationale": "The bounded records directly instantiate both stated categories.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "EvoScientist, Autonomous Research Loops, and Heuresis are described as research-agent systems",
+        "RefLens, ECE, and CliVER are described as citation, evidence-coverage, or claim-verification systems"
+      ]
+    },
+    {
+      "audit_id": "audit-76f9f301ca24bd38",
+      "verdict": "supported",
+      "rationale": "The packet spans whole-system research workflows and methods with a narrowly defined evidence-grounding or verification function.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "EvoScientist, Autonomous Research Loops, and Heuresis notes describe broad research frameworks",
+        "RefLens, ECE, and CliVER notes describe standalone evidence-grounding or verification methods"
+      ]
+    },
+    {
+      "audit_id": "audit-770fcecfbec74885",
+      "verdict": "supported",
+      "rationale": "Verdict, metric, and improvement are exact matches to the linked experiment fields.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "aggregate_metrics.SpearmanCorrelation = 0.5725548964668126",
+        "improvement = -0.0031637508599727804; verdict = valid_non_improving"
+      ]
+    },
+    {
+      "audit_id": "audit-7801fcbd7c79f94c",
+      "verdict": "unsupported",
+      "rationale": "The metric and delta are recorded, but the experiment record has no intervention descriptor establishing that this non-baseline run is the tested intervention rather than another candidate configuration.",
+      "failure_modes": [
+        "missing_evidence"
+      ],
+      "decisive_evidence": [
+        "linked_experiment_evidence records is_baseline = false, SpearmanCorrelation = 0.5725548964668126, and improvement = -0.0031637508599727804",
+        "linked_experiment_evidence contains no intervention name or intervention-status field"
+      ]
+    },
+    {
+      "audit_id": "audit-7fee2c6f01a430af",
+      "verdict": "supported",
+      "rationale": "The candidate classification and exact Accuracy are explicit in the valid non-baseline experiment record.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence.aggregate_metrics.Accuracy = 0.7745617611088463",
+        "is_baseline = false; valid = true; verdict = candidate_improves"
+      ]
+    },
+    {
+      "audit_id": "audit-84606c8040556e3d",
+      "verdict": "supported",
+      "rationale": "All six named records are linked and their descriptions consistently map to the claimed research-system versus verification-system categories.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Autonomous Research Loops, EvoScientist, and Heuresis notes describe autonomous or multi-agent research systems",
+        "CliVER, ECE, and RefLens notes describe claim, evidence-coverage, and citation verification"
+      ]
+    },
+    {
+      "audit_id": "audit-86c592921d137f31",
+      "verdict": "unsupported",
+      "rationale": "The record supports one valid non-baseline result, but it does not enumerate the comparison set needed for the exclusivity word 'only'.",
+      "failure_modes": [
+        "overgeneralization"
+      ],
+      "decisive_evidence": [
+        "linked_experiment_evidence is a single object with run_id = run-20260718T051940Z-06ed78c6, valid = true, and verdict = valid_non_improving",
+        "No packet field enumerates all non-baseline runs"
+      ]
+    },
+    {
+      "audit_id": "audit-884b9631b126336d",
+      "verdict": "supported",
+      "rationale": "The non-baseline status, exact SpearmanCorrelation, and exact baseline-relative improvement are all present in the experiment record.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "is_baseline = false; aggregate_metrics.SpearmanCorrelation = 0.5725548964668126",
+        "improvement = -0.0031637508599727804"
+      ]
+    },
+    {
+      "audit_id": "audit-89bf1430e164241e",
+      "verdict": "supported",
+      "rationale": "The claimed Accuracy, non-baseline status, and valid_non_improving verdict match the linked fields exactly.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "aggregate_metrics.Accuracy = 0.36538461538461536",
+        "is_baseline = false; verdict = valid_non_improving"
+      ]
+    },
+    {
+      "audit_id": "audit-8a19a3c898222f11",
+      "verdict": "supported",
+      "rationale": "Each named source record is present and its operational description fits the stated category.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Autonomous Research Loops and EvoScientist records describe end-to-end research-agent frameworks",
+        "CliVER, RefLens, and ECE records describe claim, citation, and evidence-coverage verification"
+      ]
+    },
+    {
+      "audit_id": "audit-8d1b9f7914eb1ff9",
+      "verdict": "supported",
+      "rationale": "Validity, candidate status, exact Accuracy, and exact improvement all map to explicit fields.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "valid = true; verdict = candidate_improves; aggregate_metrics.Accuracy = 0.5907052588666939",
+        "improvement = 0.022013860578883104"
+      ]
+    },
+    {
+      "audit_id": "audit-98686536d7c49395",
+      "verdict": "supported",
+      "rationale": "The source set contains multiple operational examples of both end-to-end research agents and evidence-grounded verification systems.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "EvoScientist, Autonomous Research Loops, and Rethinking the AI Scientist records describe end-to-end or multi-agent scientific workflows",
+        "RefLens, ECE, and CliVER records describe evidence-grounded verification"
+      ]
+    },
+    {
+      "audit_id": "audit-9925a7b8a38a276a",
+      "verdict": "unsupported",
+      "rationale": "The candidate score and delta arithmetically imply the stated baseline score, but the packet supplies neither a baseline record nor baseline_verified status, so the material 'verified baseline' qualification is unsupported.",
+      "failure_modes": [
+        "missing_evidence"
+      ],
+      "decisive_evidence": [
+        "linked_experiment_evidence contains Accuracy = 0.6249490419894007 and improvement = 0.05625764370158992 for a non-baseline run",
+        "linked_experiment_evidence contains no baseline run object or baseline_verified verdict"
+      ]
+    },
+    {
+      "audit_id": "audit-9a3e5e3c6a10458c",
+      "verdict": "supported",
+      "rationale": "The three linked records explicitly define the exact verification object attributed to each named system.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "RefLens notes: 'automates citation verification'",
+        "ECE notes: 'assessing evidence coverage'; CliVER notes: 'scientific Claim VERification system'"
+      ]
+    },
+    {
+      "audit_id": "audit-9ee0b2650331b46d",
+      "verdict": "supported",
+      "rationale": "The linked operational descriptions establish the two stated system classes without extending beyond the bounded packet.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "EvoScientist and Autonomous Research Loops notes describe end-to-end research agents",
+        "RefLens, ECE, and CliVER notes describe evidence-grounding or claim-verification systems"
+      ]
+    },
+    {
+      "audit_id": "audit-a5bb4cf9eca5f9ef",
+      "verdict": "unsupported",
+      "rationale": "The packet supports this run's Accuracy but contains neither the 0.905 target nor a candidate comparison set establishing that this run was best.",
+      "failure_modes": [
+        "missing_evidence",
+        "overgeneralization"
+      ],
+      "decisive_evidence": [
+        "linked_experiment_evidence records one run with Accuracy = 0.6147574398695475 and verdict = candidate_improves",
+        "No packet field supplies target score 0.905 or ranks all candidate runs"
+      ]
+    },
+    {
+      "audit_id": "audit-a6589d57e2fc15ce",
+      "verdict": "supported",
+      "rationale": "The linked notes explicitly support broad research automation and each listed failure or challenge.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Autonomous Research Loops notes describe automating the entire research life cycle and hallucinated experimental details",
+        "Heuresis notes report reward hacking; Rethinking the AI Scientist notes report challenges in automated novelty assessment"
+      ]
+    },
+    {
+      "audit_id": "audit-a842b1d98c582e0b",
+      "verdict": "unsupported",
+      "rationale": "The candidate Accuracy is explicit, but no field in the linked evidence transmits the exact target score 0.905 needed for the comparison.",
+      "failure_modes": [
+        "missing_evidence"
+      ],
+      "decisive_evidence": [
+        "linked_experiment_evidence.aggregate_metrics.Accuracy = 0.5907052588666939",
+        "linked_experiment_evidence contains no task-target field for 0.905"
+      ]
+    },
+    {
+      "audit_id": "audit-b18dc484e7aebb28",
+      "verdict": "supported",
+      "rationale": "The records operationally supply the research-agent backbone and claim-evidence audit ingredients, while none reports the stated gated-versus-ungated same-backbone comparison; the candidate question is therefore precise for this bounded set.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "EvoScientist and Autonomous Research Loops describe end-to-end research-agent backbones",
+        "RefLens, ECE, and CliVER describe evidence-verification functions, with no linked same-backbone gated-versus-ungated study"
+      ]
+    },
+    {
+      "audit_id": "audit-b777c25c1053557a",
+      "verdict": "supported",
+      "rationale": "The exact Accuracy and improvement values map directly to the non-baseline candidate record.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence.aggregate_metrics.Accuracy = 0.36538461538461536",
+        "linked_experiment_evidence.improvement = -0.2692307692307692; is_baseline = false"
+      ]
+    },
+    {
+      "audit_id": "audit-ccc8eaf57d0ef832",
+      "verdict": "supported",
+      "rationale": "The exact Accuracy is recorded for a valid baseline on the linked run.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_experiment_evidence.aggregate_metrics.Accuracy = 0.6346153846153846",
+        "linked_experiment_evidence.is_baseline = true; valid = true; verdict = baseline_verified"
+      ]
+    },
+    {
+      "audit_id": "audit-d43120dd62f02af8",
+      "verdict": "supported",
+      "rationale": "The bounded source set contains the adjacent systems but no controlled same-backbone audit ablation measuring unsupported claims, task quality, and throughput together.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "The linked records describe research agents and claim, coverage, or citation verification as separate systems",
+        "No linked source record reports a same-backbone ablation with unsupported-claim, quality, and throughput outcomes"
+      ]
+    },
+    {
+      "audit_id": "audit-da8fc05325f510b8",
+      "verdict": "supported",
+      "rationale": "The named style mappings are operationally grounded by the source descriptions, and the six-record set contains no controlled integration ablation, so the bounded candidate question does not overstate novelty.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "RefLens and ECE notes define citation-verification and claim-evidence coverage functions",
+        "EvoScientist and Autonomous Research Loops notes define end-to-end research-agent systems; no linked record compares a gated and ungated same backbone"
+      ]
+    },
+    {
+      "audit_id": "audit-e54c7ba2b8fade99",
+      "verdict": "unsupported",
+      "rationale": "The single record establishes a valid_non_improving run and its score, but it cannot establish that this was the only valid non-baseline run without an enumerated run set.",
+      "failure_modes": [
+        "overgeneralization"
+      ],
+      "decisive_evidence": [
+        "linked_experiment_evidence is a single object with run_id = run-20260718T051626Z-e474ff7c, verdict = valid_non_improving, and SpearmanCorrelation = 0.5160162351235488",
+        "No packet field enumerates all non-baseline runs"
+      ]
+    },
+    {
+      "audit_id": "audit-e55418df53ab7e8c",
+      "verdict": "supported",
+      "rationale": "Across the bounded records, the component capabilities and research-agent failures are present, but the combined same-backbone ablation and its quality/throughput outcomes are not.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Autonomous Research Loops and Heuresis report hallucinated details or fabrications; RefLens, ECE, and CliVER provide verification functions",
+        "No linked record describes a controlled same-backbone audit intervention preserving task quality and throughput"
+      ]
+    },
+    {
+      "audit_id": "audit-e6426715cf45d416",
+      "verdict": "supported",
+      "rationale": "The two linked source notes explicitly list all four claimed end-to-end research-agent failure modes.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "Autonomous Research Loops notes: 'hallucination of experimental details, broken implementations, and misinterpretation of metrics'",
+        "Heuresis notes: '40 confirmed fabrications across 1,628 scored runs' during execution"
+      ]
+    },
+    {
+      "audit_id": "audit-ea397cb12584ed0b",
+      "verdict": "supported",
+      "rationale": "None of the six bounded records transmits a controlled integration ablation measuring whether a claim-level evidence audit changes hallucinated details or unsupported conclusions.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "The linked set contains three research-agent records and three verification-system records",
+        "No linked source record reports the stated controlled claim-level evidence-audit ablation"
+      ]
+    },
+    {
+      "audit_id": "audit-ef7fb255e184a7de",
+      "verdict": "unsupported",
+      "rationale": "The run ID, Accuracy, and delta are supported, but seed 2, the textualclassificationsickaccuracy task identity, and a registered-baseline designation are absent from the linked experiment fields.",
+      "failure_modes": [
+        "missing_evidence"
+      ],
+      "decisive_evidence": [
+        "linked_experiment_evidence records run_id = run-20260718T050731Z-47f2a29c, Accuracy = 0.6147574398695475, and improvement = 0.04606604158173666",
+        "linked_experiment_evidence contains no seed, task-name, or baseline-registration field"
+      ]
+    }
+  ]
+}

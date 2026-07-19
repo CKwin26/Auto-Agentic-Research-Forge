@@ -1,0 +1,24 @@
+{
+  "added_at": "2026-07-17T15:21:46.532583+00:00",
+  "authors": [
+    "L. Weidener",
+    "Marko Brki'c",
+    "Mihailo R. Jovanovic",
+    "Ritvik Singh",
+    "Chiara Baccin",
+    "E. Ulgac",
+    "A. Dobrin",
+    "A. Meduri"
+  ],
+  "locator": "https://doi.org/10.48550/arxiv.2601.12542",
+  "notes": "Artificial intelligence systems for scientific discovery have demonstrated remarkable potential, yet existing approaches remain largely proprietary and operate in batch-processing modes requiring hours per research cycle, precluding real-time researcher guidance. This paper introduces Deep Research, a multi-agent system enabling interactive scientific investigation with turnaround times measured in minutes. The architecture comprises specialized agents for planning, data analysis, literature search, and novelty detection, unified through a persistent world state that maintains context across iterative research cycles. Two operational modes support different workflows: semi-autonomous mode with selective human checkpoints, and fully autonomous mode for extended investigations. Evaluation on the BixBench computational biology benchmark demonstrated state-of-the-art performance, achieving 48.8% accuracy on open response and 64.4% on multiple-choice evaluation, exceeding existing baselines by 14 to 26 percentage points. Analysis of architectural constraints, including open access literature limitations and challenges inherent to automated novelty assessment, informs practical deployment considerations for AI-assisted scientific workflows.",
+  "origin": "discovery",
+  "origin_id": "discovery-2026-07-17T151524.143318+0000-35e67c",
+  "schema_version": 1,
+  "source_id": "paper-879e6a747eb8ceb6",
+  "source_type": "paper",
+  "title": "Rethinking the AI Scientist: Interactive Multi-Agent Workflows for Scientific Discovery",
+  "verification_method": "Exact Semantic Scholar paper-ID lookup matched the normalized title.",
+  "verified": true,
+  "year": 2026
+}

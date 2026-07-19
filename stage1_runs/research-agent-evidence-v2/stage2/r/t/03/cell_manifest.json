@@ -1,0 +1,15 @@
+{
+  "backbone_manifest_hash": "6ab9e5595188dacaa9b9b05c771c55254398b75b32985d34aa945ef32b738110",
+  "cell": {
+    "arm": "treatment",
+    "cell_id": "treatment--textualclassificationsickaccuracy--seed-2",
+    "seed": 2,
+    "sequence": 12,
+    "task_id": "textualclassificationsickaccuracy"
+  },
+  "created_at": "2026-07-18T06:29:39.490194+00:00",
+  "orchestration_manifest_hash": "cd396df1bf48310b2a486614b65703811ed7fb9c9be933efd607b93e442d6ed1",
+  "protocol_id": "stage2-22e124e44294",
+  "schema_version": 1,
+  "status": "started"
+}

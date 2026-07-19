@@ -1,0 +1,41 @@
+{
+  "exclusion_criteria": [
+    "Generic agent or chatbot papers not focused on scientific research workflows.",
+    "Tools limited to summarization, reference formatting, citation recommendation, or manuscript polishing without claim-evidence verification or provenance.",
+    "Wet-lab robotics or laboratory automation papers with no literature-review, manuscript-generation, or claim-grounding component.",
+    "Papers focused only on plagiarism detection, bibliometrics, or reference-style compliance.",
+    "Non-scholarly commentary, tutorials, news, patents, or non-English records."
+  ],
+  "inclusion_criteria": [
+    "English-language scholarly records indexed by Crossref or Semantic Scholar.",
+    "Works on AI/LLM systems that automate at least two of the following: literature search/review, experiment design or execution, result analysis, manuscript drafting.",
+    "Papers on citation verification, claim grounding, evidence attribution, provenance tracking, or novelty/prior-art evaluation in scientific research workflows.",
+    "Benchmark, audit, or critical-analysis papers that evaluate hallucination, unsupported citations or conclusions, provenance quality, or reproducibility for scientific assistants or agents.",
+    "Priority to computational, simulated, or otherwise explicitly traceable experiment settings where generated claims can be linked to recorded evidence."
+  ],
+  "key_concepts": [
+    "autonomous scientific research agents",
+    "end-to-end research workflow automation",
+    "literature-grounded claim generation",
+    "experiment evidence provenance",
+    "citation verification and citation faithfulness",
+    "scientific claim verification and evidence attribution",
+    "novelty evaluation and prior-art search",
+    "hallucination, unsupported conclusions, and reproducibility benchmarks"
+  ],
+  "queries": [
+    "autonomous scientific research agents literature review experiment execution paper writing",
+    "scientific discovery llm agents end-to-end research workflow evidence provenance citation verification",
+    "retrieval-augmented scientific writing citation grounding claim verification scholarly sources",
+    "scientific claim verification evidence attribution provenance research papers large language models",
+    "novelty evaluation prior art search scientific research agents literature-based discovery",
+    "benchmark autonomous research agents hallucination unsupported conclusions reproducibility scientific discovery"
+  ],
+  "review_question": "What scholarly systems and evaluations address end-to-end autonomous scientific research agents that connect literature claims, experiment evidence, and novelty assessment, and how do they benchmark citation verification, evidence provenance, hallucination, and unsupported conclusions against baseline methods?",
+  "schema_version": 1,
+  "scope_limitations": [
+    "This bounded metadata search is intended to support one credible first study, not an exhaustive systematic review.",
+    "Query wording emphasizes AI/LLM-driven scientific workflow automation and may miss relevant work described with different domain-specific terminology.",
+    "Absence from retrieved results is not proof of novelty or nonexistence; follow-up full-text screening, citation snowballing, and domain expansion would still be needed."
+  ]
+}

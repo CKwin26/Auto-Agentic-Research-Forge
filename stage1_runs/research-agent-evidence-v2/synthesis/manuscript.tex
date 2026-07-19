@@ -1,0 +1,189 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{xurl}
+\usepackage[hidelinks]{hyperref}
+\hypersetup{pdftitle={Paired Ablation of Pre-Delivery Claim-Evidence Gating in a Research Forge/Codex Autonomous Research Agent},pdfauthor={Research Forge automated pipeline}}
+\title{Paired Ablation of Pre-Delivery Claim-Evidence Gating in a Research Forge/Codex Autonomous Research Agent}
+\author{Research Forge automated pipeline}
+\date{2026-07-18}
+
+\begin{document}
+\maketitle
+
+\section*{Status}
+\begin{quote}
+\textbf{Provisional automated-evaluation manuscript. Human validation is deferred. This artifact is pipeline-complete but not publication-ready.}
+\end{quote}
+\begin{itemize}[leftmargin=*]
+\item Analysis status: \texttt{provisional\_human\_validation\_deferred}
+\item Human validation: \texttt{deferred}
+\item Preregistered primary analysis interpretable: \texttt{false}
+\end{itemize}
+
+\begin{abstract}
+End-to-end autonomous research agents can execute experiments and draft scientific conclusions, but their final claims may overstate source support or experimental evidence. We evaluated a pre-delivery claim-evidence gate in a frozen same-backbone paired ablation. The study used two arms, three CPU AIRS-lite tasks, three seeds, and exactly 18 cells. The protected automated evaluator estimated unsupported-claim rates of 30.5556\% for baseline and 8.3333\% for treatment, a treatment-minus-baseline difference of -22.22 percentage points. Across nine paired task-seed cells, the mean unsupported-claim-rate effect was -0.2222; the preregistered 10,000-resample hierarchical bootstrap interval was [-0.4167, -0.0833]. Total measured wall-clock time was 2721.13 seconds for baseline and 4514.38 seconds for treatment, a relative increase of 65.90\%. Because the preregistered two-human audit is deferred, these effects remain provisional.
+\end{abstract}
+
+\section{Introduction}
+Autonomous research systems combine literature retrieval, experiment proposal, code execution, evaluation, and scientific writing. A central reliability problem is that a valid experiment run does not guarantee that every final prose claim is supported by the cited source or linked artifact.
+
+\paragraph{Research question.} On the fixed CPU AIRS-lite task suite and fixed Research Forge/Codex backbone, does adding a pre-delivery claim-evidence rejection/revision gate reduce unsupported factual conclusion claims in final outputs versus the same backbone without the gate, when model, non-gate prompts, retrieval set, runtime cap, iteration budget, and task order are held fixed?
+
+\paragraph{Frozen hypothesis.} Relative to the no-gate baseline, the gated treatment will lower unsupported\_claim\_rate on the pooled frozen claim registry and in at least 2 of 3 task packs, increase citation correctness and evidence coverage, lower experiment-detail error rate, and keep task-native score within an absolute 0.02 of baseline in each task pack.
+
+The frozen Stage 1 review registered 12 verified sources spanning autonomous research agents, evidence verification, and research-agent reliability.
+
+\section{Related Work and Registered Sources}
+The Stage 1 evidence boundary is a verified metadata/abstract review rather than a full-text systematic review. The exact frozen registry is listed below.
+\begin{itemize}[leftmargin=*]
+\item \cite{paper-2a1fa8b99c181771} Nova: An Iterative Planning and Search Approach to Enhance Novelty and Diversity of LLM Generated Ideas.
+\item \cite{paper-2a7771f1bcf8adb2} ReasFlow: Assisting Reasoning-Centric Scientific Discovery in Applied Mathematics via a Knowledge-Based Multi-Agent System.
+\item \cite{paper-35ad838f0ac171a7} Retrieval augmented scientific claim verification.
+\item \cite{paper-3b6399a19264a862} Bayes-Entropy Collaborative Driven Agents for Research Hypotheses Generation and Optimization.
+\item \cite{paper-49947e5b991037d5} Heuresis: Search Strategies for Autonomous AI Research Agents Across Quality, Diversity and Novelty.
+\item \cite{paper-69c6e5faa8ef37c2} Evidence Coverage Evaluator: A Comprehensive Framework for Assessing Grounding Quality in Retrieval-Augmented Generation Systems.
+\item \cite{paper-6c621b0f059e2d3d} TriAgent: Automated Biomarker Discovery with Deep Research Grounding for Triage in Acute Care by LLM-Based Multi-Agent Collaboration.
+\item \cite{paper-8259991dea6aaecd} Autonomous Research Loops: An LLM-Agent Framework for End-to-End ML Experimentation, Manuscripting, and Self-Evaluation.
+\item \cite{paper-879e6a747eb8ceb6} Rethinking the AI Scientist: Interactive Multi-Agent Workflows for Scientific Discovery.
+\item \cite{paper-96217ebf4f10bd68} MedAgent: A Retrieval-Augmented Clinical Decision Support Agent with Verifiable Evidence Grounding for Evidence-Based Medicine.
+\item \cite{paper-965b07ca55b0b420} EvoScientist: Towards Multi-Agent Evolving AI Scientists for End-to-End Scientific Discovery.
+\item \cite{paper-e48872d23c4d9e23} RefLens: End-to-End Evidence-Grounded Citation Verification with LLM Agents.
+\end{itemize}
+
+\section{Methods}
+\subsection{Study design}
+The preregistered study used a frozen 2-arm by 3-task by 3-seed paired design, for exactly 18 cells.
+
+The treatment changed only the pre-delivery claim-evidence path by applying one reject-revise-recheck cycle; the baseline used the shared finalizer without verifier revision.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Frozen CPU AIRS-lite task packs.}
+\begin{tabular}{p{0.49\linewidth}rr}
+\toprule
+Task & Baseline & Timeout (s) \\
+\midrule
+textualclassificationsickaccuracy & 0.568691 & 120 \\
+textualsimilaritysickspearmancorrelation & 0.575719 & 120 \\
+coreferenceresolutionsupergluewscaccuracy & 0.634615 & 120 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\subsection{Evidence and evaluation}
+Every final output was represented as a structured claim registry. Experiment claims carried run IDs, exact metric values, and artifact paths; literature and novelty claims carried exact source IDs. All 18 registries were assigned random blind IDs before hybrid structural and Codex semantic evaluation.
+\subsection{Analysis}
+The primary proxy metric was unsupported-claim rate. Treatment-minus-baseline effects were paired by task and seed. The frozen analysis used a 10,000-resample hierarchical bootstrap and paired Cohen's $d_z$. These statistics are automated-evaluator estimates, not human-validated truth.
+
+\section{Results}
+\begin{table}[htbp]
+\centering
+\caption{Arm-level protected automated-evaluator metrics.}
+\begin{tabular}{lrr}
+\toprule
+Metric & Baseline & Treatment \\
+\midrule
+Unsupported claim rate & 30.56\% & 8.33\% \\ 
+Experiment-detail error rate & 33.33\% & 5.56\% \\ 
+Citation correctness & 66.67\% & 88.89\% \\ 
+Evidence coverage & 100.00\% & 100.00\% \\ 
+Mean task-native score & 0.60057 & 0.62213 \\ 
+Total wall-clock seconds & 2721.13 & 4514.38 \\ 
+\bottomrule
+\end{tabular}
+\end{table}
+The protected automated evaluator estimated unsupported-claim rates of 30.5556\% for baseline and 8.3333\% for treatment, a treatment-minus-baseline difference of -22.22 percentage points.
+
+Across nine paired task-seed cells, the mean unsupported-claim-rate effect was -0.2222; the preregistered 10,000-resample hierarchical bootstrap interval was [-0.4167, -0.0833].
+
+The automated experiment-detail error rate was 33.3333\% for baseline and 5.5556\% for treatment.
+
+Automated citation correctness was 66.6667\% for baseline and 88.8889\% for treatment.
+
+Mean task-native score was 0.60057 for baseline and 0.62213 for treatment in this bounded matrix.
+
+Total measured wall-clock time was 2721.13 seconds for baseline and 4514.38 seconds for treatment, a relative increase of 65.90\%.
+
+Both arms retained all 36 final claims in the protected evaluation, so the observed automated reliability difference was not produced by lower final claim count.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Task-level paired treatment-minus-baseline effects.}
+\begin{tabular}{lrr}
+\toprule
+Task & Unsupported-claim effect & Task-score effect \\
+\midrule
+textualclassificationsickaccuracy & -0.2500 & 0.0647 \\
+textualsimilaritysickspearmancorrelation & -0.2500 & 0.0000 \\
+coreferenceresolutionsupergluewscaccuracy & -0.1667 & 0.0000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\subsection{Supplementary same-model adversarial review}
+A supplementary same-model scientist-persona panel reviewed 48 blinded claims and returned 37 supported, 11 unsupported, and 4 mixed-vote cases.
+
+This panel is retained as an internal error-finding aid. Shared-model correlation prevents it from serving as independent validation.
+
+\section{Discussion}
+Within the automated evaluation boundary, the gate was associated with fewer unsupported claims, fewer erroneous experimental details, and higher citation correctness. The retained claim count was unchanged, which argues against simple claim suppression as the sole explanation in this matrix. The main observed trade-off was runtime.
+
+The paired mean effect was -0.2222, with bootstrap interval [-0.4167, -0.0833]. This result is descriptive until the frozen human audit gate is resumed and completed.
+
+\section{Limitations}
+\begin{itemize}[leftmargin=*]
+\item The preregistered two-human blinded claim audit is deferred; consequently the primary analysis remains uninterpretable under the frozen protocol and every effect reported here is provisional.
+\item The evidence comes from three CPU AIRS-lite task packs, three seeds, one frozen Codex backbone, and one claim-gate implementation; it does not establish universal generality.
+\item The protected semantic evaluator and experiment backbone both use Codex-family reasoning, so correlated model error is possible.
+\item Stage 1 is a bounded metadata/abstract review; full-text novelty assessment remains outstanding.
+\item The absolute 0.02 task-quality check treats positive improvements as deviations, so its frozen boolean is false even though no mean task-level degradation was observed.
+\item The study evaluates one implementation of a pre-delivery gate and does not isolate every verifier component.
+\end{itemize}
+
+\section{Conclusion}
+Research Forge completed a frozen 18-cell paired ablation and an evidence-bound provisional paper without converting automated judgments into a claim of human validation. The automated evidence is consistent with a reliability benefit from pre-delivery claim-evidence gating, accompanied by a substantial runtime cost. The next scientific step is external human review of this manuscript and, if desired, later resumption of the preregistered blinded claim audit.
+
+\begin{thebibliography}{99}
+\bibitem{paper-2a1fa8b99c181771}
+Xiang Hu, Hongyu Fu, Jinge Wang, Yifeng Wang, Zhikun Li, Renjun Xu, Yu Lu, Yaochu Jin, Lili Pan, Zhenzhong Lan (2024). \newblock \emph{Nova: An Iterative Planning and Search Approach to Enhance Novelty and Diversity of LLM Generated Ideas}. \newblock \url{https://doi.org/10.48550/arxiv.2410.14255}.
+\bibitem{paper-2a7771f1bcf8adb2}
+Yutong He, Daibo Li, Guohong Li, Jiahe Geng, Zhengyang Huang, Can Ren, Zekun Zhang, Yifan Liu, Shuchen Zhu, Hengrui Zhang, Boao Kong, Ming Sun, Shu Li, Chenyi Li, Jiang Hu, Kun Yuan, Zaiwen Wen, Pingwen Zhang (2026). \newblock \emph{ReasFlow: Assisting Reasoning-Centric Scientific Discovery in Applied Mathematics via a Knowledge-Based Multi-Agent System}. \newblock \url{https://www.semanticscholar.org/paper/82f8c2296bba3d06dfc1dc9291963cc0a30359a0}.
+\bibitem{paper-35ad838f0ac171a7}
+Hao Liu, Ali Soroush, Jordan G Nestor, Elizabeth Park, Betina Idnay, Yilu Fang, Jane Pan, Stan Liao, Marguerite Bernard, Yifan Peng, Chunhua Weng (2024). \newblock \emph{Retrieval augmented scientific claim verification}. \newblock \url{https://doi.org/10.1093/jamiaopen/ooae021}.
+\bibitem{paper-3b6399a19264a862}
+Shiyang Duan, Yuan Tian, Qi-Tao Bing, Xiaowei Shao (2025). \newblock \emph{Bayes-Entropy Collaborative Driven Agents for Research Hypotheses Generation and Optimization}. \newblock \url{https://doi.org/10.48550/arxiv.2508.01746}.
+\bibitem{paper-49947e5b991037d5}
+Antonis Antoniades, Deepak Nathani, Ritam Saha, Alfonso Amayuelas, I. Bercovich, Zhaotian Weng, Vignesh Baskaran, Kunal Bhatia, W. Wang (2026). \newblock \emph{Heuresis: Search Strategies for Autonomous AI Research Agents Across Quality, Diversity and Novelty}. \newblock \url{https://www.semanticscholar.org/paper/ce30a6d54ba9a1bec69ca1a4e2d744b6be1479be}.
+\bibitem{paper-69c6e5faa8ef37c2}
+Goutam Adwant, Manjari Srivastav (2026). \newblock \emph{Evidence Coverage Evaluator: A Comprehensive Framework for Assessing Grounding Quality in Retrieval-Augmented Generation Systems}. \newblock \url{https://doi.org/10.36227/techrxiv.176784505.56675782/v1}.
+\bibitem{paper-6c621b0f059e2d3d}
+Kerem Delikoyun, Qianyu Chen, W. Kuan, J. Soong, M. Cove, Oliver Hayden (2025). \newblock \emph{TriAgent: Automated Biomarker Discovery with Deep Research Grounding for Triage in Acute Care by LLM-Based Multi-Agent Collaboration}. \newblock \url{https://doi.org/10.48550/arxiv.2510.16080}.
+\bibitem{paper-8259991dea6aaecd}
+Alicem Koyun (2026). \newblock \emph{Autonomous Research Loops: An LLM-Agent Framework for End-to-End ML Experimentation, Manuscripting, and Self-Evaluation}. \newblock \url{https://doi.org/10.1145/3802133.3802134}.
+\bibitem{paper-879e6a747eb8ceb6}
+L. Weidener, Marko Brki'c, Mihailo R. Jovanovic, Ritvik Singh, Chiara Baccin, E. Ulgac, A. Dobrin, A. Meduri (2026). \newblock \emph{Rethinking the AI Scientist: Interactive Multi-Agent Workflows for Scientific Discovery}. \newblock \url{https://doi.org/10.48550/arxiv.2601.12542}.
+\bibitem{paper-96217ebf4f10bd68}
+Fuqiang Wang, Zhicai Guo, Zhikang Ye (2026). \newblock \emph{MedAgent: A Retrieval-Augmented Clinical Decision Support Agent with Verifiable Evidence Grounding for Evidence-Based Medicine}. \newblock \url{https://doi.org/10.64898/2026.06.15.26355735}.
+\bibitem{paper-965b07ca55b0b420}
+Yougang Lyu, Xi Zhang, Xinhao Yi, Yuyue Zhao, Shuyu Guo, Wenxiang Hu, Jan Piotrowski, Jakub Kaliski, Jacopo Urbani, Zaiqiao Meng, Lu Zhou, Xiaohu Yan (2026). \newblock \emph{EvoScientist: Towards Multi-Agent Evolving AI Scientists for End-to-End Scientific Discovery}. \newblock \url{https://doi.org/10.48550/arxiv.2603.08127}.
+\bibitem{paper-e48872d23c4d9e23}
+SeungHoo Lee, JuneHyoung Kwon, Jooweon Choi, JungMin Yun, Seunguk Yu, Yoonji Lee, Jinhee Jang, YoungBin Kim (2026). \newblock \emph{RefLens: End-to-End Evidence-Grounded Citation Verification with LLM Agents}. \newblock \url{https://doi.org/10.1609/aaai.v40i48.42361}.
+\end{thebibliography}
+
+\section{Reproducibility}
+\begin{itemize}[leftmargin=*]
+\item Protocol: \path{stage2-22e124e44294}, revision 4.
+\item Model/backend: \path{codex:gpt-5.4}.
+\item Frozen contract digest: \path{aff2ee30de391ce867af1a3f5307d16764720964ac85fc79339e3c3d5123272c}.
+\item Protected evaluation summary: \path{stage2/evaluations/summary.json}.
+\item Provisional analysis: \path{stage2/provisional_analysis.json}.
+\item Claim registry: \path{synthesis/claims.json}.
+\item Synthesis audit: \path{synthesis/audit.json}.
+\end{itemize}
+
+\end{document}

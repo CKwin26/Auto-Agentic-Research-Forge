@@ -1,0 +1,16 @@
+{
+  "dataset": "aps/super_glue",
+  "config": "wsc",
+  "train_split": "train",
+  "test_split": "validation",
+  "train_rows": 554,
+  "test_rows": 104,
+  "input_columns": [
+    "text",
+    "span1_index",
+    "span2_index",
+    "span1_text",
+    "span2_text"
+  ],
+  "scoring_column": "label"
+}

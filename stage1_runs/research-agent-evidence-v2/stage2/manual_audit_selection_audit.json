@@ -1,0 +1,45 @@
+{
+  "audit_all_available_unsupported": true,
+  "available_evaluator_unsupported": 14,
+  "group_counts": {
+    "coreferenceresolutionsupergluewscaccuracy|baseline": {
+      "available_evaluator_unsupported": 2,
+      "evaluator_non_unsupported": 6,
+      "evaluator_unsupported": 2,
+      "total": 8
+    },
+    "coreferenceresolutionsupergluewscaccuracy|treatment": {
+      "available_evaluator_unsupported": 0,
+      "evaluator_non_unsupported": 8,
+      "evaluator_unsupported": 0,
+      "total": 8
+    },
+    "textualclassificationsickaccuracy|baseline": {
+      "available_evaluator_unsupported": 4,
+      "evaluator_non_unsupported": 4,
+      "evaluator_unsupported": 4,
+      "total": 8
+    },
+    "textualclassificationsickaccuracy|treatment": {
+      "available_evaluator_unsupported": 1,
+      "evaluator_non_unsupported": 7,
+      "evaluator_unsupported": 1,
+      "total": 8
+    },
+    "textualsimilaritysickspearmancorrelation|baseline": {
+      "available_evaluator_unsupported": 5,
+      "evaluator_non_unsupported": 3,
+      "evaluator_unsupported": 5,
+      "total": 8
+    },
+    "textualsimilaritysickspearmancorrelation|treatment": {
+      "available_evaluator_unsupported": 2,
+      "evaluator_non_unsupported": 6,
+      "evaluator_unsupported": 2,
+      "total": 8
+    }
+  },
+  "planned_unsupported_quota": 24,
+  "selected_evaluator_non_unsupported": 34,
+  "selected_evaluator_unsupported": 14
+}

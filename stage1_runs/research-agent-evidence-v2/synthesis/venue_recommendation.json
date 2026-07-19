@@ -1,0 +1,1216 @@
+{
+  "assessment": {
+    "blockers": [
+      {
+        "code": "RC-MEASUREMENT-CIRCULARITY",
+        "reason": "生成器、干预和主评估器没有完成独立校准。",
+        "required_action": "完成盲态人工校准或真正跨模型家族的校准，并报告一致性和错误结构。",
+        "severity": "critical",
+        "source": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\root_cause_preflight.json"
+      },
+      {
+        "code": "RC-COUNTERFACTUAL-NONISOLATION",
+        "reason": "原始两组没有隔离同一实验产物上的反事实效应。",
+        "required_action": "做前瞻性的同产物分支实验，或采用随机化、交错执行的对照设计。",
+        "severity": "critical",
+        "source": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\root_cause_preflight.json"
+      },
+      {
+        "code": "RC-CONSTRUCT-UNDERCOVERAGE",
+        "reason": "代理指标没有完整测量信息性和科学用途。",
+        "required_action": "冻结并增加主张保留、语义变化、信息性和用途指标。",
+        "severity": "high",
+        "source": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\root_cause_preflight.json"
+      },
+      {
+        "code": "RC-MATURITY-TARGET-MISMATCH",
+        "reason": "当前证据仍是临时性 pilot，而投稿需要可解释的验证结果。",
+        "required_action": "在进入投稿路由前完成预注册的验证门。",
+        "severity": "critical",
+        "source": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\root_cause_preflight.json"
+      },
+      {
+        "code": "RC-REPORTING-CONTRACT-GAP",
+        "reason": "当前报告契约不足以支撑目标结论层级。",
+        "required_action": "把每个核心结论绑定到冻结分析，并披露全部协议偏差。",
+        "severity": "medium",
+        "source": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\root_cause_preflight.json"
+      },
+      {
+        "code": "RC-TELEMETRY-SCHEMA-GAP",
+        "reason": "执行遥测不足以支撑部分机制层面的结论。",
+        "required_action": "在前瞻性实验中冻结并采集缺失的遥测字段。",
+        "severity": "medium",
+        "source": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\root_cause_preflight.json"
+      },
+      {
+        "code": "RC-LITERATURE-SCOPE-COUPLING",
+        "reason": "新颖性边界依赖于范围有限的冻结文献包。",
+        "required_action": "在提出宽泛新颖性主张前刷新并独立核验领域检索。",
+        "severity": "medium",
+        "source": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\root_cause_preflight.json"
+      }
+    ],
+    "claim_count": 13,
+    "depth_gate_passed": true,
+    "evidence_score": 0.5345,
+    "evidence_sources": [
+      "C:\\Users\\austa\\Documents\\自动研究器\\output\\pdf\\research-agent-evidence-v4-paper-en.tex",
+      "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\completion_certificate.json",
+      "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\stage2\\closed_loop_status.json",
+      "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\stage2\\protocol.json",
+      "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\stage2\\provisional_analysis.json",
+      "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\root_cause_preflight.json"
+    ],
+    "external_public_repository": false,
+    "human_validation_complete": false,
+    "manuscript_path": "C:\\Users\\austa\\Documents\\自动研究器\\output\\pdf\\research-agent-evidence-v4-paper-en.tex",
+    "maturity_score": 0.16,
+    "maximum_claim_tier": "internal_proxy_association",
+    "method_rigor_score": 0.175,
+    "novelty_score": 0.44,
+    "primary_analysis_interpretable": false,
+    "publication_ready": false,
+    "reference_count": 18,
+    "reporting_score": 0.99,
+    "reproducibility_score": 0.75,
+    "seed_count": 3,
+    "software_readiness_score": 0.53,
+    "task_count": 3,
+    "title": "Pre-Delivery Claim-Evidence Gating in Autonomous Research Agents: A Protected-Evaluator Pilot with Same-Artifact Cross-Family Rebranching",
+    "total_count": 6562
+  },
+  "calibration_status": "uncalibrated_heuristic_v1",
+  "generated_at": "2026-07-18T16:31:48.138742+00:00",
+  "method_id": "research-forge-strict-venue-routing-v2",
+  "probability_interpretation": "Wide decision-support intervals from explicit Research Forge priors and manuscript/project features; they are not journal-published acceptance rates or guarantees. Centers become locally calibrated only after at least 5 recorded submissions to the same journal.",
+  "recommendations": [
+    {
+      "abstract_deadline": null,
+      "after_known_blockers_resolved": {
+        "center": 0.3019,
+        "high": 0.5434,
+        "low": 0.1268
+      },
+      "archival_record": "Springer Nature journal archive with formal open peer review",
+      "article_types": [
+        "Research Article",
+        "Methodology"
+      ],
+      "calibration_status": "uncalibrated_heuristic_v1",
+      "cautions": [
+        "The primary analysis is explicitly marked uninterpretable until deferred validation is completed.",
+        "The project completion certificate/root-cause gate does not mark this evidence publication-ready."
+      ],
+      "combined_submission_success": {
+        "center": 0.0544,
+        "high": 0.1102,
+        "low": 0.0228
+      },
+      "conditional_post_review_success": {
+        "center": 0.186,
+        "high": 0.356,
+        "low": 0.016
+      },
+      "current_cycle_eligible": true,
+      "current_cycle_submission_success": {
+        "center": 0.0544,
+        "high": 0.1102,
+        "low": 0.0228
+      },
+      "cycle_label": null,
+      "cycle_status": "rolling",
+      "desk_screen_survival": {
+        "center": 0.5626,
+        "high": 0.7026,
+        "low": 0.4026
+      },
+      "estimated_uplift": 0.2475,
+      "hard_blockers": [
+        "RC-COUNTERFACTUAL-NONISOLATION",
+        "RC-MATURITY-TARGET-MISMATCH",
+        "RC-MEASUREMENT-CIRCULARITY"
+      ],
+      "journal_id": "research-integrity-and-peer-review",
+      "journal_name": "Research Integrity and Peer Review",
+      "matched_scope_terms": [
+        "claim evidence",
+        "claim verification",
+        "evidence provenance",
+        "research agents",
+        "scientific reliability"
+      ],
+      "official_venue_url": "https://link.springer.com/journal/41073",
+      "organizer": "Springer Nature / BMC",
+      "publisher": "Springer Nature",
+      "quality_score": 0.4767,
+      "rank": 1,
+      "reasons_for_fit": [
+        "Detected 5 weighted scope terms; scope-fit score 0.88.",
+        "Venue-weighted evidence/method/maturity score 0.48 against internal bar 0.68.",
+        "Thematically strongest journal route for an empirical intervention on research-reporting reliability."
+      ],
+      "routing_label": "do_not_submit_yet",
+      "scope_fit": 0.875,
+      "scope_summary": "Empirical research on research integrity, study reporting, peer review, and interventions that improve the completeness, accuracy, and usability of scientific reports.",
+      "scope_url": "https://link.springer.com/journal/41073/aims-and-scope",
+      "submission_deadline": null,
+      "submission_model": "rolling",
+      "track": "Research Article",
+      "venue_type": "journal",
+      "whitelist_evidence": [
+        "Official aims-and-scope page",
+        "Standing editorial board",
+        "Formal peer-reviewed research articles"
+      ]
+    },
+    {
+      "abstract_deadline": null,
+      "after_known_blockers_resolved": {
+        "center": 0.1843,
+        "high": 0.3376,
+        "low": 0.0774
+      },
+      "archival_record": "JMLR-hosted archival journal with OpenReview review record",
+      "article_types": [
+        "Research Article"
+      ],
+      "calibration_status": "uncalibrated_heuristic_v1",
+      "cautions": [
+        "The primary analysis is explicitly marked uninterpretable until deferred validation is completed.",
+        "The project completion certificate/root-cause gate does not mark this evidence publication-ready."
+      ],
+      "combined_submission_success": {
+        "center": 0.0175,
+        "high": 0.0457,
+        "low": 0.0074
+      },
+      "conditional_post_review_success": {
+        "center": 0.0815,
+        "high": 0.2515,
+        "low": 0.0
+      },
+      "current_cycle_eligible": true,
+      "current_cycle_submission_success": {
+        "center": 0.0175,
+        "high": 0.0457,
+        "low": 0.0074
+      },
+      "cycle_label": null,
+      "cycle_status": "rolling",
+      "desk_screen_survival": {
+        "center": 0.4134,
+        "high": 0.5534,
+        "low": 0.2534
+      },
+      "estimated_uplift": 0.1668,
+      "hard_blockers": [
+        "RC-COUNTERFACTUAL-NONISOLATION",
+        "RC-MATURITY-TARGET-MISMATCH",
+        "RC-MEASUREMENT-CIRCULARITY"
+      ],
+      "journal_id": "tmlr",
+      "journal_name": "Transactions on Machine Learning Research",
+      "matched_scope_terms": [
+        "natural language inference",
+        "algorithm",
+        "empirical",
+        "reliability"
+      ],
+      "official_venue_url": "https://www.jmlr.org/tmlr/",
+      "organizer": "JMLR",
+      "publisher": "JMLR",
+      "quality_score": 0.4527,
+      "rank": 2,
+      "reasons_for_fit": [
+        "Detected 4 weighted scope terms; scope-fit score 0.64.",
+        "Venue-weighted evidence/method/maturity score 0.45 against internal bar 0.77.",
+        "Requires a direct learning-system or evaluation-method contribution, not only research governance."
+      ],
+      "routing_label": "do_not_submit_yet",
+      "scope_fit": 0.6428,
+      "scope_summary": "Original work on computational or mathematical principles that enable learning-based intelligence, including validated algorithms, learning-system studies, and assessment frameworks.",
+      "scope_url": "https://www.jmlr.org/tmlr/editorial-policies.html",
+      "submission_deadline": null,
+      "submission_model": "rolling",
+      "track": "Research Article",
+      "venue_type": "journal",
+      "whitelist_evidence": [
+        "Official JMLR venue",
+        "Double-blind editorial review",
+        "Rolling archival publication"
+      ]
+    },
+    {
+      "abstract_deadline": null,
+      "after_known_blockers_resolved": {
+        "center": 0.1188,
+        "high": 0.2229,
+        "low": 0.0499
+      },
+      "archival_record": "AI Access Foundation open archival journal",
+      "article_types": [
+        "Research Article"
+      ],
+      "calibration_status": "uncalibrated_heuristic_v1",
+      "cautions": [
+        "The primary analysis is explicitly marked uninterpretable until deferred validation is completed.",
+        "The project completion certificate/root-cause gate does not mark this evidence publication-ready."
+      ],
+      "combined_submission_success": {
+        "center": 0.0115,
+        "high": 0.0351,
+        "low": 0.0048
+      },
+      "conditional_post_review_success": {
+        "center": 0.0423,
+        "high": 0.2123,
+        "low": 0.0
+      },
+      "current_cycle_eligible": true,
+      "current_cycle_submission_success": {
+        "center": 0.0115,
+        "high": 0.0351,
+        "low": 0.0048
+      },
+      "cycle_label": null,
+      "cycle_status": "rolling",
+      "desk_screen_survival": {
+        "center": 0.5209,
+        "high": 0.6609,
+        "low": 0.3609
+      },
+      "estimated_uplift": 0.1073,
+      "hard_blockers": [
+        "RC-COUNTERFACTUAL-NONISOLATION",
+        "RC-MATURITY-TARGET-MISMATCH",
+        "RC-MEASUREMENT-CIRCULARITY"
+      ],
+      "journal_id": "jair",
+      "journal_name": "Journal of Artificial Intelligence Research",
+      "matched_scope_terms": [
+        "artificial intelligence",
+        "autonomous research agents",
+        "research agents",
+        "agent",
+        "natural language inference",
+        "evaluation",
+        "reliability"
+      ],
+      "official_venue_url": "https://jair.org/",
+      "organizer": "AI Access Foundation",
+      "publisher": "AI Access Foundation",
+      "quality_score": 0.4394,
+      "rank": 3,
+      "reasons_for_fit": [
+        "Detected 7 weighted scope terms; scope-fit score 1.00.",
+        "Venue-weighted evidence/method/maturity score 0.44 against internal bar 0.84.",
+        "A strong AI-journal route only after broader evidence and independent validation."
+      ],
+      "routing_label": "do_not_submit_yet",
+      "scope_fit": 1.0,
+      "scope_summary": "All areas of AI, with high standards for originality, significance, empirical or theoretical support, and reproducibility.",
+      "scope_url": "https://jair.org/index.php/jair/about",
+      "submission_deadline": null,
+      "submission_model": "rolling",
+      "track": "Research Article",
+      "venue_type": "journal",
+      "whitelist_evidence": [
+        "Established nonprofit AI journal",
+        "Standing editorial board",
+        "Formal peer review"
+      ]
+    },
+    {
+      "abstract_deadline": null,
+      "after_known_blockers_resolved": {
+        "center": 0.1044,
+        "high": 0.1977,
+        "low": 0.0438
+      },
+      "archival_record": "Online ISSN 2307-387X; ACL/MIT Press archive",
+      "article_types": [
+        "Empirical and Data-Driven Methods",
+        "Resource and Evaluation",
+        "Applications and Tools"
+      ],
+      "calibration_status": "uncalibrated_heuristic_v1",
+      "cautions": [
+        "The primary analysis is explicitly marked uninterpretable until deferred validation is completed.",
+        "The project completion certificate/root-cause gate does not mark this evidence publication-ready."
+      ],
+      "combined_submission_success": {
+        "center": 0.0079,
+        "high": 0.0288,
+        "low": 0.0033
+      },
+      "conditional_post_review_success": {
+        "center": 0.042,
+        "high": 0.212,
+        "low": 0.0
+      },
+      "current_cycle_eligible": true,
+      "current_cycle_submission_success": {
+        "center": 0.0079,
+        "high": 0.0288,
+        "low": 0.0033
+      },
+      "cycle_label": null,
+      "cycle_status": "rolling",
+      "desk_screen_survival": {
+        "center": 0.3608,
+        "high": 0.5008,
+        "low": 0.2008
+      },
+      "estimated_uplift": 0.0965,
+      "hard_blockers": [
+        "RC-COUNTERFACTUAL-NONISOLATION",
+        "RC-MATURITY-TARGET-MISMATCH",
+        "RC-MEASUREMENT-CIRCULARITY"
+      ],
+      "journal_id": "tacl",
+      "journal_name": "Transactions of the Association for Computational Linguistics",
+      "matched_scope_terms": [
+        "natural language inference",
+        "language model",
+        "claim verification"
+      ],
+      "official_venue_url": "https://direct.mit.edu/tacl",
+      "organizer": "Association for Computational Linguistics",
+      "publisher": "MIT Press",
+      "quality_score": 0.4375,
+      "rank": 4,
+      "reasons_for_fit": [
+        "Detected 3 weighted scope terms; scope-fit score 0.63.",
+        "Venue-weighted evidence/method/maturity score 0.44 against internal bar 0.84.",
+        "Only appropriate if the central contribution is recast and validated as an NLP evaluation or inference result."
+      ],
+      "routing_label": "do_not_submit_yet",
+      "scope_fit": 0.6319,
+      "scope_summary": "Substantial and original computational-linguistics and NLP work across empirical methods, resources/evaluation, theory, and applications/tools.",
+      "scope_url": "https://direct.mit.edu/tacl/pages/submission-guidelines",
+      "submission_deadline": null,
+      "submission_model": "monthly_batch",
+      "track": "Resource and Evaluation / Empirical Methods",
+      "venue_type": "journal",
+      "whitelist_evidence": [
+        "ACL journal",
+        "Standing action editors and reviewers",
+        "Double-anonymized peer review"
+      ]
+    },
+    {
+      "abstract_deadline": null,
+      "after_known_blockers_resolved": {
+        "center": 0.0767,
+        "high": 0.1491,
+        "low": 0.0322
+      },
+      "archival_record": "ISSN 0004-3702; ScienceDirect journal archive",
+      "article_types": [
+        "Regular Paper",
+        "Research Note",
+        "Position Paper"
+      ],
+      "calibration_status": "uncalibrated_heuristic_v1",
+      "cautions": [
+        "The primary analysis is explicitly marked uninterpretable until deferred validation is completed.",
+        "The project completion certificate/root-cause gate does not mark this evidence publication-ready."
+      ],
+      "combined_submission_success": {
+        "center": 0.0065,
+        "high": 0.0263,
+        "low": 0.0027
+      },
+      "conditional_post_review_success": {
+        "center": 0.025,
+        "high": 0.195,
+        "low": 0.0
+      },
+      "current_cycle_eligible": true,
+      "current_cycle_submission_success": {
+        "center": 0.0065,
+        "high": 0.0263,
+        "low": 0.0027
+      },
+      "cycle_label": null,
+      "cycle_status": "rolling",
+      "desk_screen_survival": {
+        "center": 0.4976,
+        "high": 0.6376,
+        "low": 0.3376
+      },
+      "estimated_uplift": 0.0702,
+      "hard_blockers": [
+        "RC-COUNTERFACTUAL-NONISOLATION",
+        "RC-MATURITY-TARGET-MISMATCH",
+        "RC-MEASUREMENT-CIRCULARITY"
+      ],
+      "journal_id": "artificial-intelligence-journal",
+      "journal_name": "Artificial Intelligence",
+      "matched_scope_terms": [
+        "artificial intelligence",
+        "autonomous research agents",
+        "multi agent",
+        "evaluation",
+        "reliability"
+      ],
+      "official_venue_url": "https://www.sciencedirect.com/journal/artificial-intelligence",
+      "organizer": "IJCAI Society / Elsevier",
+      "publisher": "Elsevier",
+      "quality_score": 0.4276,
+      "rank": 5,
+      "reasons_for_fit": [
+        "Detected 5 weighted scope terms; scope-fit score 1.00.",
+        "Venue-weighted evidence/method/maturity score 0.43 against internal bar 0.89.",
+        "Requires an advance of value to AI as a field, not a narrow workflow pilot."
+      ],
+      "routing_label": "do_not_submit_yet",
+      "scope_fit": 1.0,
+      "scope_summary": "Broad advances in AI that demonstrate value and effectiveness, including machine learning, multi-agent systems, NLP, reasoning, and ethical AI.",
+      "scope_url": "https://www.sciencedirect.com/journal/artificial-intelligence/about/aims-and-scope",
+      "submission_deadline": null,
+      "submission_model": "rolling",
+      "track": "Regular Paper",
+      "venue_type": "journal",
+      "whitelist_evidence": [
+        "Long-established AI journal",
+        "IJCAI Society affiliation",
+        "Formal editorial peer review"
+      ]
+    },
+    {
+      "abstract_deadline": null,
+      "after_known_blockers_resolved": {
+        "center": 0.0683,
+        "high": 0.1345,
+        "low": 0.0287
+      },
+      "archival_record": "ISSN 1533-7928; permanent JMLR archive",
+      "article_types": [
+        "Research Article"
+      ],
+      "calibration_status": "uncalibrated_heuristic_v1",
+      "cautions": [
+        "The primary analysis is explicitly marked uninterpretable until deferred validation is completed.",
+        "The project completion certificate/root-cause gate does not mark this evidence publication-ready."
+      ],
+      "combined_submission_success": {
+        "center": 0.0047,
+        "high": 0.0233,
+        "low": 0.002
+      },
+      "conditional_post_review_success": {
+        "center": 0.0346,
+        "high": 0.2046,
+        "low": 0.0
+      },
+      "current_cycle_eligible": true,
+      "current_cycle_submission_success": {
+        "center": 0.0047,
+        "high": 0.0233,
+        "low": 0.002
+      },
+      "cycle_label": null,
+      "cycle_status": "rolling",
+      "desk_screen_survival": {
+        "center": 0.2632,
+        "high": 0.4032,
+        "low": 0.1032
+      },
+      "estimated_uplift": 0.0635,
+      "hard_blockers": [
+        "RC-COUNTERFACTUAL-NONISOLATION",
+        "RC-MATURITY-TARGET-MISMATCH",
+        "RC-MEASUREMENT-CIRCULARITY"
+      ],
+      "journal_id": "jmlr",
+      "journal_name": "Journal of Machine Learning Research",
+      "matched_scope_terms": [
+        "algorithm",
+        "reproducible"
+      ],
+      "official_venue_url": "https://www.jmlr.org/",
+      "organizer": "JMLR, Inc.",
+      "publisher": "JMLR",
+      "quality_score": 0.4445,
+      "rank": 6,
+      "reasons_for_fit": [
+        "Detected 2 weighted scope terms; scope-fit score 0.49.",
+        "Venue-weighted evidence/method/maturity score 0.44 against internal bar 0.88.",
+        "Flagship ML journal; the current pilot lacks a sufficiently broad machine-learning advance."
+      ],
+      "routing_label": "do_not_submit_yet",
+      "scope_fit": 0.4876,
+      "scope_summary": "High-quality, broadly relevant machine-learning theory and methods with principled algorithms, strong validation, new learning tasks, or analytical frameworks.",
+      "scope_url": "https://www.jmlr.org/author-info.html",
+      "submission_deadline": null,
+      "submission_model": "rolling",
+      "track": "Research Article",
+      "venue_type": "journal",
+      "whitelist_evidence": [
+        "Established field journal since 2000",
+        "Official multi-reviewer editorial process",
+        "No publication fee"
+      ]
+    },
+    {
+      "abstract_deadline": "2026-07-21",
+      "after_known_blockers_resolved": {
+        "center": 0.1601,
+        "high": 0.2951,
+        "low": 0.0672
+      },
+      "archival_record": "AAAI Press conference proceedings",
+      "article_types": [
+        "Full Technical Paper"
+      ],
+      "calibration_status": "uncalibrated_heuristic_v1",
+      "cautions": [
+        "The primary analysis is explicitly marked uninterpretable until deferred validation is completed.",
+        "The project completion certificate/root-cause gate does not mark this evidence publication-ready."
+      ],
+      "combined_submission_success": {
+        "center": 0.0151,
+        "high": 0.0414,
+        "low": 0.0063
+      },
+      "conditional_post_review_success": {
+        "center": 0.05,
+        "high": 0.22,
+        "low": 0.0
+      },
+      "current_cycle_eligible": true,
+      "current_cycle_submission_success": {
+        "center": 0.0151,
+        "high": 0.0414,
+        "low": 0.0063
+      },
+      "cycle_label": "AAAI-27",
+      "cycle_status": "open",
+      "desk_screen_survival": {
+        "center": 0.579,
+        "high": 0.719,
+        "low": 0.419
+      },
+      "estimated_uplift": 0.145,
+      "hard_blockers": [
+        "RC-COUNTERFACTUAL-NONISOLATION",
+        "RC-MATURITY-TARGET-MISMATCH",
+        "RC-MEASUREMENT-CIRCULARITY"
+      ],
+      "journal_id": "aaai-27-main",
+      "journal_name": "AAAI-27",
+      "matched_scope_terms": [
+        "artificial intelligence",
+        "autonomous research agents",
+        "research agents",
+        "agent",
+        "natural language inference",
+        "evaluation",
+        "reliability"
+      ],
+      "official_venue_url": "https://aaai.org/conference/aaai/aaai-27/",
+      "organizer": "Association for the Advancement of Artificial Intelligence",
+      "publisher": "AAAI Press",
+      "quality_score": 0.4306,
+      "rank": 1,
+      "reasons_for_fit": [
+        "Detected 7 weighted scope terms; scope-fit score 1.00.",
+        "Venue-weighted evidence/method/maturity score 0.43 against internal bar 0.82.",
+        "The only currently open flagship conference cycle in this registry; timing does not override scientific blockers."
+      ],
+      "routing_label": "do_not_submit_yet",
+      "scope_fit": 1.0,
+      "scope_summary": "Archival main conference spanning the entirety of AI and affiliated disciplines.",
+      "scope_url": "https://aaai.org/conference/aaai/aaai-27/",
+      "submission_deadline": "2026-07-28",
+      "submission_model": "annual_deadline",
+      "track": "Main Technical Track",
+      "venue_type": "conference",
+      "whitelist_evidence": [
+        "AAAI flagship conference series",
+        "Main technical paper review",
+        "Archival proceedings"
+      ]
+    },
+    {
+      "abstract_deadline": null,
+      "after_known_blockers_resolved": {
+        "center": 0.1848,
+        "high": 0.3384,
+        "low": 0.0776
+      },
+      "archival_record": "IFAAMAS proceedings, ISBN 979-8-4007-2317-9",
+      "article_types": [
+        "Full Technical Paper"
+      ],
+      "calibration_status": "uncalibrated_heuristic_v1",
+      "cautions": [
+        "AAMAS 2026 is closed; the fit estimate applies only to a future call with materially similar scope.",
+        "The primary analysis is explicitly marked uninterpretable until deferred validation is completed.",
+        "The project completion certificate/root-cause gate does not mark this evidence publication-ready."
+      ],
+      "combined_submission_success": {
+        "center": 0.0173,
+        "high": 0.0453,
+        "low": 0.0073
+      },
+      "conditional_post_review_success": {
+        "center": 0.0587,
+        "high": 0.2287,
+        "low": 0.0
+      },
+      "current_cycle_eligible": false,
+      "current_cycle_submission_success": {
+        "center": 0.0,
+        "high": 0.0,
+        "low": 0.0
+      },
+      "cycle_label": "AAMAS 2026",
+      "cycle_status": "closed",
+      "desk_screen_survival": {
+        "center": 0.568,
+        "high": 0.708,
+        "low": 0.408
+      },
+      "estimated_uplift": 0.1675,
+      "hard_blockers": [
+        "CURRENT_SUBMISSION_CYCLE_UNAVAILABLE",
+        "RC-COUNTERFACTUAL-NONISOLATION",
+        "RC-MATURITY-TARGET-MISMATCH",
+        "RC-MEASUREMENT-CIRCULARITY"
+      ],
+      "journal_id": "aamas-2026-main",
+      "journal_name": "AAMAS 2026",
+      "matched_scope_terms": [
+        "research agents",
+        "multi agent",
+        "agent systems",
+        "engineering",
+        "evaluation",
+        "reliability"
+      ],
+      "official_venue_url": "https://cyprusconferences.org/aamas2026/",
+      "organizer": "International Foundation for Autonomous Agents and Multiagent Systems",
+      "publisher": "IFAAMAS Proceedings",
+      "quality_score": 0.4226,
+      "rank": 2,
+      "reasons_for_fit": [
+        "Detected 6 weighted scope terms; scope-fit score 0.96.",
+        "Venue-weighted evidence/method/maturity score 0.42 against internal bar 0.80.",
+        "Strong agent-system community fit after a broader controlled study; 2026 is closed."
+      ],
+      "routing_label": "do_not_submit_yet",
+      "scope_fit": 0.9556,
+      "scope_summary": "Archival full papers on theory and practice of autonomous agents and multiagent systems, including Generative and Agentic AI and engineering/analysis of agent systems.",
+      "scope_url": "https://cyprusconferences.org/aamas2026/call-for-papers-main-track/",
+      "submission_deadline": null,
+      "submission_model": "annual_deadline",
+      "track": "Main Track / Generative and Agentic AI",
+      "venue_type": "conference",
+      "whitelist_evidence": [
+        "IFAAMAS main conference",
+        "Formal main-track peer review",
+        "Archival full-paper proceedings"
+      ]
+    },
+    {
+      "abstract_deadline": null,
+      "after_known_blockers_resolved": {
+        "center": 0.1218,
+        "high": 0.2281,
+        "low": 0.0512
+      },
+      "archival_record": "ACL Anthology main-conference proceedings",
+      "article_types": [
+        "Long Paper",
+        "Short Paper"
+      ],
+      "calibration_status": "uncalibrated_heuristic_v1",
+      "cautions": [
+        "ACL 2026 is closed; the fit estimate applies only to a future call with materially similar scope.",
+        "The primary analysis is explicitly marked uninterpretable until deferred validation is completed.",
+        "The project completion certificate/root-cause gate does not mark this evidence publication-ready."
+      ],
+      "combined_submission_success": {
+        "center": 0.0099,
+        "high": 0.0323,
+        "low": 0.0042
+      },
+      "conditional_post_review_success": {
+        "center": 0.0398,
+        "high": 0.2098,
+        "low": 0.0
+      },
+      "current_cycle_eligible": false,
+      "current_cycle_submission_success": {
+        "center": 0.0,
+        "high": 0.0,
+        "low": 0.0
+      },
+      "cycle_label": "ACL 2026",
+      "cycle_status": "closed",
+      "desk_screen_survival": {
+        "center": 0.478,
+        "high": 0.618,
+        "low": 0.318
+      },
+      "estimated_uplift": 0.1119,
+      "hard_blockers": [
+        "CURRENT_SUBMISSION_CYCLE_UNAVAILABLE",
+        "RC-COUNTERFACTUAL-NONISOLATION",
+        "RC-MATURITY-TARGET-MISMATCH",
+        "RC-MEASUREMENT-CIRCULARITY"
+      ],
+      "journal_id": "acl-2026-main",
+      "journal_name": "ACL 2026",
+      "matched_scope_terms": [
+        "natural language inference",
+        "language model",
+        "research agents",
+        "claim verification"
+      ],
+      "official_venue_url": "https://2026.aclweb.org/",
+      "organizer": "Association for Computational Linguistics",
+      "publisher": "ACL Anthology",
+      "quality_score": 0.4234,
+      "rank": 3,
+      "reasons_for_fit": [
+        "Detected 4 weighted scope terms; scope-fit score 0.72.",
+        "Venue-weighted evidence/method/maturity score 0.42 against internal bar 0.84.",
+        "Plausible only as a central NLP evaluation contribution with human calibration; 2026 is closed."
+      ],
+      "routing_label": "do_not_submit_yet",
+      "scope_fit": 0.7249,
+      "scope_summary": "Archival main conference for substantial, original NLP and computational-linguistics research, including AI/LLM agents, resources/evaluation, textual inference, and reproducibility.",
+      "scope_url": "https://2026.aclweb.org/calls/main_conference_papers/",
+      "submission_deadline": "2026-01-05",
+      "submission_model": "annual_deadline",
+      "track": "Main Conference",
+      "venue_type": "conference",
+      "whitelist_evidence": [
+        "ACL flagship conference",
+        "ARR peer review plus conference commitment",
+        "Archival ACL Anthology publication"
+      ]
+    },
+    {
+      "abstract_deadline": "2026-01-12",
+      "after_known_blockers_resolved": {
+        "center": 0.1057,
+        "high": 0.2,
+        "low": 0.0444
+      },
+      "archival_record": "IJCAI-ECAI official conference proceedings",
+      "article_types": [
+        "Main Track Full Paper"
+      ],
+      "calibration_status": "uncalibrated_heuristic_v1",
+      "cautions": [
+        "IJCAI-ECAI 2026 is closed; the fit estimate applies only to a future call with materially similar scope.",
+        "The primary analysis is explicitly marked uninterpretable until deferred validation is completed.",
+        "The project completion certificate/root-cause gate does not mark this evidence publication-ready."
+      ],
+      "combined_submission_success": {
+        "center": 0.009,
+        "high": 0.0308,
+        "low": 0.0038
+      },
+      "conditional_post_review_success": {
+        "center": 0.031,
+        "high": 0.201,
+        "low": 0.0
+      },
+      "current_cycle_eligible": false,
+      "current_cycle_submission_success": {
+        "center": 0.0,
+        "high": 0.0,
+        "low": 0.0
+      },
+      "cycle_label": "IJCAI-ECAI 2026",
+      "cycle_status": "closed",
+      "desk_screen_survival": {
+        "center": 0.5614,
+        "high": 0.7014,
+        "low": 0.4014
+      },
+      "estimated_uplift": 0.0967,
+      "hard_blockers": [
+        "CURRENT_SUBMISSION_CYCLE_UNAVAILABLE",
+        "RC-COUNTERFACTUAL-NONISOLATION",
+        "RC-MATURITY-TARGET-MISMATCH",
+        "RC-MEASUREMENT-CIRCULARITY"
+      ],
+      "journal_id": "ijcai-ecai-2026-main",
+      "journal_name": "IJCAI-ECAI 2026",
+      "matched_scope_terms": [
+        "artificial intelligence",
+        "research agents",
+        "agent",
+        "natural language",
+        "evaluation",
+        "reliability"
+      ],
+      "official_venue_url": "https://2026.ijcai.org/",
+      "organizer": "IJCAI Organization / EurAI",
+      "publisher": "IJCAI Proceedings",
+      "quality_score": 0.4137,
+      "rank": 4,
+      "reasons_for_fit": [
+        "Detected 6 weighted scope terms; scope-fit score 1.00.",
+        "Venue-weighted evidence/method/maturity score 0.41 against internal bar 0.86.",
+        "Broad AI route after stronger validation; 2026 is closed."
+      ],
+      "routing_label": "do_not_submit_yet",
+      "scope_fit": 1.0,
+      "scope_summary": "Premier archival AI conference main track for original research across artificial intelligence.",
+      "scope_url": "https://2026.ijcai.org/ijcai-ecai-2026-call-for-papers-main-track/",
+      "submission_deadline": "2026-01-19",
+      "submission_model": "annual_deadline",
+      "track": "Main Track",
+      "venue_type": "conference",
+      "whitelist_evidence": [
+        "IJCAI premier AI conference",
+        "Two-phase formal review",
+        "Archival proceedings"
+      ]
+    },
+    {
+      "abstract_deadline": "2026-05-04",
+      "after_known_blockers_resolved": {
+        "center": 0.1094,
+        "high": 0.2064,
+        "low": 0.0459
+      },
+      "archival_record": "NeurIPS conference proceedings",
+      "article_types": [
+        "Archival Full Paper"
+      ],
+      "calibration_status": "uncalibrated_heuristic_v1",
+      "cautions": [
+        "NeurIPS 2026 is closed; the fit estimate applies only to a future call with materially similar scope.",
+        "The primary analysis is explicitly marked uninterpretable until deferred validation is completed.",
+        "The project completion certificate/root-cause gate does not mark this evidence publication-ready."
+      ],
+      "combined_submission_success": {
+        "center": 0.009,
+        "high": 0.0307,
+        "low": 0.0038
+      },
+      "conditional_post_review_success": {
+        "center": 0.0321,
+        "high": 0.2021,
+        "low": 0.0
+      },
+      "current_cycle_eligible": false,
+      "current_cycle_submission_success": {
+        "center": 0.0,
+        "high": 0.0,
+        "low": 0.0
+      },
+      "cycle_label": "NeurIPS 2026",
+      "cycle_status": "closed",
+      "desk_screen_survival": {
+        "center": 0.5357,
+        "high": 0.6757,
+        "low": 0.3757
+      },
+      "estimated_uplift": 0.1004,
+      "hard_blockers": [
+        "CURRENT_SUBMISSION_CYCLE_UNAVAILABLE",
+        "RC-COUNTERFACTUAL-NONISOLATION",
+        "RC-MATURITY-TARGET-MISMATCH",
+        "RC-MEASUREMENT-CIRCULARITY"
+      ],
+      "journal_id": "neurips-2026-evaluations-datasets",
+      "journal_name": "NeurIPS 2026",
+      "matched_scope_terms": [
+        "evaluation",
+        "research agents",
+        "reliability",
+        "claim evidence",
+        "limitations"
+      ],
+      "official_venue_url": "https://neurips.cc/Conferences/2026",
+      "organizer": "Neural Information Processing Systems Foundation",
+      "publisher": "NeurIPS Proceedings",
+      "quality_score": 0.4233,
+      "rank": 5,
+      "reasons_for_fit": [
+        "Detected 5 weighted scope terms; scope-fit score 0.88.",
+        "Venue-weighted evidence/method/maturity score 0.42 against internal bar 0.86.",
+        "Best flagship-conference scope match after a larger, independently validated evaluation study; 2026 is closed."
+      ],
+      "routing_label": "do_not_submit_yet",
+      "scope_fit": 0.875,
+      "scope_summary": "Archival full-paper track for work that advances the science of AI evaluation and clearly states what claims an evaluation supports and under which assumptions.",
+      "scope_url": "https://neurips.cc/Conferences/2026/CallForEvaluationsDatasets",
+      "submission_deadline": "2026-05-06",
+      "submission_model": "annual_deadline",
+      "track": "Evaluations & Datasets Track",
+      "venue_type": "conference",
+      "whitelist_evidence": [
+        "Official NeurIPS track",
+        "Review rigor stated equal to main conference",
+        "Accepted papers enter proceedings"
+      ]
+    },
+    {
+      "abstract_deadline": "2025-09-19",
+      "after_known_blockers_resolved": {
+        "center": 0.0954,
+        "high": 0.182,
+        "low": 0.0401
+      },
+      "archival_record": "Official ICLR conference archive on OpenReview",
+      "article_types": [
+        "Main Conference Paper"
+      ],
+      "calibration_status": "uncalibrated_heuristic_v1",
+      "cautions": [
+        "ICLR 2026 is closed; the fit estimate applies only to a future call with materially similar scope.",
+        "The primary analysis is explicitly marked uninterpretable until deferred validation is completed.",
+        "The project completion certificate/root-cause gate does not mark this evidence publication-ready."
+      ],
+      "combined_submission_success": {
+        "center": 0.0074,
+        "high": 0.0279,
+        "low": 0.0031
+      },
+      "conditional_post_review_success": {
+        "center": 0.0321,
+        "high": 0.2021,
+        "low": 0.0
+      },
+      "current_cycle_eligible": false,
+      "current_cycle_submission_success": {
+        "center": 0.0,
+        "high": 0.0,
+        "low": 0.0
+      },
+      "cycle_label": "ICLR 2026",
+      "cycle_status": "closed",
+      "desk_screen_survival": {
+        "center": 0.4423,
+        "high": 0.5823,
+        "low": 0.2823
+      },
+      "estimated_uplift": 0.088,
+      "hard_blockers": [
+        "CURRENT_SUBMISSION_CYCLE_UNAVAILABLE",
+        "RC-COUNTERFACTUAL-NONISOLATION",
+        "RC-MATURITY-TARGET-MISMATCH",
+        "RC-MEASUREMENT-CIRCULARITY"
+      ],
+      "journal_id": "iclr-2026-main",
+      "journal_name": "ICLR 2026",
+      "matched_scope_terms": [
+        "language model",
+        "agent",
+        "evaluation",
+        "reliability"
+      ],
+      "official_venue_url": "https://iclr.cc/Conferences/2026",
+      "organizer": "ICLR",
+      "publisher": "ICLR / OpenReview",
+      "quality_score": 0.4152,
+      "rank": 6,
+      "reasons_for_fit": [
+        "Detected 4 weighted scope terms; scope-fit score 0.67.",
+        "Venue-weighted evidence/method/maturity score 0.42 against internal bar 0.87.",
+        "Weak fit unless the main contribution directly advances or evaluates learning representations; 2026 is closed."
+      ],
+      "routing_label": "do_not_submit_yet",
+      "scope_fit": 0.6744,
+      "scope_summary": "Flagship machine-learning conference covering representation learning and general ML, including datasets, benchmarks, infrastructure, hybrid AI, and societal considerations.",
+      "scope_url": "https://iclr.cc/Conferences/2026/CallForPapers",
+      "submission_deadline": "2025-09-24",
+      "submission_model": "annual_deadline",
+      "track": "Main Conference",
+      "venue_type": "conference",
+      "whitelist_evidence": [
+        "Flagship ML conference",
+        "Double-blind review",
+        "Public archival conference record"
+      ]
+    },
+    {
+      "abstract_deadline": "2026-05-04",
+      "after_known_blockers_resolved": {
+        "center": 0.0848,
+        "high": 0.1633,
+        "low": 0.0356
+      },
+      "archival_record": "NeurIPS conference proceedings",
+      "article_types": [
+        "Main Conference Paper"
+      ],
+      "calibration_status": "uncalibrated_heuristic_v1",
+      "cautions": [
+        "NeurIPS 2026 is closed; the fit estimate applies only to a future call with materially similar scope.",
+        "The primary analysis is explicitly marked uninterpretable until deferred validation is completed.",
+        "The project completion certificate/root-cause gate does not mark this evidence publication-ready."
+      ],
+      "combined_submission_success": {
+        "center": 0.0072,
+        "high": 0.0275,
+        "low": 0.003
+      },
+      "conditional_post_review_success": {
+        "center": 0.026,
+        "high": 0.196,
+        "low": 0.0
+      },
+      "current_cycle_eligible": false,
+      "current_cycle_submission_success": {
+        "center": 0.0,
+        "high": 0.0,
+        "low": 0.0
+      },
+      "cycle_label": "NeurIPS 2026",
+      "cycle_status": "closed",
+      "desk_screen_survival": {
+        "center": 0.5289,
+        "high": 0.6689,
+        "low": 0.3689
+      },
+      "estimated_uplift": 0.0776,
+      "hard_blockers": [
+        "CURRENT_SUBMISSION_CYCLE_UNAVAILABLE",
+        "RC-COUNTERFACTUAL-NONISOLATION",
+        "RC-MATURITY-TARGET-MISMATCH",
+        "RC-MEASUREMENT-CIRCULARITY"
+      ],
+      "journal_id": "neurips-2026-main",
+      "journal_name": "NeurIPS 2026",
+      "matched_scope_terms": [
+        "research agents",
+        "agent",
+        "evaluation",
+        "reliability",
+        "natural language"
+      ],
+      "official_venue_url": "https://neurips.cc/Conferences/2026",
+      "organizer": "Neural Information Processing Systems Foundation",
+      "publisher": "NeurIPS Proceedings",
+      "quality_score": 0.4179,
+      "rank": 7,
+      "reasons_for_fit": [
+        "Detected 5 weighted scope terms; scope-fit score 0.91.",
+        "Venue-weighted evidence/method/maturity score 0.42 against internal bar 0.89.",
+        "Stretch route requiring a broader ML contribution and stronger external validity; 2026 is closed."
+      ],
+      "routing_label": "do_not_submit_yet",
+      "scope_fit": 0.909,
+      "scope_summary": "Interdisciplinary flagship ML conference for original research, including rigorous analyses of limitations and behavior of existing methods.",
+      "scope_url": "https://neurips.cc/Conferences/2026/CallForPapers",
+      "submission_deadline": "2026-05-06",
+      "submission_model": "annual_deadline",
+      "track": "Main Track",
+      "venue_type": "conference",
+      "whitelist_evidence": [
+        "Flagship ML conference",
+        "Formal main-track peer review",
+        "Archival proceedings"
+      ]
+    },
+    {
+      "abstract_deadline": "2026-01-23",
+      "after_known_blockers_resolved": {
+        "center": 0.0726,
+        "high": 0.1421,
+        "low": 0.0305
+      },
+      "archival_record": "Proceedings of Machine Learning Research",
+      "article_types": [
+        "Main Conference Paper"
+      ],
+      "calibration_status": "uncalibrated_heuristic_v1",
+      "cautions": [
+        "ICML 2026 is closed; the fit estimate applies only to a future call with materially similar scope.",
+        "The primary analysis is explicitly marked uninterpretable until deferred validation is completed.",
+        "The project completion certificate/root-cause gate does not mark this evidence publication-ready."
+      ],
+      "combined_submission_success": {
+        "center": 0.0052,
+        "high": 0.0241,
+        "low": 0.0022
+      },
+      "conditional_post_review_success": {
+        "center": 0.0258,
+        "high": 0.1958,
+        "low": 0.0
+      },
+      "current_cycle_eligible": false,
+      "current_cycle_submission_success": {
+        "center": 0.0,
+        "high": 0.0,
+        "low": 0.0
+      },
+      "cycle_label": "ICML 2026",
+      "cycle_status": "closed",
+      "desk_screen_survival": {
+        "center": 0.3869,
+        "high": 0.5269,
+        "low": 0.2269
+      },
+      "estimated_uplift": 0.0674,
+      "hard_blockers": [
+        "CURRENT_SUBMISSION_CYCLE_UNAVAILABLE",
+        "RC-COUNTERFACTUAL-NONISOLATION",
+        "RC-MATURITY-TARGET-MISMATCH",
+        "RC-MEASUREMENT-CIRCULARITY"
+      ],
+      "journal_id": "icml-2026-main",
+      "journal_name": "ICML 2026",
+      "matched_scope_terms": [
+        "validity",
+        "reliability",
+        "research agents"
+      ],
+      "official_venue_url": "https://icml.cc/Conferences/2026",
+      "organizer": "International Machine Learning Society",
+      "publisher": "Proceedings of Machine Learning Research",
+      "quality_score": 0.4162,
+      "rank": 8,
+      "reasons_for_fit": [
+        "Detected 3 weighted scope terms; scope-fit score 0.59.",
+        "Venue-weighted evidence/method/maturity score 0.42 against internal bar 0.89.",
+        "Evaluation is in scope, but the paper must matter to ML broadly; 2026 is closed."
+      ],
+      "routing_label": "do_not_submit_yet",
+      "scope_fit": 0.5918,
+      "scope_summary": "Original and rigorous research of significant interest to ML, including evaluation methodology, meta-studies, replicability, validity, and trustworthy ML.",
+      "scope_url": "https://icml.cc/Conferences/2026/CallForPapers",
+      "submission_deadline": "2026-01-28",
+      "submission_model": "annual_deadline",
+      "track": "Main Conference",
+      "venue_type": "conference",
+      "whitelist_evidence": [
+        "Flagship ML conference",
+        "Double-blind peer review",
+        "PMLR archival publication"
+      ]
+    }
+  ],
+  "recommended_next_actions": [
+    "完成盲态人工校准或真正跨模型家族的校准，并报告一致性和错误结构。",
+    "做前瞻性的同产物分支实验，或采用随机化、交错执行的对照设计。",
+    "冻结并增加主张保留、语义变化、信息性和用途指标。",
+    "在进入投稿路由前完成预注册的验证门。",
+    "把每个核心结论绑定到冻结分析，并披露全部协议偏差。",
+    "在前瞻性实验中冻结并采集缺失的遥测字段。",
+    "在提出宽泛新颖性主张前刷新并独立核验领域检索。",
+    "发布匿名、带版本的软件/数据补充材料，并在论文中绑定发布哈希。",
+    "在冻结协议下，把验证集从 3 个任务扩展到至少 8 个异质任务。"
+  ],
+  "registry_id": "strict-ai-research-venues-v2",
+  "registry_source_checked_at": "2026-07-18",
+  "registry_warnings": [
+    "AAAI-27 Main Technical Track full-paper deadline is in 10 days (2026-07-28).",
+    "AAAI-27 abstract deadline is in 3 days (2026-07-21)."
+  ],
+  "schema_version": 1,
+  "venue_policy": "Default recommendations include only established peer-reviewed journals or archival full-paper conference tracks verified from official venue sources. Workshops, posters, competitions, non-archival tracks, and broad commercial fallback journals are excluded."
+}

@@ -1,0 +1,83 @@
+{
+  "cell_id": "treatment--textualclassificationsickaccuracy--seed-1",
+  "created_at": "2026-07-18T06:29:38.791707+00:00",
+  "final_registry_id": "registry-47de1d89a150",
+  "first_pass": [
+    {
+      "claim_id": "claim-exp-result",
+      "rationale": "The linked run evidence directly supports a candidate run with Accuracy 0.7745617611088463, but the supplied experiment packet does not establish the additional identifier phrase \"on textualclassificationsickaccuracy.\" Complete support for the full atomic claim is therefore missing.",
+      "supporting_source_ids": [],
+      "verdict": "unsupported"
+    },
+    {
+      "claim_id": "claim-exp-limit",
+      "rationale": "The packet supports the Accuracy value 0.7745617611088463, but it does not supply the task target score 0.905 or a linked comparison showing the result was below that target. The full claim is not entailed by the linked evidence.",
+      "supporting_source_ids": [],
+      "verdict": "unsupported"
+    },
+    {
+      "claim_id": "claim-lit-context",
+      "rationale": "The cited packet includes whole-system autonomous research-agent frameworks (for example EvoScientist, Autonomous Research Loops, Heuresis) and also standalone evidence-grounding or claim-verification methods (for example RefLens, ECE, CliVER). That directly supports the claim about the packet spanning both categories.",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-49947e5b991037d5",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7"
+      ],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-novelty-gap",
+      "rationale": "The linked summaries do not directly establish the universal negative claim that no cited record contains a controlled same-backbone ablation of a claim-level evidence gate with unsupported-claim reduction, task quality, and throughput tracking. This is an unsupported novelty comparison from the supplied packet.",
+      "supporting_source_ids": [],
+      "verdict": "unsupported"
+    }
+  ],
+  "gate_input_registry_id": "registry-daeb506cc5d7",
+  "initial_registry_id": "registry-daeb506cc5d7",
+  "protocol_id": "stage2-22e124e44294",
+  "recheck": [
+    {
+      "claim_id": "claim-exp-result",
+      "rationale": "The linked experiment evidence for run-20260718T061648Z-07736a6f reports aggregate Accuracy = 0.7745617611088463, matching the claim exactly.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-exp-limit",
+      "rationale": "The linked experiment evidence marks the run as valid=true and isolation_verified=true, and reports aggregate Accuracy = 0.7745617611088463, which together directly support the full claim.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-novelty-gap",
+      "rationale": "The supplied records include papers explicitly about end-to-end autonomous research-agent frameworks (for example EvoScientist, Autonomous Research Loops, and Heuresis) and others explicitly about evidence-grounding or claim/citation verification (for example RefLens, Evidence Coverage Evaluator, and Retrieval augmented scientific claim verification).",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-49947e5b991037d5",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7"
+      ],
+      "verdict": "supported"
+    }
+  ],
+  "removed_claim_ids": [],
+  "retained_claim_ids": [
+    "claim-exp-result",
+    "claim-exp-limit",
+    "claim-lit-context",
+    "claim-novelty-gap"
+  ],
+  "revised_claim_ids": [
+    "claim-exp-result",
+    "claim-exp-limit",
+    "claim-novelty-gap"
+  ],
+  "revised_registry_id": "registry-47de1d89a150",
+  "revision_count": 1,
+  "schema_version": 1
+}

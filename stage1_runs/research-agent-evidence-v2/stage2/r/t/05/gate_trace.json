@@ -1,0 +1,76 @@
+{
+  "cell_id": "treatment--textualsimilaritysickspearmancorrelation--seed-1",
+  "created_at": "2026-07-18T06:53:42.858912+00:00",
+  "final_registry_id": "registry-eba6d5d60bd5",
+  "first_pass": [
+    {
+      "claim_id": "claim-01",
+      "rationale": "The linked experiment evidence marks the run as a valid verified baseline and reports aggregate SpearmanCorrelation exactly 0.5757186473267853.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-02",
+      "rationale": "The linked non-baseline run is marked valid_non_improving, with aggregate SpearmanCorrelation 0.5725548964668126 and improvement -0.0031637508599727804 relative to the verified baseline.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-03",
+      "rationale": "The packet contains records for Autonomous Research Loops, EvoScientist, and Heuresis as research-agent systems, and for CliVER, Evidence Coverage Evaluator, and RefLens as evidence-grounding or citation-verification systems.",
+      "supporting_source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-965b07ca55b0b420",
+        "paper-49947e5b991037d5",
+        "paper-35ad838f0ac171a7",
+        "paper-69c6e5faa8ef37c2",
+        "paper-e48872d23c4d9e23"
+      ],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-04",
+      "rationale": "The supplied literature notes describe related research-agent and verification systems, but they do not directly establish the claimed proposed novelty of a same-backbone claim-level evidence-gate intervention study, nor do they directly support the negative comparison that the reviewed set lacks that controlled ablation.",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "verdict": "unsupported"
+    }
+  ],
+  "gate_input_registry_id": "registry-cff4b64887b6",
+  "initial_registry_id": "registry-686851ee6ee7",
+  "protocol_id": "stage2-22e124e44294",
+  "recheck": [
+    {
+      "claim_id": "claim-04",
+      "rationale": "The first three sources are described as autonomous research-agent frameworks for scientific research pipelines (Autonomous Research Loops: entire life cycle/end-to-end workflows; EvoScientist: multi-agent AI scientist for end-to-end scientific discovery; Heuresis: autonomous AI research framework over the research pipeline). The other three are described as evidence-grounding or verification systems (CliVER: scientific claim verification; Evidence Coverage Evaluator: evidence-coverage/grounding assessment for RAG answers; RefLens: evidence-grounded citation verification). This supports the claimed separation between those two prior-work groups.",
+      "supporting_source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-965b07ca55b0b420",
+        "paper-49947e5b991037d5",
+        "paper-35ad838f0ac171a7",
+        "paper-69c6e5faa8ef37c2",
+        "paper-e48872d23c4d9e23"
+      ],
+      "verdict": "supported"
+    }
+  ],
+  "removed_claim_ids": [],
+  "retained_claim_ids": [
+    "claim-01",
+    "claim-02",
+    "claim-03",
+    "claim-04"
+  ],
+  "revised_claim_ids": [
+    "claim-04"
+  ],
+  "revised_registry_id": "registry-eba6d5d60bd5",
+  "revision_count": 1,
+  "schema_version": 1
+}

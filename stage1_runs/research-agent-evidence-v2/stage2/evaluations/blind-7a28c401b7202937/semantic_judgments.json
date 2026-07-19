@@ -1,0 +1,39 @@
+{
+  "judgments": [
+    {
+      "claim_id": "claim-1",
+      "rationale": "The linked experiment evidence marks this run as a verified baseline and reports aggregate Accuracy of 0.6346153846153846.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-2",
+      "rationale": "The linked experiment evidence marks this run as non-baseline with verdict valid_non_improving and reports aggregate Accuracy of 0.36538461538461536.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-3",
+      "rationale": "Autonomous Research Loops reports end-to-end agent automation across broad ML research steps and notes hallucinated experimental details; Heuresis documents reward-hacking fabrications; Deep Research explicitly notes challenges in automated novelty assessment.",
+      "supporting_source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-49947e5b991037d5",
+        "paper-879e6a747eb8ceb6"
+      ],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-4",
+      "rationale": "The supplied records show adjacent pieces—end-to-end research agents, evidence-grounded citation/claim verification, and reported hallucination or reward-hacking issues—but none directly establishes a missing controlled same-backbone ablation testing whether adding a claim-level evidence audit reduces unsupported claims and hallucinated experimental details while preserving quality and throughput.",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "verdict": "unsupported"
+    }
+  ]
+}

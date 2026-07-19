@@ -1,0 +1,45 @@
+{
+  "audited_at": "2026-07-18T06:58:54.342823+00:00",
+  "cell_id": "treatment--textualsimilaritysickspearmancorrelation--seed-2",
+  "claim_checks": {
+    "claim-1": {
+      "artifacts_allowed": true,
+      "artifacts_exist": true,
+      "artifacts_present": true,
+      "metrics_exact": true,
+      "metrics_present": true,
+      "run_id_present": true,
+      "run_isolated": true,
+      "run_resolves": true,
+      "run_valid": true,
+      "source_support_absent": true
+    },
+    "claim-2": {
+      "artifacts_allowed": true,
+      "artifacts_exist": true,
+      "artifacts_present": true,
+      "metrics_exact": true,
+      "metrics_present": true,
+      "run_id_present": true,
+      "run_isolated": true,
+      "run_resolves": true,
+      "run_valid": true,
+      "source_support_absent": true
+    },
+    "claim-3": {
+      "experiment_support_absent": true,
+      "source_ids_present": true,
+      "source_ids_resolve": true
+    },
+    "claim-4": {
+      "experiment_support_absent": true,
+      "novelty_sources_bound": true,
+      "source_ids_present": true,
+      "source_ids_resolve": true
+    }
+  },
+  "passed": true,
+  "registry_id": "registry-db6acbaa4143",
+  "schema_version": 1,
+  "violations": []
+}

@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "correction_id": "t05-improvement-field-normalization",
+  "protocol_id": "stage2-22e124e44294",
+  "cell_id": "treatment--textualsimilaritysickspearmancorrelation--seed-1",
+  "amendment_id": "orchestration-amendment-02",
+  "corrected_at": "2026-07-18T06:53:42.862908+00:00",
+  "failure_class": "mechanical_registry_normalization_false_positive",
+  "reason": "The finalizer copied the exact top-level run-record improvement field into metric_values even though aggregate_metrics has no improvement key. The claim text and linked run record were already exact.",
+  "correction": "Removed only metric_values.improvement because it exactly matched the linked run record improvement field; claim text, evidence links, score, verdict inputs, controller output, and initial model output were preserved.",
+  "before": {
+    "invalid.json": "e69d1f23c3ca42ee2269c4e5d3ac3b21839399c420da72f244e35678d35b61d2",
+    "gate_input_registry.json": "3ef136aa635689ce1f6b3c489485018a018a4621c9597f62ec1b586d41a6faee",
+    "initial_structural_audit.json": "f5d38873d9578c285d9eb4d389cd506c2a2e720d3443502d6ac9eebe6a32ca42"
+  },
+  "after": {
+    "gate_input_registry.json": "5192c625e44b1f4a42c030efd752cf2ae0aa0bde915354a55712d00ba56fb053",
+    "initial_structural_audit.json": "b5ccf5836f4039df99d2065a25061766d684bc933dfbb885de2a8f16d39e6034",
+    "complete.json": "4960a588d8345d13e7e51d4f234f45a65aa39f3d1eb950a778d4bc322b3751b3"
+  },
+  "preserved_initial_registry_sha256": "3ef136aa635689ce1f6b3c489485018a018a4621c9597f62ec1b586d41a6faee",
+  "controller_reruns": 0,
+  "finalizer_reruns": 0,
+  "claim_text_changed_by_normalization": false,
+  "result_affected": false
+}

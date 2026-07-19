@@ -1,0 +1,12 @@
+{
+  "cell_id": "baseline--textualclassificationsickaccuracy--seed-0",
+  "claim_registry_created": false,
+  "controller_report_hash": "008833f1c131900b4720ed1cd905b7647e2b108f22b49535c70b70b1adce507e",
+  "controller_rerun_required": false,
+  "error_code": "invalid_json_schema",
+  "phase": "shared_claim_finalizer",
+  "recorded_at": "2026-07-18T04:58:10.628885+00:00",
+  "rejected_shape": "arbitrary-key metric_values object",
+  "resolution": "Use a strict list of named metric objects in transport and deterministically convert to the frozen final registry dictionary.",
+  "schema_version": 1
+}

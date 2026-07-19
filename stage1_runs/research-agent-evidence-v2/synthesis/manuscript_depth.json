@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "gate_id": "manuscript-depth-v1",
+  "path": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\manuscript.md",
+  "source_sha256": "e062c080bf48c748b7bd3ed2673138fcbe26d6dbb878fa943424bc0a40c290c1",
+  "format": "markdown",
+  "language": "en",
+  "profile": "journal-article-en-v1",
+  "unit": "words",
+  "passed": false,
+  "total_count": 1196,
+  "reference_count": 12,
+  "duplicate_paragraph_ratio": 0.0,
+  "sections": {
+    "abstract": {
+      "heading": "Abstract",
+      "count": 111,
+      "paragraphs": 1,
+      "subsections": 0,
+      "citations": 0,
+      "numeric_tokens": 12
+    },
+    "introduction": {
+      "heading": "Introduction",
+      "count": 162,
+      "paragraphs": 3,
+      "subsections": 0,
+      "citations": 0,
+      "numeric_tokens": 5
+    },
+    "related_work": {
+      "heading": "Related Work and Registered Sources",
+      "count": 356,
+      "paragraphs": 1,
+      "subsections": 0,
+      "citations": 12,
+      "numeric_tokens": 35
+    },
+    "methods": {
+      "heading": "Methods",
+      "count": 154,
+      "paragraphs": 4,
+      "subsections": 3,
+      "citations": 0,
+      "numeric_tokens": 13
+    },
+    "results": {
+      "heading": "Results",
+      "count": 152,
+      "paragraphs": 1,
+      "subsections": 3,
+      "citations": 0,
+      "numeric_tokens": 40
+    },
+    "discussion": {
+      "heading": "Discussion",
+      "count": 77,
+      "paragraphs": 2,
+      "subsections": 0,
+      "citations": 0,
+      "numeric_tokens": 3
+    },
+    "limitations": {
+      "heading": "Limitations",
+      "count": 120,
+      "paragraphs": 3,
+      "subsections": 0,
+      "citations": 0,
+      "numeric_tokens": 2
+    },
+    "conclusion": {
+      "heading": "Conclusion",
+      "count": 64,
+      "paragraphs": 1,
+      "subsections": 0,
+      "citations": 0,
+      "numeric_tokens": 1
+    }
+  },
+  "checks": {
+    "section_present_abstract": true,
+    "section_present_introduction": true,
+    "section_present_related_work": true,
+    "section_present_methods": true,
+    "section_present_results": true,
+    "section_present_discussion": true,
+    "section_present_conclusion": true,
+    "minimum_total_depth": false,
+    "minimum_section_depth_abstract": false,
+    "minimum_section_depth_introduction": false,
+    "minimum_section_depth_related_work": false,
+    "minimum_section_depth_methods": false,
+    "minimum_section_depth_results": false,
+    "minimum_section_depth_discussion": false,
+    "minimum_section_depth_conclusion": false,
+    "maximum_abstract_depth": true,
+    "minimum_paragraphs_introduction": false,
+    "minimum_paragraphs_related_work": false,
+    "minimum_paragraphs_methods": false,
+    "minimum_paragraphs_results": false,
+    "minimum_paragraphs_discussion": false,
+    "minimum_paragraphs_conclusion": false,
+    "minimum_subsections_methods": false,
+    "minimum_subsections_results": true,
+    "minimum_subsections_discussion": false,
+    "minimum_references": false,
+    "minimum_related_work_citations": true,
+    "minimum_result_numeric_grounding": true,
+    "maximum_duplicate_paragraph_ratio": true
+  },
+  "violations": [
+    "narrative depth is 1196 words; minimum is 6000",
+    "section abstract has 111 words; minimum is 150",
+    "section introduction has 162 words; minimum is 650",
+    "section related_work has 356 words; minimum is 750",
+    "section methods has 154 words; minimum is 1200",
+    "section results has 152 words; minimum is 1000",
+    "section discussion has 77 words; minimum is 1000",
+    "section conclusion has 64 words; minimum is 150",
+    "section introduction has 3 substantive paragraphs; minimum is 5",
+    "section related_work has 1 substantive paragraphs; minimum is 6",
+    "section methods has 4 substantive paragraphs; minimum is 8",
+    "section results has 1 substantive paragraphs; minimum is 7",
+    "section discussion has 2 substantive paragraphs; minimum is 7",
+    "section conclusion has 1 substantive paragraphs; minimum is 2",
+    "section methods has 3 subsections; minimum is 4",
+    "section discussion has 0 subsections; minimum is 3",
+    "reference list has 12 entries; minimum is 15"
+  ],
+  "warnings": [
+    "This is an internal anti-compression gate, not a venue word-limit rule.",
+    "Passing length and structure checks does not establish scientific validity or claim support."
+  ]
+}

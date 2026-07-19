@@ -1,0 +1,96 @@
+schema_version: 1
+pack_id: ai-agents-zh-cn
+language: zh-CN
+version: "1.0.0"
+terms:
+  - term_id: agent-system-backbone
+    english: backbone
+    chinese: 基础系统
+    sense: 由模型、提示词、控制器与运行环境共同构成的共享底层系统
+    domain: ai-agents
+    aliases: [system backbone, research agent backbone]
+    discouraged: [骨干, 系统骨干]
+    context_keywords: [prompt, runtime, controller, pipeline, codex, research forge, frozen, shared]
+    first_use: chinese_english
+    preserve_english: false
+    source: Research Forge curated AI-agent systems termbase
+    version: "1.0.0"
+    status: approved
+  - term_id: agent-prompt
+    english: prompt
+    chinese: 提示词
+    sense: 提供给语言模型以约束或引导输出的输入指令
+    domain: ai-agents
+    aliases: [prompts]
+    discouraged: [提示]
+    context_keywords: [model, instruction, system, user, agent, output]
+    first_use: chinese_english
+    preserve_english: false
+    source: Research Forge curated AI-agent systems termbase
+    version: "1.0.0"
+    status: approved
+  - term_id: agent-system-prompt
+    english: system prompt
+    chinese: 系统提示词
+    sense: 在模型交互中设定全局角色与行为边界的系统级提示词
+    domain: ai-agents
+    aliases: [system prompts]
+    discouraged: [系统提示]
+    context_keywords: [instruction, role, behavior, model]
+    first_use: chinese_english
+    preserve_english: false
+    source: Research Forge curated AI-agent systems termbase
+    version: "1.0.0"
+    status: approved
+  - term_id: agent-prompt-template
+    english: prompt template
+    chinese: 提示模板
+    sense: 包含固定指令和可替换变量的提示词模板
+    domain: ai-agents
+    aliases: [prompt templates]
+    discouraged: [提示词模版]
+    context_keywords: [variable, instruction, reusable, template]
+    first_use: chinese_english
+    preserve_english: false
+    source: Research Forge curated AI-agent systems termbase
+    version: "1.0.0"
+    status: approved
+  - term_id: agent-prompt-stack
+    english: prompt stack
+    chinese: 提示词配置
+    sense: 一个代理流程中共同生效的多组提示词及其组合关系
+    domain: ai-agents
+    aliases: [prompt stacks]
+    discouraged: [提示栈, 提示词堆栈]
+    context_keywords: [shared, frozen, verifier, finalizer, workflow]
+    first_use: chinese_english
+    preserve_english: false
+    source: Research Forge curated AI-agent systems termbase
+    version: "1.0.0"
+    status: approved
+  - term_id: agent-claim-evidence-gate
+    english: claim-evidence gate
+    chinese: 论断—证据门控机制
+    sense: 在交付前核对结构化论断与其证据绑定并限制修订的机制
+    domain: ai-agents
+    aliases: [claim-evidence gating, pre-delivery claim-evidence gate]
+    discouraged: [主张证据门控]
+    context_keywords: [verification, unsupported, evidence, revision, delivery]
+    first_use: chinese_english
+    preserve_english: false
+    source: Research Forge curated evidence-agent termbase
+    version: "1.0.0"
+    status: approved
+  - term_id: agent-protected-evaluator
+    english: protected evaluator
+    chinese: 受保护评估器
+    sense: 与候选生成过程隔离并受冻结输入和权限约束的评估组件
+    domain: ai-agents
+    aliases: [protected automated evaluator]
+    discouraged: [保护评估器]
+    context_keywords: [frozen, blinded, evaluation, candidate, hidden, audit]
+    first_use: chinese_english
+    preserve_english: false
+    source: Research Forge curated evidence-agent termbase
+    version: "1.0.0"
+    status: approved

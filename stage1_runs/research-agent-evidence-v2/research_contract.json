@@ -1,0 +1,121 @@
+{
+  "ablation_axes": [
+    "Verification gate absent (baseline) versus present (treatment).",
+    "Task pack: textualclassificationsickaccuracy versus textualsimilaritysickspearmancorrelation versus coreferenceresolutionsupergluewscaccuracy.",
+    "Seed: 0 versus 1 versus 2.",
+    "Claim provenance type: literature-grounded or novelty-comparison versus experiment-grounded."
+  ],
+  "baseline_definition": "Baseline = the same frozen Research Forge/Codex backbone, with the exact same model identifier, non-gate prompts, retrieval manifest, task order, runtime cap, iteration cap, and final-output schema as treatment. It must emit structured factual conclusion claims plus candidate evidence links, with exact source IDs attached to literature or novelty-evaluation claims and exact run IDs plus exact metric values attached to experiment-grounded claims, but it has no pre-delivery claim-evidence rejection or revision gate.",
+  "clarifying_questions": [],
+  "confounders": [
+    "Treatment may reduce unsupported_claim_rate partly by removing claims rather than improving support quality; claim-count deltas are therefore required in reporting.",
+    "The protected evaluator may share blind spots with the treatment gate; the blinded manual audit only partially controls this.",
+    "A fixed retrieval set can make a true literature or novelty claim appear unsupported if relevant evidence was never retrieved.",
+    "Matched seeds reduce but do not eliminate stochastic generation differences between arms.",
+    "Task packs may induce different numbers and types of factual conclusion claims, affecting pooled rates.",
+    "Verifier overhead may interact with the fixed runtime cap and truncate treatment more often than baseline.",
+    "Experiment-grounded claims may be easier to verify than literature or novelty claims, skewing aggregate results if claim-type mix differs by task.",
+    "The study has only 9 matched run pairs, so run-level precision is limited even with claim-level bootstrap.",
+    "Human audit labels can still contain disagreement or adjudication error."
+  ],
+  "datasets": [
+    "AIRS-lite task pack: textualclassificationsickaccuracy (task-native metric: accuracy; fixed CPU-runnable pack).",
+    "AIRS-lite task pack: textualsimilaritysickspearmancorrelation (task-native metric: Spearman correlation; fixed CPU-runnable pack).",
+    "AIRS-lite task pack: coreferenceresolutionsupergluewscaccuracy (task-native metric: accuracy; fixed CPU-runnable pack)."
+  ],
+  "hypothesis": "Relative to the no-gate baseline, the gated treatment will lower unsupported_claim_rate on the pooled frozen claim registry and in at least 2 of 3 task packs, increase citation correctness and evidence coverage, lower experiment-detail error rate, and keep task-native score within an absolute 0.02 of baseline in each task pack.",
+  "method_outline": [
+    "Before execution, freeze the current runnable Research Forge/Codex backbone manifest: exact model identifier, non-gate prompt stack, retrieval corpus and top-k settings, runtime cap, iteration cap, and task order. Record this manifest once and reuse it unchanged in both arms.",
+    "Freeze a shared final-output schema and claim registry. Only factual conclusion claims appearing in the final conclusion section enter evaluation; procedural statements, plans, hedges, and future-work suggestions are excluded. Required claim-registry fields are claim_id, run_id, arm, task_pack, seed, claim_type, claim_text, exact linked source_ids for literature or novelty-evaluation claims, and exact experiment run_id plus exact metric value(s) for experiment-grounded claims.",
+    "Baseline arm: run the frozen backbone and emit the shared schema with candidate evidence links, but the finalization stage cannot reject or rewrite conclusion claims based on any verifier verdict.",
+    "Treatment arm: after the initial draft, run claim extraction and a frozen verification gate over the same retrieved literature set and the same experiment artifacts. Claims labeled unsupported or abstain must be revised once using only already retrieved evidence or existing run artifacts, then rechecked once; if still unsupported or abstain, remove them from final conclusions but keep them in an internal failure log.",
+    "Execute the fixed suite in fixed order for both arms: textualclassificationsickaccuracy, textualsimilaritysickspearmancorrelation, coreferenceresolutionsupergluewscaccuracy; within each task run seeds 0, 1, and 2. This yields 9 matched task-seed pairs and 18 total CPU runs.",
+    "After all runs complete, score both arms with an arm-blinded protected evaluator using the frozen claim registry. A claim is unsupported if linked evidence contradicts it, fails to entail it, or lacks mandatory identifiers or exact values; abstain is reserved for insufficient or ambiguous supplied evidence.",
+    "Preregister a blinded manual audit of 48 claims total: 8 claims per task-by-arm cell, targeting 4 evaluator-unsupported and 4 evaluator-non-unsupported claims when available, with same-cell backfill otherwise. Use two independent auditors plus adjudication. The predefined verifier false-positive threshold is 0.15 on audited claims that the protected evaluator labeled unsupported.",
+    "For each task and overall, compare matched baseline versus treatment by task-seed pair. Report paired per-task comparisons and overall pooled claim-level results. Use 10,000 hierarchical bootstrap resamples for 95% percentile confidence intervals by resampling matched task-seed pairs with replacement and then claims within sampled pairs with replacement.",
+    "Report effect sizes as follows: for unsupported_claim_rate and other rate metrics, paired absolute risk difference and paired odds ratio; for wall-clock runtime, paired mean difference; for task-native score, paired per-task mean difference only, with no cross-task pooled scalar.",
+    "Report failure-mode counts under a frozen taxonomy: missing source ID, wrong or misattributed source ID, source does not support claim, missing run ID, exact metric mismatch, missing artifact, unsupported novelty-comparison claim, verifier abstention, and gate-removed claim. Also report final factual-claim counts and pairwise claim-count deltas to expose suppression-driven improvements.",
+    "Interpret the result strictly as a bounded first controlled engineering/scientific study of one backbone on one fixed task suite; do not generalize beyond that scope."
+  ],
+  "metrics": [
+    {
+      "description": "Primary. On the frozen final-claim registry, the number of factual conclusion claims labeled unsupported by the arm-blinded protected evaluator divided by all factual conclusion claims in that arm. Unsupported includes missing mandatory IDs or exact values, evidence contradiction, or lack of evidentiary support.",
+      "direction": "minimize",
+      "name": "unsupported_claim_rate"
+    },
+    {
+      "description": "Among literature-grounded and novelty-comparison claims in the final registry, the fraction whose exact linked source IDs resolve correctly and whose linked evidence supports the stated claim.",
+      "direction": "maximize",
+      "name": "citation_correctness"
+    },
+    {
+      "description": "Among experiment-grounded claims, the fraction with missing or wrong run IDs, missing or wrong exact metric values, missing artifacts, or claim-artifact mismatch.",
+      "direction": "minimize",
+      "name": "experiment_detail_error_rate"
+    },
+    {
+      "description": "Mean per-claim fraction of mandatory support slots satisfied by verifier-accepted evidence objects; literature and novelty claims require exact source IDs and supporting evidence, experiment claims require run IDs, exact metric values, and artifact linkage.",
+      "direction": "maximize",
+      "name": "evidence_coverage"
+    },
+    {
+      "description": "Original AIRS-lite task metric reported per task pack only: accuracy for textualclassificationsickaccuracy and coreferenceresolutionsupergluewscaccuracy, and Spearman correlation for textualsimilaritysickspearmancorrelation. No pooled cross-task scalar is used for this metric.",
+      "direction": "maximize",
+      "name": "task_native_score"
+    },
+    {
+      "description": "Elapsed seconds from run start to final artifact emission for each run.",
+      "direction": "minimize",
+      "name": "wall_clock_runtime_seconds"
+    },
+    {
+      "description": "Fraction of factual conclusion claims the protected evaluator labels abstain because supplied evidence is insufficient or ambiguous.",
+      "direction": "minimize",
+      "name": "verifier_abstention_rate"
+    },
+    {
+      "description": "Counts by the frozen failure taxonomy: missing source ID, wrong or misattributed source ID, source-not-supporting-claim, missing run ID, exact-metric mismatch, missing artifact, unsupported novelty-comparison claim, verifier abstention, and gate-removed claim.",
+      "direction": "minimize",
+      "name": "failure_mode_count"
+    },
+    {
+      "description": "On the preregistered blinded audit sample, the fraction of claims labeled unsupported by the protected evaluator that adjudicated human auditors judge supported.",
+      "direction": "minimize",
+      "name": "audit_false_positive_rate"
+    }
+  ],
+  "novelty_claim": "Bounded to the supplied 12-source review, this study tests a same-backbone paired ablation that directly asks whether a pre-delivery claim-evidence gate reduces hallucinated or unsupported final conclusions in an end-to-end research agent; it is a first controlled engineering/scientific study claim within that bounded review, not a claim of universal novelty beyond it.",
+  "readiness_summary": "The plan is falsifiable, fixes the backbone comparison, tasks, seeds, schema, evaluator, audit, analysis, and stop rules, and keeps the novelty claim bounded to the supplied literature review. It is ready to freeze as a first controlled engineering/scientific study.",
+  "ready_to_freeze": true,
+  "research_question": "On the fixed CPU AIRS-lite task suite and fixed Research Forge/Codex backbone, does adding a pre-delivery claim-evidence rejection/revision gate reduce unsupported factual conclusion claims in final outputs versus the same backbone without the gate, when model, non-gate prompts, retrieval set, runtime cap, iteration budget, and task order are held fixed?",
+  "risks": [
+    "The AIRS-lite CPU suite may be too narrow to reveal large differences in unsupported conclusions.",
+    "The gate may improve primary faithfulness metrics while modestly harming task-native performance or runtime.",
+    "If the baseline already emits few factual conclusion claims, detectable improvement may be small.",
+    "Novelty-evaluation claims remain retrieval-coverage-dependent, so negative results may reflect evidence availability rather than gate weakness.",
+    "Manual audit on 48 claims may miss rare evaluator failures.",
+    "Because the novelty claim is explicitly bounded to the supplied review, later full-paper review could narrow or remove the novelty framing without changing the empirical study value."
+  ],
+  "scope_in": [
+    "Same already-runnable Research Forge/Codex research-agent backbone in two arms only: no-gate baseline and gated treatment.",
+    "Fixed CPU AIRS-lite suite only: textualclassificationsickaccuracy, textualsimilaritysickspearmancorrelation, and coreferenceresolutionsupergluewscaccuracy.",
+    "Seeds 0, 1, and 2 for every arm-task combination, for 18 total runs.",
+    "Final-output factual conclusion claims only, evaluated through a frozen structured claim registry.",
+    "Literature-grounded, novelty-evaluation, and experiment-grounded conclusion claims in the same output schema.",
+    "Arm-blinded protected evaluator, paired per-task comparisons, hierarchical bootstrap confidence intervals over claims, failure-mode counts, and a blinded manual audit."
+  ],
+  "scope_out": [
+    "Changing the backbone model, non-gate prompts, retrieval corpus, retrieval hyperparameters, runtime cap, or iteration budget between arms.",
+    "Adding more AIRS-lite packs, external benchmarks, GPU-only tasks, or open-ended web research tasks.",
+    "Training or fine-tuning the backbone, verifier, or retriever.",
+    "Human editing of run outputs before scoring.",
+    "Claiming universal reduction of hallucination for all research agents or all scientific domains.",
+    "Publication-grade proof of global novelty beyond the supplied bounded literature review."
+  ],
+  "stop_conditions": [
+    "Stop data collection after exactly 18 completed runs: 2 arms × 3 tasks × 3 seeds. No interim expansion, reranking, or cherry-picked reruns are allowed.",
+    "Stop and mark the study invalid on any integrity failure: mismatch in frozen model or retrieval manifest between arms; schema non-compliance; missing claim registry; missing exact source IDs for literature or novelty claims; missing run IDs or exact metric values for experiment claims; missing or unreadable experiment artifact; protected-evaluator configuration drift; or broken audit blinding.",
+    "Stop and mark the primary analysis invalid if the adjudicated blinded audit estimates audit_false_positive_rate > 0.15 on audited claims that the protected evaluator labeled unsupported; if the planned unsupported-claim quota is not met, audit all available such claims and apply the same threshold."
+  ],
+  "title": "Paired Ablation of Pre-Delivery Claim-Evidence Gating in a Research Forge/Codex Autonomous Research Agent"
+}

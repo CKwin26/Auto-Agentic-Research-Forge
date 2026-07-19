@@ -1,0 +1,42 @@
+{
+  "baseline_parameters": {
+    "constant_label": 1
+  },
+  "baseline_score": 0.5686913982878108,
+  "candidate_parameters": [
+    {
+      "constant_label": 0
+    },
+    {
+      "constant_label": 2
+    }
+  ],
+  "compute_tier": "cpu",
+  "description": "\n# Overview\n## Task Description\nThis is a Machine Learning project and your goal is to complete the project's TASK following the instructions provided below.\n\n    TASK: This is a NLP task to perform textual-entailment on RobZamp/sick. You will be provided with a pair of sentences, `sentence_A` and `sentence_B`, and will need to predict the entailment between the two (0 = entailment, 1 = neutral , 2 = contradiction). Your predictions will be scored against the `label` column of the test set.\n\n## Data\n### Dataset Structure\nThe default config of RobZamp/sick has the following structure.\nHere is a description of the contents of each column including their name, what they contain, and the data type:\n ``` \n    {\n        'label': 'label': ClassLabel(names=['entailment', 'neutral', 'contradiction']), # the entailment between the two sentences (0 = entailment, 1 = neutral , 2 = contradiction)\n        'sentence_A': Value('string'), # first sentence of the sentence pair\n        'sentence_B': Value('string') # second sentence of the sentence pair \n    } \n```\nTrain data can be loaded using:\n```python\n    from datasets import load_from_disk\n    load_from_disk('./data/train') \n```\nValidation data can be loaded using:\n```python\n    from datasets import load_from_disk\n    load_from_disk('./data/validation')\n```\nTest data can be loaded using:\n```python\n    from datasets import load_from_disk\n    load_from_disk('./data/test').\n```\nNote that the scoring column has been removed from the test data.\n### Submission file\nThe submission file should be a csv file named `submission.csv` with the following header:\n``` label ```\nWhere each row contains your predicted class for the corresponding row in the test set.\nAnd it should be of shape (4906,).\n\n### Evalution\nThe evaluation will be performed on the `submission.csv` file you have submitted using the Accuracy metric. Here is the evaluation script that will be used:\n```python\nfrom sklearn.metrics import accuracy_score\n\ndef evaluate(predictions, labels):\n    \"\"\"\n    Returns a dict of metric_name -> value\n    \"\"\"\n    acc = accuracy_score(predictions, labels)\n    return {\"Accuracy\": acc}\n```\n\nYour csv submission will be loaded like this:\n```python\nimport pandas as pd\nsubmission_df = pd.read_csv(a.submission_file, header=0)\npreds = submission_df.values.squeeze()\n```\n    ",
+  "direction": "maximize",
+  "evaluator_entrypoint": "evaluate.py",
+  "max_iterations": 10,
+  "metric_description": "AIRS-Bench metric for Textual Inference",
+  "min_delta": 0.0,
+  "optimal_score": 1.0,
+  "parameter_guidance": {
+    "constant_label": "one of the observed training labels: [0, 1, 2]"
+  },
+  "primary_metric": "Accuracy",
+  "reproducibility_tolerance": 0.0,
+  "required_repeats": 2,
+  "runnable": true,
+  "schema_version": 1,
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "setup_instructions": "AIRS-lite uses the official dataset split and metric semantics with a pure-Python local evaluator. It remains non-publishable without container isolation.",
+  "source": "airs",
+  "starter_entrypoint": "run_experiment.py",
+  "target_score": 0.905,
+  "task_id": "textualclassificationsickaccuracy",
+  "timeout_seconds": 120,
+  "title": "AIRS-Bench: TextualClassificationSickAccuracy"
+}

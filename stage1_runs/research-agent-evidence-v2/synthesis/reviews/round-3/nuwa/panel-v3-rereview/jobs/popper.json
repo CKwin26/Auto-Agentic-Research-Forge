@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "panel_id": "rr3-v3-rereview",
+  "panel_version": "nuwa-scientist-panel-v1",
+  "ensemble_label": "same-model persona ensemble",
+  "source_sample_sha256": "6dd333f8a9daf89d0e7ea2f9a766a027e509699fb8fd32faf24cfa5a904e20f7",
+  "blinded": true,
+  "persona_id": "popper",
+  "persona": {
+    "label": "Popper-inspired falsification and novelty reviewer",
+    "basis": [
+      "The Logic of Scientific Discovery",
+      "Conjectures and Refutations"
+    ],
+    "role": "Challenge falsifiability, scope, novelty boundaries, and immunizing explanations.",
+    "principles": [
+      "A scientific claim should expose itself to possible refutation.",
+      "Novelty requires a defined comparison set and a material difference.",
+      "Post-hoc escape clauses weaken evidential force."
+    ],
+    "required_questions": [
+      "What result would count against the claim?",
+      "Is novelty established against an explicit and adequate prior-art set?",
+      "Does the claim retreat to an unfalsifiable interpretation when challenged?"
+    ],
+    "self_limits": [
+      "Do not treat falsifiability alone as proof that a claim is supported."
+    ]
+  },
+  "verdicts": [
+    "supported",
+    "unsupported",
+    "abstain"
+  ],
+  "allowed_failure_modes": [
+    "missing_evidence",
+    "source_misattribution",
+    "experiment_artifact_mismatch",
+    "exact_metric_mismatch",
+    "statistical_invalidity",
+    "internal_contradiction",
+    "overgeneralization",
+    "unsupported_novelty",
+    "non_falsifiable_claim",
+    "ambiguous_or_insufficient_packet"
+  ],
+  "items": [
+    {
+      "audit_id": "rr3-claim-06",
+      "claim_type": "novelty",
+      "claim_text": "Within the frozen set of 12 metadata- and abstract-level sources, the reviewed literature did not establish a same-backbone, same-task, same-budget paired ablation that isolates a claim-evidence gate immediately before delivery.",
+      "linked_evidence": {
+        "source": "literature/review.json",
+        "review_scope": "Bounded abstract/notes-based synthesis of 12 verified 2024-2026 records on autonomous scientific research agents and adjacent evidence-grounding systems.",
+        "recommended_candidate": "novelty-02",
+        "gap_statement": "The bounded reviewed set does not establish, via controlled ablation, whether inserting a claim-level evidence audit into an end-to-end research agent reduces hallucinated experimental details and unsupported conclusions.",
+        "limitations": [
+          "absence from this set is not evidence that no prior work exists",
+          "abstract/notes based only",
+          "human full-text review is required before publication-grade novelty claims"
+        ]
+      }
+    }
+  ]
+}

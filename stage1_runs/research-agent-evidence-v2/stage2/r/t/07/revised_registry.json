@@ -1,0 +1,93 @@
+{
+  "arm": "treatment",
+  "cell_id": "treatment--coreferenceresolutionsupergluewscaccuracy--seed-0",
+  "claims": [
+    {
+      "arm": "treatment",
+      "artifact_paths": [
+        "stage2/r/t/07/evidence/baseline-20260718T065855Z-eec56d9f/record.json",
+        "stage2/r/t/07/evidence/baseline-20260718T065855Z-eec56d9f/trial-001-metrics.json",
+        "stage2/r/t/07/evidence/baseline-20260718T065855Z-eec56d9f/trial-002-metrics.json"
+      ],
+      "claim_id": "claim-01",
+      "claim_text": "The verified baseline run achieved Accuracy 0.6346153846153846.",
+      "claim_type": "experiment",
+      "experiment_run_id": "baseline-20260718T065855Z-eec56d9f",
+      "metric_values": {
+        "Accuracy": 0.6346153846153846
+      },
+      "run_id": "agent-treatment--coreferenceresolutionsupergluewscaccuracy--seed-0",
+      "schema_version": 1,
+      "seed": 0,
+      "source_ids": [],
+      "task_pack": "coreferenceresolutionsupergluewscaccuracy"
+    },
+    {
+      "arm": "treatment",
+      "artifact_paths": [
+        "stage2/r/t/07/evidence/run-20260718T065938Z-497d8189/record.json",
+        "stage2/r/t/07/evidence/run-20260718T065938Z-497d8189/trial-001-metrics.json",
+        "stage2/r/t/07/evidence/run-20260718T065938Z-497d8189/trial-002-metrics.json"
+      ],
+      "claim_id": "claim-02",
+      "claim_text": "The evaluated non-baseline candidate run was recorded as valid_non_improving and achieved Accuracy 0.36538461538461536.",
+      "claim_type": "experiment",
+      "experiment_run_id": "run-20260718T065938Z-497d8189",
+      "metric_values": {
+        "Accuracy": 0.36538461538461536
+      },
+      "run_id": "agent-treatment--coreferenceresolutionsupergluewscaccuracy--seed-0",
+      "schema_version": 1,
+      "seed": 0,
+      "source_ids": [],
+      "task_pack": "coreferenceresolutionsupergluewscaccuracy"
+    },
+    {
+      "arm": "treatment",
+      "artifact_paths": [],
+      "claim_id": "claim-03",
+      "claim_text": "The reviewed literature includes dedicated evidence-verification systems for scientific claims, evidence coverage, or citations, namely CliVER, ECE, and RefLens.",
+      "claim_type": "literature",
+      "experiment_run_id": null,
+      "metric_values": {},
+      "run_id": "agent-treatment--coreferenceresolutionsupergluewscaccuracy--seed-0",
+      "schema_version": 1,
+      "seed": 0,
+      "source_ids": [
+        "paper-35ad838f0ac171a7",
+        "paper-69c6e5faa8ef37c2",
+        "paper-e48872d23c4d9e23"
+      ],
+      "task_pack": "coreferenceresolutionsupergluewscaccuracy"
+    },
+    {
+      "arm": "treatment",
+      "artifact_paths": [],
+      "claim_id": "claim-04",
+      "claim_text": "Within the reviewed set, claim- or citation-level evidence auditing is described in dedicated verification frameworks such as CliVER, ECE, and RefLens, whereas end-to-end research-agent frameworks such as EvoScientist, Autonomous Research Loops, and Heuresis are evaluated on broader research-loop outcomes like idea quality, execution success, or failure modes.",
+      "claim_type": "novelty",
+      "experiment_run_id": null,
+      "metric_values": {},
+      "run_id": "agent-treatment--coreferenceresolutionsupergluewscaccuracy--seed-0",
+      "schema_version": 1,
+      "seed": 0,
+      "source_ids": [
+        "paper-35ad838f0ac171a7",
+        "paper-69c6e5faa8ef37c2",
+        "paper-e48872d23c4d9e23",
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-49947e5b991037d5"
+      ],
+      "task_pack": "coreferenceresolutionsupergluewscaccuracy"
+    }
+  ],
+  "created_at": "2026-07-18T07:02:36.230830+00:00",
+  "final_output_text": "The verified baseline run achieved Accuracy 0.6346153846153846.\nThe evaluated non-baseline candidate run was recorded as valid_non_improving and achieved Accuracy 0.36538461538461536.\nThe reviewed literature includes dedicated evidence-verification systems for scientific claims, evidence coverage, or citations, namely CliVER, ECE, and RefLens.\nWithin the reviewed set, claim- or citation-level evidence auditing is described in dedicated verification frameworks such as CliVER, ECE, and RefLens, whereas end-to-end research-agent frameworks such as EvoScientist, Autonomous Research Loops, and Heuresis are evaluated on broader research-loop outcomes like idea quality, execution success, or failure modes.",
+  "protocol_id": "stage2-22e124e44294",
+  "registry_id": "registry-83526708bc1c",
+  "run_id": "agent-treatment--coreferenceresolutionsupergluewscaccuracy--seed-0",
+  "schema_version": 1,
+  "seed": 0,
+  "task_pack": "coreferenceresolutionsupergluewscaccuracy"
+}

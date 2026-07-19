@@ -1,0 +1,13 @@
+{
+  "dataset": "RobZamp/sick",
+  "config": "default",
+  "train_split": "train",
+  "test_split": "test",
+  "train_rows": 4439,
+  "test_rows": 4906,
+  "input_columns": [
+    "sentence_A",
+    "sentence_B"
+  ],
+  "scoring_column": "label"
+}

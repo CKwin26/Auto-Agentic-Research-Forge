@@ -1,0 +1,18 @@
+{
+  "active_attempt_seconds": 197.6869999999999,
+  "arm": "baseline",
+  "cell_id": "baseline--coreferenceresolutionsupergluewscaccuracy--seed-1",
+  "completed_at": "2026-07-18T05:26:45.317016+00:00",
+  "controller_output": "C:\\Users\\austa\\.research-forge-study\\565ea1b0ec96-r4\\b08",
+  "controller_report_hash": "b49d973c029260e57058b0c594b29ef8a85bbbffd0601c5f08517a9a9a05eb6f",
+  "protocol_id": "stage2-22e124e44294",
+  "registry_hash": "273eee914254a799c7846be9eca751bc37563146627d4a64759a8f00643163f5",
+  "schema_version": 1,
+  "seed": 1,
+  "source_controller_report_hash": "b49d973c029260e57058b0c594b29ef8a85bbbffd0601c5f08517a9a9a05eb6f",
+  "structural_audit_hash": "7613d33486644de28f0c5c836695fc8b02c789587f9e65dc8fe22cae2a2d0f47",
+  "task_id": "coreferenceresolutionsupergluewscaccuracy",
+  "task_native_score": 0.6346153846153846,
+  "wall_clock_definition": "cell_manifest.created_at_to_complete.completed_at",
+  "wall_clock_seconds": 197.655841
+}

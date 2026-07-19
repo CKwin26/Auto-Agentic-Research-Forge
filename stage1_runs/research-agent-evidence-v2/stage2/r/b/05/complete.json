@@ -1,0 +1,18 @@
+{
+  "active_attempt_seconds": 170.01600000000008,
+  "arm": "baseline",
+  "cell_id": "baseline--textualsimilaritysickspearmancorrelation--seed-1",
+  "completed_at": "2026-07-18T05:18:27.195147+00:00",
+  "controller_output": "C:\\Users\\austa\\.research-forge-study\\565ea1b0ec96-r4\\b05",
+  "controller_report_hash": "1b2b7c3ada62bc5f1d25100084ee2b4f353ee2c7dc7de9be7ffab20e2fc1dd28",
+  "protocol_id": "stage2-22e124e44294",
+  "registry_hash": "20d23dd06cddfe6b92e19590b7c2fe93b2948573539b63dea891f86cf166fdc2",
+  "schema_version": 1,
+  "seed": 1,
+  "source_controller_report_hash": "1b2b7c3ada62bc5f1d25100084ee2b4f353ee2c7dc7de9be7ffab20e2fc1dd28",
+  "structural_audit_hash": "2d7c6a97f2f9cc69db167002130c5b13b4b7a1096393f47bcfeaccf51d24fe72",
+  "task_id": "textualsimilaritysickspearmancorrelation",
+  "task_native_score": 0.5757186473267853,
+  "wall_clock_definition": "cell_manifest.created_at_to_complete.completed_at",
+  "wall_clock_seconds": 169.980452
+}

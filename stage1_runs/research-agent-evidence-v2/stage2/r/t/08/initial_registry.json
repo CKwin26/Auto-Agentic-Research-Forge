@@ -1,0 +1,94 @@
+{
+  "arm": "treatment",
+  "cell_id": "treatment--coreferenceresolutionsupergluewscaccuracy--seed-1",
+  "claims": [
+    {
+      "arm": "treatment",
+      "artifact_paths": [
+        "stage2/r/t/08/evidence/baseline-20260718T070301Z-b8e67646/record.json",
+        "stage2/r/t/08/evidence/baseline-20260718T070301Z-b8e67646/trial-001-metrics.json",
+        "stage2/r/t/08/evidence/baseline-20260718T070301Z-b8e67646/trial-002-metrics.json"
+      ],
+      "claim_id": "task-result",
+      "claim_text": "The verified baseline run baseline-20260718T070301Z-b8e67646 achieved Accuracy 0.6346153846153846 and was recorded as baseline_verified.",
+      "claim_type": "experiment",
+      "experiment_run_id": "baseline-20260718T070301Z-b8e67646",
+      "metric_values": {
+        "Accuracy": 0.6346153846153846
+      },
+      "run_id": "agent-treatment--coreferenceresolutionsupergluewscaccuracy--seed-1",
+      "schema_version": 1,
+      "seed": 1,
+      "source_ids": [],
+      "task_pack": "coreferenceresolutionsupergluewscaccuracy"
+    },
+    {
+      "arm": "treatment",
+      "artifact_paths": [
+        "stage2/r/t/08/evidence/run-20260718T070345Z-6037e0f3/record.json",
+        "stage2/r/t/08/evidence/run-20260718T070345Z-6037e0f3/trial-001-metrics.json",
+        "stage2/r/t/08/evidence/run-20260718T070345Z-6037e0f3/trial-002-metrics.json"
+      ],
+      "claim_id": "experiment-limitation",
+      "claim_text": "The evaluated non-baseline run run-20260718T070345Z-6037e0f3 achieved Accuracy 0.36538461538461536 and was recorded as valid_non_improving with improvement -0.2692307692307692.",
+      "claim_type": "experiment",
+      "experiment_run_id": "run-20260718T070345Z-6037e0f3",
+      "metric_values": {
+        "Accuracy": 0.36538461538461536,
+        "improvement": -0.2692307692307692
+      },
+      "run_id": "agent-treatment--coreferenceresolutionsupergluewscaccuracy--seed-1",
+      "schema_version": 1,
+      "seed": 1,
+      "source_ids": [],
+      "task_pack": "coreferenceresolutionsupergluewscaccuracy"
+    },
+    {
+      "arm": "treatment",
+      "artifact_paths": [],
+      "claim_id": "literature-context",
+      "claim_text": "Within the reviewed literature, EvoScientist reports higher novelty, feasibility, relevance, and clarity in idea generation plus improved code execution success rates, while Autonomous Research Loops reports hallucinated experimental details, broken implementations, and metric misinterpretation, and Heuresis reports 40 confirmed fabrications across 1,628 scored runs.",
+      "claim_type": "literature",
+      "experiment_run_id": null,
+      "metric_values": {},
+      "run_id": "agent-treatment--coreferenceresolutionsupergluewscaccuracy--seed-1",
+      "schema_version": 1,
+      "seed": 1,
+      "source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-49947e5b991037d5"
+      ],
+      "task_pack": "coreferenceresolutionsupergluewscaccuracy"
+    },
+    {
+      "arm": "treatment",
+      "artifact_paths": [],
+      "claim_id": "novelty-context",
+      "claim_text": "Within the bounded reviewed set, the selected novelty candidate differs from standalone verification papers and whole-system reports by framing a same-backbone intervention study on whether a claim-level evidence gate reduces unsupported claims while preserving task quality and throughput; the reviewed records do not establish that controlled ablation.",
+      "claim_type": "novelty",
+      "experiment_run_id": null,
+      "metric_values": {},
+      "run_id": "agent-treatment--coreferenceresolutionsupergluewscaccuracy--seed-1",
+      "schema_version": 1,
+      "seed": 1,
+      "source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "task_pack": "coreferenceresolutionsupergluewscaccuracy"
+    }
+  ],
+  "created_at": "2026-07-18T07:05:12.260625+00:00",
+  "final_output_text": "The verified baseline run baseline-20260718T070301Z-b8e67646 achieved Accuracy 0.6346153846153846 and was recorded as baseline_verified.\nThe evaluated non-baseline run run-20260718T070345Z-6037e0f3 achieved Accuracy 0.36538461538461536 and was recorded as valid_non_improving with improvement -0.2692307692307692.\nWithin the reviewed literature, EvoScientist reports higher novelty, feasibility, relevance, and clarity in idea generation plus improved code execution success rates, while Autonomous Research Loops reports hallucinated experimental details, broken implementations, and metric misinterpretation, and Heuresis reports 40 confirmed fabrications across 1,628 scored runs.\nWithin the bounded reviewed set, the selected novelty candidate differs from standalone verification papers and whole-system reports by framing a same-backbone intervention study on whether a claim-level evidence gate reduces unsupported claims while preserving task quality and throughput; the reviewed records do not establish that controlled ablation.",
+  "protocol_id": "stage2-22e124e44294",
+  "registry_id": "registry-af47d67b7ec4",
+  "run_id": "agent-treatment--coreferenceresolutionsupergluewscaccuracy--seed-1",
+  "schema_version": 1,
+  "seed": 1,
+  "task_pack": "coreferenceresolutionsupergluewscaccuracy"
+}

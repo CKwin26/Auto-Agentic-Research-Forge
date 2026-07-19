@@ -1,0 +1,45 @@
+{
+  "construct_metrics": [],
+  "contract_id": "pubexp-e046e1f785524b81",
+  "final_retest_requirements": [
+    "rerun strict venue recommendation against locked venue research-integrity-and-peer-review",
+    "venue-weighted quality_score must be at least 0.6800",
+    "publication readiness must be at least 0.6000",
+    "zero critical/high scientific blockers",
+    "the final manuscript and experiment contract must retain the same venue id and contract hash"
+  ],
+  "generated_at": "2026-07-18T17:31:35.512211+00:00",
+  "intent": "publication",
+  "novelty_refresh_present": false,
+  "open_root_cause_codes": [
+    "RC-CONSTRUCT-UNDERCOVERAGE",
+    "RC-COUNTERFACTUAL-NONISOLATION",
+    "RC-LITERATURE-SCOPE-COUPLING",
+    "RC-MATURITY-TARGET-MISMATCH",
+    "RC-MEASUREMENT-CIRCULARITY",
+    "RC-REPORTING-CONTRACT-GAP",
+    "RC-TELEMETRY-SCHEMA-GAP"
+  ],
+  "pre_experiment_gate_passed": false,
+  "protocol_id": "stage2-22e124e44294",
+  "schema_version": 1,
+  "seed_count": 3,
+  "source_paths": [
+    "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\publication_experiment_contract.json",
+    "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\stage2\\protocol.json",
+    "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\root_cause_preflight.json",
+    "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\design_revisions\\novelty_refresh.json"
+  ],
+  "target_locked": true,
+  "task_count": 3,
+  "venue_id": "research-integrity-and-peer-review",
+  "violations": [
+    "publication experiment protocol is not explicitly frozen with publication intent",
+    "publication experiment protocol is not bound to the locked publication contract",
+    "publication experiment retains blocking scientific root causes: RC-CONSTRUCT-UNDERCOVERAGE, RC-COUNTERFACTUAL-NONISOLATION, RC-MEASUREMENT-CIRCULARITY",
+    "publication experiment requires at least 8 heterogeneous tasks; got 3",
+    "publication experiment requires at least 5 seeds per task; got 3",
+    "publication experiment is missing frozen construct metrics: claim_retention_or_deletion, informativeness_or_usefulness, semantic_change_type",
+    "publication experiment requires design_revisions/novelty_refresh.json before protocol freeze"
+  ]
+}

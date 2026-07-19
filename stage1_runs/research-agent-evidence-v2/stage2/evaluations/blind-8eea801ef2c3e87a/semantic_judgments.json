@@ -1,0 +1,36 @@
+{
+  "judgments": [
+    {
+      "claim_id": "claim-01-task-result",
+      "rationale": "The linked experiment evidence marks run baseline-20260718T063734Z-8119b6c5 as a verified baseline and reports aggregate SpearmanCorrelation exactly 0.5757186473267853.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-02-experiment-limitation",
+      "rationale": "The linked experiment evidence marks run run-20260718T063854Z-59f657e8 as valid and non-baseline, with aggregate SpearmanCorrelation exactly 0.5725548964668126.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-03-literature-context",
+      "rationale": "One linked end-to-end research-loop paper reports hallucinated experimental details, broken implementations, and metric misinterpretation. The other linked paper reports confirmed fabrications during execution, but its supplied note does not explicitly establish that system as end-to-end, so the full scoped claim is overstated.",
+      "supporting_source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-49947e5b991037d5"
+      ],
+      "verdict": "unsupported"
+    },
+    {
+      "claim_id": "claim-04-bounded-novelty-context",
+      "rationale": "The linked reviewed set contains end-to-end research-agent systems (EvoScientist; Autonomous Research Loops) and evidence-grounded citation or claim-verification systems (RefLens; CliVER).",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-35ad838f0ac171a7"
+      ],
+      "verdict": "supported"
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "acceptance_probability_is_not_target": true,
+  "baseline_manuscript_path": "C:\\Users\\austa\\Documents\\自动研究器\\output\\pdf\\research-agent-evidence-v4-paper-en.tex",
+  "baseline_manuscript_sha256": "63db710117a6e3354076fd55bbe3048b9addc2deff5b5d10a39bd18539364df5",
+  "contract_id": "pubtarget-e697c2afa2709ca4",
+  "created_at": "2026-07-18T16:41:29.893342+00:00",
+  "criteria": [
+    {
+      "evidence_contract": "冻结目标 venue、track、官方 scope URL 与匹配理由。",
+      "hard_minimum": 0.6,
+      "id": "venue_scope_fit",
+      "label": "目标 venue 范围匹配",
+      "owner_stage": "stage_1_discovery",
+      "required_score": 0.75,
+      "weight": 0.1
+    },
+    {
+      "evidence_contract": "协议必须隔离目标干预，冻结分支点、随机化、分析单位与停止规则。",
+      "hard_minimum": 0.55,
+      "id": "scientific_identification",
+      "label": "方法与因果识别",
+      "owner_stage": "stage_2_protocol",
+      "required_score": 0.72,
+      "weight": 0.16
+    },
+    {
+      "evidence_contract": "主评估器须有跨家族或盲态人工金标准校准，并报告混淆矩阵。",
+      "hard_minimum": 0.6,
+      "id": "independent_validation",
+      "label": "独立测量与校准",
+      "owner_stage": "stage_2_protocol",
+      "required_score": 0.75,
+      "weight": 0.15
+    },
+    {
+      "evidence_contract": "至少覆盖冻结计划要求的异质任务、重复种子、原子主张与敏感性分析。",
+      "hard_minimum": 0.55,
+      "id": "evidence_breadth",
+      "label": "证据广度与稳定性",
+      "owner_stage": "stage_3_experimentation",
+      "required_score": 0.7,
+      "weight": 0.11
+    },
+    {
+      "evidence_contract": "同时测量支持性、保留/删除、语义变化与科学信息性，禁止单指标偷换构念。",
+      "hard_minimum": 0.55,
+      "id": "construct_coverage",
+      "label": "科学构念覆盖",
+      "owner_stage": "stage_2_protocol",
+      "required_score": 0.72,
+      "weight": 0.1
+    },
+    {
+      "evidence_contract": "冻结实验文献边界，并在投稿前独立刷新领域定位与负面新颖性证据。",
+      "hard_minimum": 0.5,
+      "id": "novelty_positioning",
+      "label": "新颖性与领域定位",
+      "owner_stage": "stage_1_discovery",
+      "required_score": 0.65,
+      "weight": 0.11
+    },
+    {
+      "evidence_contract": "协议、代码、数据、环境、原始结果和匿名公共材料必须以版本与哈希绑定。",
+      "hard_minimum": 0.6,
+      "id": "reproducibility_release",
+      "label": "复现与外部材料",
+      "owner_stage": "stage_3_experimentation",
+      "required_score": 0.78,
+      "weight": 0.09
+    },
+    {
+      "evidence_contract": "深度、逐单元结果、偏差、限制、引用和 claim-evidence 审计全部通过。",
+      "hard_minimum": 0.75,
+      "id": "reporting_integrity",
+      "label": "报告完整性与诚信",
+      "owner_stage": "stage_4_synthesis",
+      "required_score": 0.85,
+      "weight": 0.08
+    },
+    {
+      "evidence_contract": "目标模板、页数/字数、匿名化、清单、材料链接和开放周期全部核验。",
+      "hard_minimum": 0.55,
+      "id": "venue_compliance",
+      "label": "投稿格式与周期合规",
+      "owner_stage": "stage_4_synthesis",
+      "required_score": 0.82,
+      "weight": 0.1
+    }
+  ],
+  "official_venue_url": "https://link.springer.com/journal/41073",
+  "project_path": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2",
+  "readiness_threshold": 0.6,
+  "registry_id": "strict-ai-research-venues-v2",
+  "registry_sha256": "2542330f8b7eb3bcd29d60d6cdbccf5cb1fd0aacf8aa2165f98fc61dc0feca43",
+  "registry_source_checked_at": "2026-07-18",
+  "schema_version": 1,
+  "scope_url": "https://link.springer.com/journal/41073/aims-and-scope",
+  "threshold_semantics": "Deterministic internal submission-readiness threshold controlled by Research Forge. It is not and must not be reported as the probability of peer-review acceptance.",
+  "track": "Research Article",
+  "venue_id": "research-integrity-and-peer-review",
+  "venue_name": "Research Integrity and Peer Review",
+  "venue_type": "journal"
+}

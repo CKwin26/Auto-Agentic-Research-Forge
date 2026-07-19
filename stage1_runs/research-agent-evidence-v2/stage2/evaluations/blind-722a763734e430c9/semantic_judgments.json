@@ -1,0 +1,41 @@
+{
+  "judgments": [
+    {
+      "claim_id": "claim-1",
+      "rationale": "The linked experiment evidence for run baseline-20260718T065344Z-93c11316 is marked valid and baseline_verified, and its aggregate SpearmanCorrelation is exactly 0.5757186473267853.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-2",
+      "rationale": "The linked experiment evidence for run run-20260718T065450Z-1b42fcd7 is marked valid_non_improving, with aggregate SpearmanCorrelation 0.5725548964668126 and improvement -0.0031637508599727804 relative to baseline.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-3",
+      "rationale": "The packet includes research-agent studies with reported failures (Autonomous Research Loops: hallucinated experimental details; Heuresis: confirmed fabrications) and verification studies focused on evidence-grounded citation or claim support assessment (RefLens, ECE, CliVER).",
+      "supporting_source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-49947e5b991037d5",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7"
+      ],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-4",
+      "rationale": "The linked records support the stated two-strand grouping: EvoScientist, Autonomous Research Loops, and Heuresis are research-agent workflow systems, while RefLens, Evidence Coverage Evaluator, and CliVER are evidence/citation/claim verification systems.",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-49947e5b991037d5",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7"
+      ],
+      "verdict": "supported"
+    }
+  ]
+}

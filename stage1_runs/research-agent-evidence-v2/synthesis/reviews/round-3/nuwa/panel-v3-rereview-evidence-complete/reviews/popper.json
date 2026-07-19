@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "panel_id": "rr3-v3-rereview-evidence-complete",
+  "persona_id": "popper",
+  "source_sample_sha256": "f05349a3ceab1a73fb684ef83f94bda59e13acd74d90e9a14836dbdaad8c30cf",
+  "blinded": true,
+  "items": [
+    {
+      "audit_id": "rr3-claim-06",
+      "verdict": "supported",
+      "rationale": "The claim is explicitly bounded to the frozen 12-record set and specifies the material comparison needed to refute the asserted gap. The packet's screening result reports that no included record described all of the required same-backbone, same-task, same-budget, paired gate/no-gate, immediate-pre-delivery conditions, while its limitations prevent expansion into a universal novelty claim.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "screening_result: Among the 12 included records, end-to-end agent papers and claim/citation-verification papers occurred as separate groups; no screening record described all of same backbone, same task, same budget, paired gate/no-gate paths, and immediate pre-delivery placement.",
+        "limitations: absence from this set is not evidence that no prior work exists"
+      ]
+    }
+  ]
+}

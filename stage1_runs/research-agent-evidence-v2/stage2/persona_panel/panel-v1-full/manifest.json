@@ -1,0 +1,432 @@
+{
+  "schema_version": 1,
+  "panel_id": "panel-v1-full",
+  "panel_version": "nuwa-scientist-panel-v1",
+  "ensemble_label": "same-model persona ensemble",
+  "source_sample_path": "C:\\Users\\austa\\.research-forge-blind\\stage2-22e124e44294\\manual-audit\\sample.json",
+  "source_sample_sha256": "0ef6aff20a330b8e247554971f58999c85290726a949005becc8feffbb30ef6e",
+  "persona_config_path": "C:\\Users\\austa\\.codex\\skills\\nuwa-scientist-panel\\references\\personas.json",
+  "persona_config_sha256": "4c2fdf2749ff90cf1691f46d0580734a512526a9a0addb108422f2031535c16f",
+  "blinded": true,
+  "item_count": 48,
+  "routes": {
+    "audit-05fe62b553253bd3": [
+      "feynman",
+      "shannon",
+      "popper"
+    ],
+    "audit-20118f9cc6fcc8fb": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "audit-22b4b75f627eb46f": [
+      "feynman",
+      "shannon",
+      "popper"
+    ],
+    "audit-23bff17ea945f8c2": [
+      "popper",
+      "shannon",
+      "feynman"
+    ],
+    "audit-24491f81ff1cd82f": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "audit-250dd2af10c9b4fa": [
+      "popper",
+      "shannon",
+      "feynman"
+    ],
+    "audit-33532701fcc315fa": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "audit-3e05fbd1e2ef7ed0": [
+      "feynman",
+      "shannon",
+      "popper"
+    ],
+    "audit-412e94d1820c1a34": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "audit-4331a3908f9bbd4a": [
+      "popper",
+      "shannon",
+      "feynman"
+    ],
+    "audit-48eca2d0133f804c": [
+      "feynman",
+      "shannon",
+      "popper"
+    ],
+    "audit-4eb4833b938b06b4": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "audit-56d00de7d24490bb": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "audit-578ba12611b156ba": [
+      "popper",
+      "shannon",
+      "feynman"
+    ],
+    "audit-5cf12abb439b2b4b": [
+      "popper",
+      "shannon",
+      "feynman"
+    ],
+    "audit-5dbc4d8cd3c4c58b": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "audit-5f47de88ba717d87": [
+      "feynman",
+      "shannon",
+      "popper"
+    ],
+    "audit-6057d972fe46fdba": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "audit-62c77ef22383c8ab": [
+      "feynman",
+      "shannon",
+      "popper"
+    ],
+    "audit-715996bd5088610c": [
+      "popper",
+      "shannon",
+      "feynman"
+    ],
+    "audit-73fe7c35606cee51": [
+      "popper",
+      "shannon",
+      "feynman"
+    ],
+    "audit-76f9f301ca24bd38": [
+      "feynman",
+      "shannon",
+      "popper"
+    ],
+    "audit-770fcecfbec74885": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "audit-7801fcbd7c79f94c": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "audit-7fee2c6f01a430af": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "audit-84606c8040556e3d": [
+      "feynman",
+      "shannon",
+      "popper"
+    ],
+    "audit-86c592921d137f31": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "audit-884b9631b126336d": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "audit-89bf1430e164241e": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "audit-8a19a3c898222f11": [
+      "feynman",
+      "shannon",
+      "popper"
+    ],
+    "audit-8d1b9f7914eb1ff9": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "audit-98686536d7c49395": [
+      "feynman",
+      "shannon",
+      "popper"
+    ],
+    "audit-9925a7b8a38a276a": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "audit-9a3e5e3c6a10458c": [
+      "feynman",
+      "shannon",
+      "popper"
+    ],
+    "audit-9ee0b2650331b46d": [
+      "feynman",
+      "shannon",
+      "popper"
+    ],
+    "audit-a5bb4cf9eca5f9ef": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "audit-a6589d57e2fc15ce": [
+      "feynman",
+      "shannon",
+      "popper"
+    ],
+    "audit-a842b1d98c582e0b": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "audit-b18dc484e7aebb28": [
+      "popper",
+      "shannon",
+      "feynman"
+    ],
+    "audit-b777c25c1053557a": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "audit-ccc8eaf57d0ef832": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "audit-d43120dd62f02af8": [
+      "popper",
+      "shannon",
+      "feynman"
+    ],
+    "audit-da8fc05325f510b8": [
+      "popper",
+      "shannon",
+      "feynman"
+    ],
+    "audit-e54c7ba2b8fade99": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "audit-e55418df53ab7e8c": [
+      "popper",
+      "shannon",
+      "feynman"
+    ],
+    "audit-e6426715cf45d416": [
+      "feynman",
+      "shannon",
+      "popper"
+    ],
+    "audit-ea397cb12584ed0b": [
+      "popper",
+      "shannon",
+      "feynman"
+    ],
+    "audit-ef7fb255e184a7de": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ]
+  },
+  "hard_veto_failure_modes": [
+    "missing_evidence",
+    "source_misattribution",
+    "experiment_artifact_mismatch",
+    "exact_metric_mismatch",
+    "statistical_invalidity",
+    "internal_contradiction"
+  ],
+  "jobs": {
+    "feynman": {
+      "path": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\stage2\\persona_panel\\panel-v1-full\\jobs\\feynman.json",
+      "sha256": "069a72c5a1ca04096bf8894b79e99eb1678760935e5dd5828b8d3f3b947e6d67",
+      "audit_ids": [
+        "audit-05fe62b553253bd3",
+        "audit-20118f9cc6fcc8fb",
+        "audit-22b4b75f627eb46f",
+        "audit-23bff17ea945f8c2",
+        "audit-24491f81ff1cd82f",
+        "audit-250dd2af10c9b4fa",
+        "audit-33532701fcc315fa",
+        "audit-3e05fbd1e2ef7ed0",
+        "audit-412e94d1820c1a34",
+        "audit-4331a3908f9bbd4a",
+        "audit-48eca2d0133f804c",
+        "audit-4eb4833b938b06b4",
+        "audit-56d00de7d24490bb",
+        "audit-578ba12611b156ba",
+        "audit-5cf12abb439b2b4b",
+        "audit-5dbc4d8cd3c4c58b",
+        "audit-5f47de88ba717d87",
+        "audit-6057d972fe46fdba",
+        "audit-62c77ef22383c8ab",
+        "audit-715996bd5088610c",
+        "audit-73fe7c35606cee51",
+        "audit-76f9f301ca24bd38",
+        "audit-770fcecfbec74885",
+        "audit-7801fcbd7c79f94c",
+        "audit-7fee2c6f01a430af",
+        "audit-84606c8040556e3d",
+        "audit-86c592921d137f31",
+        "audit-884b9631b126336d",
+        "audit-89bf1430e164241e",
+        "audit-8a19a3c898222f11",
+        "audit-8d1b9f7914eb1ff9",
+        "audit-98686536d7c49395",
+        "audit-9925a7b8a38a276a",
+        "audit-9a3e5e3c6a10458c",
+        "audit-9ee0b2650331b46d",
+        "audit-a5bb4cf9eca5f9ef",
+        "audit-a6589d57e2fc15ce",
+        "audit-a842b1d98c582e0b",
+        "audit-b18dc484e7aebb28",
+        "audit-b777c25c1053557a",
+        "audit-ccc8eaf57d0ef832",
+        "audit-d43120dd62f02af8",
+        "audit-da8fc05325f510b8",
+        "audit-e54c7ba2b8fade99",
+        "audit-e55418df53ab7e8c",
+        "audit-e6426715cf45d416",
+        "audit-ea397cb12584ed0b",
+        "audit-ef7fb255e184a7de"
+      ]
+    },
+    "tukey": {
+      "path": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\stage2\\persona_panel\\panel-v1-full\\jobs\\tukey.json",
+      "sha256": "8e2b483de9b66ca1714059c343136687615a73468fea0e265c89b2d6ac2b6c4c",
+      "audit_ids": [
+        "audit-20118f9cc6fcc8fb",
+        "audit-24491f81ff1cd82f",
+        "audit-33532701fcc315fa",
+        "audit-412e94d1820c1a34",
+        "audit-4eb4833b938b06b4",
+        "audit-56d00de7d24490bb",
+        "audit-5dbc4d8cd3c4c58b",
+        "audit-6057d972fe46fdba",
+        "audit-770fcecfbec74885",
+        "audit-7801fcbd7c79f94c",
+        "audit-7fee2c6f01a430af",
+        "audit-86c592921d137f31",
+        "audit-884b9631b126336d",
+        "audit-89bf1430e164241e",
+        "audit-8d1b9f7914eb1ff9",
+        "audit-9925a7b8a38a276a",
+        "audit-a5bb4cf9eca5f9ef",
+        "audit-a842b1d98c582e0b",
+        "audit-b777c25c1053557a",
+        "audit-ccc8eaf57d0ef832",
+        "audit-e54c7ba2b8fade99",
+        "audit-ef7fb255e184a7de"
+      ]
+    },
+    "shannon": {
+      "path": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\stage2\\persona_panel\\panel-v1-full\\jobs\\shannon.json",
+      "sha256": "f17856d5ae4d7cf27a71e98a86ec00883a715a28d860bb67a7c1ce9fd64b2e40",
+      "audit_ids": [
+        "audit-05fe62b553253bd3",
+        "audit-20118f9cc6fcc8fb",
+        "audit-22b4b75f627eb46f",
+        "audit-23bff17ea945f8c2",
+        "audit-24491f81ff1cd82f",
+        "audit-250dd2af10c9b4fa",
+        "audit-33532701fcc315fa",
+        "audit-3e05fbd1e2ef7ed0",
+        "audit-412e94d1820c1a34",
+        "audit-4331a3908f9bbd4a",
+        "audit-48eca2d0133f804c",
+        "audit-4eb4833b938b06b4",
+        "audit-56d00de7d24490bb",
+        "audit-578ba12611b156ba",
+        "audit-5cf12abb439b2b4b",
+        "audit-5dbc4d8cd3c4c58b",
+        "audit-5f47de88ba717d87",
+        "audit-6057d972fe46fdba",
+        "audit-62c77ef22383c8ab",
+        "audit-715996bd5088610c",
+        "audit-73fe7c35606cee51",
+        "audit-76f9f301ca24bd38",
+        "audit-770fcecfbec74885",
+        "audit-7801fcbd7c79f94c",
+        "audit-7fee2c6f01a430af",
+        "audit-84606c8040556e3d",
+        "audit-86c592921d137f31",
+        "audit-884b9631b126336d",
+        "audit-89bf1430e164241e",
+        "audit-8a19a3c898222f11",
+        "audit-8d1b9f7914eb1ff9",
+        "audit-98686536d7c49395",
+        "audit-9925a7b8a38a276a",
+        "audit-9a3e5e3c6a10458c",
+        "audit-9ee0b2650331b46d",
+        "audit-a5bb4cf9eca5f9ef",
+        "audit-a6589d57e2fc15ce",
+        "audit-a842b1d98c582e0b",
+        "audit-b18dc484e7aebb28",
+        "audit-b777c25c1053557a",
+        "audit-ccc8eaf57d0ef832",
+        "audit-d43120dd62f02af8",
+        "audit-da8fc05325f510b8",
+        "audit-e54c7ba2b8fade99",
+        "audit-e55418df53ab7e8c",
+        "audit-e6426715cf45d416",
+        "audit-ea397cb12584ed0b",
+        "audit-ef7fb255e184a7de"
+      ]
+    },
+    "popper": {
+      "path": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\stage2\\persona_panel\\panel-v1-full\\jobs\\popper.json",
+      "sha256": "ae5f4448797b5ffa98879e4ec54a2b44177e856aad0336b002b23f72c2f8f752",
+      "audit_ids": [
+        "audit-05fe62b553253bd3",
+        "audit-22b4b75f627eb46f",
+        "audit-23bff17ea945f8c2",
+        "audit-250dd2af10c9b4fa",
+        "audit-3e05fbd1e2ef7ed0",
+        "audit-4331a3908f9bbd4a",
+        "audit-48eca2d0133f804c",
+        "audit-578ba12611b156ba",
+        "audit-5cf12abb439b2b4b",
+        "audit-5f47de88ba717d87",
+        "audit-62c77ef22383c8ab",
+        "audit-715996bd5088610c",
+        "audit-73fe7c35606cee51",
+        "audit-76f9f301ca24bd38",
+        "audit-84606c8040556e3d",
+        "audit-8a19a3c898222f11",
+        "audit-98686536d7c49395",
+        "audit-9a3e5e3c6a10458c",
+        "audit-9ee0b2650331b46d",
+        "audit-a6589d57e2fc15ce",
+        "audit-b18dc484e7aebb28",
+        "audit-d43120dd62f02af8",
+        "audit-da8fc05325f510b8",
+        "audit-e55418df53ab7e8c",
+        "audit-e6426715cf45d416",
+        "audit-ea397cb12584ed0b"
+      ]
+    }
+  }
+}

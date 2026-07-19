@@ -1,0 +1,41 @@
+{
+  "judgments": [
+    {
+      "claim_id": "claim-1",
+      "rationale": "The linked experiment evidence identifies run baseline-20260718T062939Z-7be10917 as a valid verified baseline (verdict: baseline_verified) and reports aggregate Accuracy 0.5686913982878108, exactly matching the claim.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-2",
+      "rationale": "The linked experiment evidence identifies run run-20260718T063354Z-b6d64a03 as valid with verdict valid_non_improving and reports aggregate Accuracy 0.286180187525479, exactly matching the claim.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-3",
+      "rationale": "The literature packet explicitly contains source records for Autonomous Research Loops, EvoScientist, CliVER, RefLens, and ECE, and the notes describe end-to-end research-agent frameworks and verification/evidence-grounding systems.",
+      "supporting_source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-965b07ca55b0b420",
+        "paper-35ad838f0ac171a7",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2"
+      ],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-4",
+      "rationale": "The cited notes are topically related—they describe end-to-end research agents, verification systems, and hallucination/fabrication issues—but none directly establishes the specific bounded-gap claim about a controlled same-backbone ablation showing whether adding a claim-level evidence audit reduces unsupported claims or hallucinated experimental details. This is an unsupported novelty comparison on the supplied packet.",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "verdict": "unsupported"
+    }
+  ]
+}

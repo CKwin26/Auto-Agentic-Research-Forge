@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "panel_id": "smoke-panel-a",
+  "panel_version": "nuwa-scientist-panel-v1",
+  "ensemble_label": "same-model persona ensemble",
+  "source_sample_sha256": "0ef6aff20a330b8e247554971f58999c85290726a949005becc8feffbb30ef6e",
+  "blinded": true,
+  "persona_id": "feynman",
+  "persona": {
+    "label": "Feynman-inspired empirical integrity reviewer",
+    "basis": [
+      "Cargo Cult Science",
+      "The Character of Physical Law"
+    ],
+    "role": "Detect gaps between what was actually measured and what is claimed.",
+    "principles": [
+      "Prefer checkable experimental detail over persuasive narrative.",
+      "Ask what observation could reveal that the claim is wrong.",
+      "Treat omitted conditions, failed runs, and inconvenient evidence as material."
+    ],
+    "required_questions": [
+      "What direct observation in the packet supports each material part of the claim?",
+      "Could the same evidence arise if the proposed explanation were false?",
+      "Are artifacts, settings, failures, or counterexamples omitted?"
+    ],
+    "self_limits": [
+      "Do not perform statistical adjudication beyond obvious artifact or evidence mismatches."
+    ]
+  },
+  "verdicts": [
+    "supported",
+    "unsupported",
+    "abstain"
+  ],
+  "allowed_failure_modes": [
+    "missing_evidence",
+    "source_misattribution",
+    "experiment_artifact_mismatch",
+    "exact_metric_mismatch",
+    "statistical_invalidity",
+    "internal_contradiction",
+    "overgeneralization",
+    "unsupported_novelty",
+    "non_falsifiable_claim",
+    "ambiguous_or_insufficient_packet"
+  ],
+  "items": [
+    {
+      "audit_id": "audit-05fe62b553253bd3",
+      "claim_type": "literature",
+      "claim_text": "The reviewed literature includes dedicated evidence-verification systems for scientific claims, evidence coverage, or citations, namely CliVER, ECE, and RefLens.",
+      "linked_evidence": {
+        "claim_id": "claim-03",
+        "claim_text": "The reviewed literature includes dedicated evidence-verification systems for scientific claims, evidence coverage, or citations, namely CliVER, ECE, and RefLens.",
+        "claim_type": "literature",
+        "declared_artifact_paths": [],
+        "declared_metric_values": {},
+        "linked_experiment_evidence": null,
+        "linked_experiment_run_id": null,
+        "linked_source_ids": [
+          "paper-35ad838f0ac171a7",
+          "paper-69c6e5faa8ef37c2",
+          "paper-e48872d23c4d9e23"
+        ],
+        "linked_source_records": [
+          {
+            "added_at": "2026-07-17T15:21:46.550586+00:00",
+            "authors": [
+              "Hao Liu",
+              "Ali Soroush",
+              "Jordan G Nestor",
+              "Elizabeth Park",
+              "Betina Idnay",
+              "Yilu Fang",
+              "Jane Pan",
+              "Stan Liao",
+              "Marguerite Bernard",
+              "Yifan Peng",
+              "Chunhua Weng"
+            ],
+            "locator": "https://doi.org/10.1093/jamiaopen/ooae021",
+            "notes": "Abstract Objective To automate scientific claim verification using PubMed abstracts. Materials and Methods We developed CliVER, an end-to-end scientific Claim VERification system that leverages retrieval-augmented techniques to automatically retrieve relevant clinical trial abstracts, extract pertinent sentences, and use the PICO framework to support or refute a scientific claim. We also created an ensemble of three state-of-the-art deep learning models to classify rationale of support, refute, and neutral. We then constructed CoVERt, a new COVID VERification dataset comprising 15 PICO-encoded drug claims accompanied by 96 manually selected and labeled clinical trial abstracts that either support or refute each claim. We used CoVERt and SciFact (a public scientific claim verification dataset) to assess CliVER’s performance in predicting labels. Finally, we compared CliVER to clinicians in the verification of 19 claims from 6 disease domains, using 189 648 PubMed abstracts extracted from January 2010 to October 2021. Results In the evaluation of label prediction accuracy on CoVERt, CliVER achieved a notable F1 score of 0.92, highlighting the efficacy of the retrieval-augmented models. The ensemble model outperforms each individual state-of-the-art model by an absolute increase from 3% to 11% in the F1 score. Moreover, when compared with four clinicians, CliVER achieved a precision of 79.0% for abstract retrieval, 67.4% for sentence selection, and 63.2% for label prediction, respectively. Conclusion CliVER demonstrates its early potential to automate scientific claim verification using retrieval-augmented strategies to harness the wealth of clinical trial abstracts in PubMed. Future studies are warranted to further test its clinical utility.",
+            "origin": "discovery",
+            "origin_id": "discovery-2026-07-17T151524.143318+0000-35e67c",
+            "schema_version": 1,
+            "source_id": "paper-35ad838f0ac171a7",
+            "source_type": "paper",
+            "title": "Retrieval augmented scientific claim verification",
+            "verification_method": "Exact Crossref DOI lookup matched the normalized title.",
+            "verified": true,
+            "year": 2024
+          },
+          {
+            "added_at": "2026-07-17T15:21:46.541585+00:00",
+            "authors": [
+              "Goutam Adwant",
+              "Manjari Srivastav"
+            ],
+            "locator": "https://doi.org/10.36227/techrxiv.176784505.56675782/v1",
+            "notes": "Retrieval-Augmented Generation (RAG) systems have emerged as a powerful paradigm for enhancing large language models with external knowledge. However, evaluating whether generated answers are properly grounded in retrieved evidence remains a critical challenge. Unlike accuracy-based metrics, evidence coverage evaluates whether each factual claim is explicitly supported by retrieved context, independent of surfacelevel correctness. This paper presents the Evidence Coverage Evaluator (ECE), a comprehensive framework for assessing evidence coverage in RAG-generated answers. ECE introduces two complementary evaluation modes: Mode A, a lightweight NLIbased approach using pre-trained natural language inference models (RoBERTa-MNLI) achieving 0.88-0.91 coverage scores in 2.1-2.8 seconds, and Mode B, an LLM-based judge mode using local Ollama models (Mistral, Llama3, Gemma3, DeepSeek-R1) achieving 0.86 coverage scores with 100% success rates in 23-31 seconds for top-performing models. Our framework extracts finegrained claims from answers, retrieves relevant evidence passages using BM25 or embedding-based methods, and scores claimevidence pairs to compute coverage metrics. Experimental results demonstrate that ECE outperforms baseline methods (keyword matching, BERTScore, direct NLI) by 10-32% in coverage assessment. Additionally, ECE includes advanced features such as citation quality assessment, unsupported claim identification, and actionable feedback generation. The framework is open-source, extensible, and designed for integration into CI/CD pipelines for continuous quality assurance in production RAG systems.",
+            "origin": "discovery",
+            "origin_id": "discovery-2026-07-17T151524.143318+0000-35e67c",
+            "schema_version": 1,
+            "source_id": "paper-69c6e5faa8ef37c2",
+            "source_type": "paper",
+            "title": "Evidence Coverage Evaluator: A Comprehensive Framework for Assessing Grounding Quality in Retrieval-Augmented Generation Systems",
+            "verification_method": "Exact Crossref DOI lookup matched the normalized title.",
+            "verified": true,
+            "year": 2026
+          },
+          {
+            "added_at": "2026-07-17T15:21:46.538580+00:00",
+            "authors": [
+              "SeungHoo Lee",
+              "JuneHyoung Kwon",
+              "Jooweon Choi",
+              "JungMin Yun",
+              "Seunguk Yu",
+              "Yoonji Lee",
+              "Jinhee Jang",
+              "YoungBin Kim"
+            ],
+            "locator": "https://doi.org/10.1609/aaai.v40i48.42361",
+            "notes": "Accurate citation is critical, yet error rates remain high across scientific literature. We present RefLens, an end-to-end system that automates citation verification from PDF parsing to interactive report generation. Unlike summary- or embedding-based approaches, RefLens performs evidence-grounded verification by extracting verbatim spans from original sources and displaying citation-level cards and a paper-level dashboard. In a 35-participant study, users rated value (M=4.34), trust (M=4.15), and usability (M=4.19) highly, with strong adoption intention (M=4.28).",
+            "origin": "discovery",
+            "origin_id": "discovery-2026-07-17T151524.143318+0000-35e67c",
+            "schema_version": 1,
+            "source_id": "paper-e48872d23c4d9e23",
+            "source_type": "paper",
+            "title": "RefLens: End-to-End Evidence-Grounded Citation Verification with LLM Agents",
+            "verification_method": "Exact Crossref DOI lookup matched the normalized title.",
+            "verified": true,
+            "year": 2026
+          }
+        ]
+      }
+    }
+  ]
+}

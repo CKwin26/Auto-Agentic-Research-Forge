@@ -1,0 +1,38 @@
+{
+  "judgments": [
+    {
+      "claim_id": "claim-1",
+      "rationale": "The linked experiment evidence marks run-20260718T045538Z-7e3fff7d as valid, reports Accuracy 0.5907052588666939, and records improvement 0.022013860578883104.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-2",
+      "rationale": "The linked run evidence supports the Accuracy value, but no linked evidence establishes any task target score of 0.905, so a material part of the claim is ungrounded.",
+      "supporting_source_ids": [],
+      "verdict": "unsupported"
+    },
+    {
+      "claim_id": "claim-3",
+      "rationale": "The packet contains end-to-end autonomous research-agent systems (EvoScientist; Autonomous Research Loops) and separate verification systems for citation or claim support (RefLens; CliVER).",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-35ad838f0ac171a7"
+      ],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-4",
+      "rationale": "The linked summaries discuss hallucinations, verification, unsupported-claim detection, and related auditing needs, but none explicitly reports a controlled same-backbone ablation isolating a claim-level evidence audit and showing reduced hallucinated details or unsupported conclusions; the supplied evidence is insufficient to establish this absence claim.",
+      "supporting_source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-49947e5b991037d5"
+      ],
+      "verdict": "abstain"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "changes": [
+    {
+      "claim_id": "experiment-limitation",
+      "claim_text_changed": false,
+      "normalization": "remove_exact_record_improvement_from_metric_values",
+      "removed_metric_values": {
+        "improvement": -0.2692307692307692
+      },
+      "supporting_record_field": "improvement"
+    }
+  ],
+  "claim_text_changed": false,
+  "gate_input_registry_id": "registry-ab4da0eea726",
+  "initial_registry_id": "registry-af47d67b7ec4",
+  "model_called_again": false,
+  "schema_version": 1
+}

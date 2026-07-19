@@ -1,0 +1,575 @@
+{
+  "acceptance_calibration_status": "uncalibrated_heuristic_v1",
+  "acceptance_probability_interpretation": "Wide decision-support intervals from explicit Research Forge priors and manuscript/project features; they are not venue-published acceptance rates, are not used as the primary ranking signal, and are hidden from the human-readable table until locally calibrated. Centers become locally calibrated only after at least 5 recorded submissions to the same venue.",
+  "actions": [
+    {
+      "execution_stage": "stage_3_experimentation",
+      "id": "PUB-A1-INDEPENDENT-CALIBRATION",
+      "priority": 1,
+      "projected_dimension_floors": {
+        "evidence_breadth": 0.7,
+        "independent_validation": 0.8
+      },
+      "projected_readiness_after_action": 0.5913,
+      "required_artifact": "冻结样本、两名独立审阅者或独立金标准、混淆矩阵、阈值判定与解盲记录。",
+      "resolves": [
+        "RC-MATURITY-TARGET-MISMATCH",
+        "RC-MEASUREMENT-CIRCULARITY"
+      ],
+      "return_to_stage": "stage_2_protocol",
+      "title": "完成独立盲态校准"
+    },
+    {
+      "execution_stage": "stage_3_experimentation",
+      "id": "PUB-A2-PROSPECTIVE-SAME-ARTIFACT",
+      "priority": 2,
+      "projected_dimension_floors": {
+        "evidence_breadth": 0.7,
+        "scientific_identification": 0.78
+      },
+      "projected_readiness_after_action": 0.6881,
+      "required_artifact": "预注册协议、内容寻址分支点、随机顺序、运行清单和冻结分析。",
+      "resolves": [
+        "RC-COUNTERFACTUAL-NONISOLATION"
+      ],
+      "return_to_stage": "stage_2_protocol",
+      "title": "运行前瞻性同产物随机分支实验"
+    },
+    {
+      "execution_stage": "stage_3_experimentation",
+      "id": "PUB-A3-CONSTRUCT-COVERAGE",
+      "priority": 3,
+      "projected_dimension_floors": {
+        "construct_coverage": 0.75
+      },
+      "projected_readiness_after_action": 0.7331,
+      "required_artifact": "支持性、删除/保留、语义收缩、事实纠正和科学信息性的冻结双轨量表。",
+      "resolves": [
+        "RC-CONSTRUCT-UNDERCOVERAGE"
+      ],
+      "return_to_stage": "stage_1_discovery",
+      "title": "补齐信息性与语义变化构念"
+    },
+    {
+      "execution_stage": "stage_3_experimentation",
+      "id": "PUB-A4-HETEROGENEOUS-BREADTH",
+      "priority": 4,
+      "projected_dimension_floors": {
+        "evidence_breadth": 0.78,
+        "scientific_identification": 0.72
+      },
+      "projected_readiness_after_action": 0.7419,
+      "required_artifact": "至少 8 个异质任务、每任务至少 5 个冻结种子、逐任务效应与 leave-one-domain-out 分析。",
+      "resolves": [],
+      "return_to_stage": "stage_2_protocol",
+      "title": "扩展异质任务与稳定性分析"
+    },
+    {
+      "execution_stage": "stage_4_synthesis",
+      "id": "PUB-A5-NOVELTY-REFRESH",
+      "priority": 5,
+      "projected_dimension_floors": {
+        "novelty_positioning": 0.68
+      },
+      "projected_readiness_after_action": 0.7683,
+      "required_artifact": "可复跑检索式、筛选账本、canonical systems 对照和逐贡献 novelty matrix。",
+      "resolves": [
+        "RC-LITERATURE-SCOPE-COUPLING"
+      ],
+      "return_to_stage": "stage_1_discovery",
+      "title": "刷新领域定位和负面新颖性检索"
+    },
+    {
+      "execution_stage": "stage_4_synthesis",
+      "id": "PUB-A6-PUBLIC-ARTIFACT",
+      "priority": 6,
+      "projected_dimension_floors": {
+        "reproducibility_release": 0.86
+      },
+      "projected_readiness_after_action": 0.7845,
+      "required_artifact": "匿名仓库/归档 DOI、版本标签、环境锁、原始结果、完整成本遥测与哈希绑定。",
+      "resolves": [
+        "RC-TELEMETRY-SCHEMA-GAP"
+      ],
+      "return_to_stage": "stage_3_experimentation",
+      "title": "发布匿名可访问的复现材料"
+    },
+    {
+      "execution_stage": "stage_4_synthesis",
+      "id": "PUB-A7-TARGET-PACKAGE",
+      "priority": 7,
+      "projected_dimension_floors": {
+        "reporting_integrity": 0.9,
+        "venue_compliance": 0.88
+      },
+      "projected_readiness_after_action": 0.8125,
+      "required_artifact": "目标模板 PDF、逐项 checklist、匿名化报告、claim audit 和最终独立完整性复核。",
+      "resolves": [
+        "RC-REPORTING-CONTRACT-GAP"
+      ],
+      "return_to_stage": "stage_4_synthesis",
+      "title": "按目标 venue 模板完成投稿包"
+    }
+  ],
+  "contract_id": "pubtarget-e697c2afa2709ca4",
+  "contract_path": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\publication_target_contract.json",
+  "current_cycle_acceptance_probability": {
+    "center": 0.0544,
+    "high": 0.1102,
+    "low": 0.0228
+  },
+  "dimensions": [
+    {
+      "evidence": [
+        "严格白名单 scope-fit=0.8750；匹配词：claim evidence, claim verification, evidence provenance, research agents, scientific reliability。"
+      ],
+      "hard_minimum": 0.6,
+      "id": "venue_scope_fit",
+      "label": "目标 venue 范围匹配",
+      "owner_stage": "stage_1_discovery",
+      "required_score": 0.75,
+      "score": 0.875,
+      "status": "meets_target",
+      "weight": 0.1,
+      "weighted_score": 0.0875
+    },
+    {
+      "evidence": [
+        "方法严谨度=0.1750；项目根因阻塞数=7。"
+      ],
+      "hard_minimum": 0.55,
+      "id": "scientific_identification",
+      "label": "方法与因果识别",
+      "owner_stage": "stage_2_protocol",
+      "required_score": 0.72,
+      "score": 0.175,
+      "status": "hard_fail",
+      "weight": 0.16,
+      "weighted_score": 0.028
+    },
+    {
+      "evidence": [
+        "检测到跨家族代理评估，但没有完成金标准校准；代理不能替代独立验证。"
+      ],
+      "hard_minimum": 0.6,
+      "id": "independent_validation",
+      "label": "独立测量与校准",
+      "owner_stage": "stage_2_protocol",
+      "required_score": 0.75,
+      "score": 0.35,
+      "status": "hard_fail",
+      "weight": 0.15,
+      "weighted_score": 0.0525
+    },
+    {
+      "evidence": [
+        "任务=3；每任务种子=3；结构化主张=13。"
+      ],
+      "hard_minimum": 0.55,
+      "id": "evidence_breadth",
+      "label": "证据广度与稳定性",
+      "owner_stage": "stage_3_experimentation",
+      "required_score": 0.7,
+      "score": 0.53,
+      "status": "hard_fail",
+      "weight": 0.11,
+      "weighted_score": 0.0583
+    },
+    {
+      "evidence": [
+        "构念覆盖根因仍开放。"
+      ],
+      "hard_minimum": 0.55,
+      "id": "construct_coverage",
+      "label": "科学构念覆盖",
+      "owner_stage": "stage_2_protocol",
+      "required_score": 0.72,
+      "score": 0.3,
+      "status": "hard_fail",
+      "weight": 0.1,
+      "weighted_score": 0.03
+    },
+    {
+      "evidence": [
+        "当前最高可辩护结论层级=internal_proxy_association；新颖性/定位得分=0.4400。"
+      ],
+      "hard_minimum": 0.5,
+      "id": "novelty_positioning",
+      "label": "新颖性与领域定位",
+      "owner_stage": "stage_1_discovery",
+      "required_score": 0.65,
+      "score": 0.44,
+      "status": "hard_fail",
+      "weight": 0.11,
+      "weighted_score": 0.0484
+    },
+    {
+      "evidence": [
+        "内部复现得分=0.7500；外部公共仓库=未检测。"
+      ],
+      "hard_minimum": 0.6,
+      "id": "reproducibility_release",
+      "label": "复现与外部材料",
+      "owner_stage": "stage_3_experimentation",
+      "required_score": 0.78,
+      "score": 0.68,
+      "status": "below_target",
+      "weight": 0.09,
+      "weighted_score": 0.0612
+    },
+    {
+      "evidence": [
+        "文字深度门=通过；叙事计数=6562；参考文献=18。"
+      ],
+      "hard_minimum": 0.75,
+      "id": "reporting_integrity",
+      "label": "报告完整性与诚信",
+      "owner_stage": "stage_4_synthesis",
+      "required_score": 0.85,
+      "score": 0.99,
+      "status": "meets_target",
+      "weight": 0.08,
+      "weighted_score": 0.0792
+    },
+    {
+      "evidence": [
+        "venue 类型=journal；周期=rolling；当前可投=是；仍需目标模板逐项核验。"
+      ],
+      "hard_minimum": 0.55,
+      "id": "venue_compliance",
+      "label": "投稿格式与周期合规",
+      "owner_stage": "stage_4_synthesis",
+      "required_score": 0.82,
+      "score": 0.6,
+      "status": "below_target",
+      "weight": 0.1,
+      "weighted_score": 0.06
+    }
+  ],
+  "estimated_acceptance_probability": {
+    "center": 0.0544,
+    "high": 0.1102,
+    "low": 0.0228
+  },
+  "evidence_sources": [
+    "C:\\Users\\austa\\Documents\\自动研究器\\output\\pdf\\research-agent-evidence-v4-paper-en.tex",
+    "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\completion_certificate.json",
+    "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\stage2\\closed_loop_status.json",
+    "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\stage2\\protocol.json",
+    "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\stage2\\provisional_analysis.json",
+    "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\publication_target_contract.json",
+    "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\root_cause_preflight.json"
+  ],
+  "failure_fingerprint": "pubfail-3786930890c17d72",
+  "generated_at": "2026-07-18T17:03:26.757199+00:00",
+  "hard_blockers": [
+    {
+      "code": "RC-COUNTERFACTUAL-NONISOLATION",
+      "latest_prevention_stage": "before_protocol_freeze",
+      "origin_stage": "stage_2_protocol",
+      "reason": "原始两组没有隔离同一实验产物上的反事实效应。",
+      "required_evidence": "做前瞻性的同产物分支实验，或采用随机化、交错执行的对照设计。",
+      "severity": "critical",
+      "source": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\root_cause_preflight.json"
+    },
+    {
+      "code": "RC-MATURITY-TARGET-MISMATCH",
+      "latest_prevention_stage": "before_external_review_submission",
+      "origin_stage": "stage_4_synthesis",
+      "reason": "当前证据仍是临时性 pilot，而投稿需要可解释的验证结果。",
+      "required_evidence": "在进入投稿路由前完成预注册的验证门。",
+      "severity": "critical",
+      "source": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\root_cause_preflight.json"
+    },
+    {
+      "code": "RC-MEASUREMENT-CIRCULARITY",
+      "latest_prevention_stage": "before_protocol_freeze",
+      "origin_stage": "stage_2_protocol",
+      "reason": "生成器、干预和主评估器没有完成独立校准。",
+      "required_evidence": "完成盲态人工校准或真正跨模型家族的校准，并报告一致性和错误结构。",
+      "severity": "critical",
+      "source": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\root_cause_preflight.json"
+    },
+    {
+      "code": "READINESS-CONSTRUCT-COVERAGE-BELOW-HARD-MINIMUM",
+      "latest_prevention_stage": "before_stage_2_protocol_exit",
+      "origin_stage": "stage_2_protocol",
+      "reason": "科学构念覆盖得分 0.30，低于硬下限 0.55。",
+      "required_evidence": "同时测量支持性、保留/删除、语义变化与科学信息性，禁止单指标偷换构念。",
+      "severity": "critical",
+      "source": "C:\\Users\\austa\\Documents\\自动研究器\\output\\pdf\\research-agent-evidence-v4-paper-en.tex"
+    },
+    {
+      "code": "READINESS-EVIDENCE-BREADTH-BELOW-HARD-MINIMUM",
+      "latest_prevention_stage": "before_stage_3_experimentation_exit",
+      "origin_stage": "stage_3_experimentation",
+      "reason": "证据广度与稳定性得分 0.53，低于硬下限 0.55。",
+      "required_evidence": "至少覆盖冻结计划要求的异质任务、重复种子、原子主张与敏感性分析。",
+      "severity": "critical",
+      "source": "C:\\Users\\austa\\Documents\\自动研究器\\output\\pdf\\research-agent-evidence-v4-paper-en.tex"
+    },
+    {
+      "code": "READINESS-INDEPENDENT-VALIDATION-BELOW-HARD-MINIMUM",
+      "latest_prevention_stage": "before_stage_2_protocol_exit",
+      "origin_stage": "stage_2_protocol",
+      "reason": "独立测量与校准得分 0.35，低于硬下限 0.60。",
+      "required_evidence": "主评估器须有跨家族或盲态人工金标准校准，并报告混淆矩阵。",
+      "severity": "critical",
+      "source": "C:\\Users\\austa\\Documents\\自动研究器\\output\\pdf\\research-agent-evidence-v4-paper-en.tex"
+    },
+    {
+      "code": "READINESS-NOVELTY-POSITIONING-BELOW-HARD-MINIMUM",
+      "latest_prevention_stage": "before_stage_1_discovery_exit",
+      "origin_stage": "stage_1_discovery",
+      "reason": "新颖性与领域定位得分 0.44，低于硬下限 0.50。",
+      "required_evidence": "冻结实验文献边界，并在投稿前独立刷新领域定位与负面新颖性证据。",
+      "severity": "critical",
+      "source": "C:\\Users\\austa\\Documents\\自动研究器\\output\\pdf\\research-agent-evidence-v4-paper-en.tex"
+    },
+    {
+      "code": "READINESS-SCIENTIFIC-IDENTIFICATION-BELOW-HARD-MINIMUM",
+      "latest_prevention_stage": "before_stage_2_protocol_exit",
+      "origin_stage": "stage_2_protocol",
+      "reason": "方法与因果识别得分 0.17，低于硬下限 0.55。",
+      "required_evidence": "协议必须隔离目标干预，冻结分支点、随机化、分析单位与停止规则。",
+      "severity": "critical",
+      "source": "C:\\Users\\austa\\Documents\\自动研究器\\output\\pdf\\research-agent-evidence-v4-paper-en.tex"
+    },
+    {
+      "code": "RC-CONSTRUCT-UNDERCOVERAGE",
+      "latest_prevention_stage": "before_plan_approval",
+      "origin_stage": "stage_1_discovery",
+      "reason": "代理指标没有完整测量信息性和科学用途。",
+      "required_evidence": "冻结并增加主张保留、语义变化、信息性和用途指标。",
+      "severity": "high",
+      "source": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\root_cause_preflight.json"
+    },
+    {
+      "code": "VENUE-QUALITY-BAR-NOT-MET",
+      "latest_prevention_stage": "before_submission",
+      "origin_stage": "stage_1_discovery",
+      "reason": "锁定 venue 的加权质量分 0.4767 低于冻结质量线 0.6800。",
+      "required_evidence": "不得靠换 venue 或加文字过门；必须提升该 venue 权重下的方法、证据、复现与成熟度，然后用同一 venue id 重新推荐和审计。",
+      "severity": "high",
+      "source": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\publication_target_contract.json"
+    }
+  ],
+  "hard_gate_passed": false,
+  "manuscript_path": "C:\\Users\\austa\\Documents\\自动研究器\\output\\pdf\\research-agent-evidence-v4-paper-en.tex",
+  "manuscript_sha256": "63db710117a6e3354076fd55bbe3048b9addc2deff5b5d10a39bd18539364df5",
+  "method_id": "research-forge-publication-readiness-v1",
+  "projected_acceptance_after_known_blockers": {
+    "center": 0.3019,
+    "high": 0.5434,
+    "low": 0.1268
+  },
+  "projected_readiness_after_plan": 0.8125,
+  "projection_assumptions": [
+    "投影只是假设每项要求的证据真实生成并通过复核；它不会自动清除任何根因。",
+    "投影不改变录用概率估计，也不能用作未来结果、人工验证或投稿保证。",
+    "每次稿件、协议、实验或 venue 周期变化后都必须重新运行硬门。"
+  ],
+  "publication_submission_ready": false,
+  "readiness_interpretation": "This score measures controllable internal submission readiness. Passing also requires zero hard scientific blockers. It is not evidence that the venue will accept the paper.",
+  "readiness_score": 0.5051,
+  "readiness_threshold": 0.6,
+  "schema_version": 1,
+  "score_threshold_passed": false,
+  "stage_backpropagation": [
+    {
+      "completion_evidence": [
+        "目标 venue/track 合同",
+        "可复跑文献检索与 novelty matrix",
+        "构念与反构念清单"
+      ],
+      "gate": "在批准研究问题前冻结 venue、贡献、新颖性边界和完整构念。",
+      "required_changes": [
+        "补齐信息性与语义变化构念",
+        "刷新领域定位和负面新颖性检索"
+      ],
+      "stage": "stage_1_discovery"
+    },
+    {
+      "completion_evidence": [
+        "前瞻性同产物分支协议",
+        "独立评估器校准计划",
+        "功效/稳定性和遥测 schema"
+      ],
+      "gate": "在协议冻结前反推识别条件、独立校准、任务/种子下限和报告合同。",
+      "required_changes": [
+        "完成独立盲态校准",
+        "运行前瞻性同产物随机分支实验",
+        "扩展异质任务与稳定性分析"
+      ],
+      "stage": "stage_2_protocol"
+    },
+    {
+      "completion_evidence": [
+        "异质任务矩阵",
+        "独立盲审/金标准",
+        "公开可复现的运行产物和成本遥测"
+      ],
+      "gate": "只执行能生成投稿门所需证据的冻结实验，并保持逐单元审计链。",
+      "required_changes": [
+        "完成独立盲态校准",
+        "运行前瞻性同产物随机分支实验",
+        "补齐信息性与语义变化构念",
+        "扩展异质任务与稳定性分析",
+        "发布匿名可访问的复现材料"
+      ],
+      "stage": "stage_3_experimentation"
+    },
+    {
+      "completion_evidence": [
+        "深度报告",
+        "claim-evidence audit",
+        "目标模板 PDF 与 publication-readiness gate"
+      ],
+      "gate": "写作、完整性复核、目标模板和投稿清单均通过后才颁发投稿就绪状态。",
+      "required_changes": [
+        "刷新领域定位和负面新颖性检索",
+        "发布匿名可访问的复现材料",
+        "按目标 venue 模板完成投稿包"
+      ],
+      "stage": "stage_4_synthesis"
+    }
+  ],
+  "system_design_repair_required": true,
+  "system_design_repairs": [
+    {
+      "applicability": "新建实验和基于本项目启动的下一版协议；历史冻结协议与结果保持不可变。",
+      "earliest_repair_stage": "stage_1_discovery",
+      "enforcement_points": [
+        "ResearchPlanDraft.metrics",
+        "root_cause_preflight.analyze_root_causes",
+        "study.freeze_stage2_protocol"
+      ],
+      "enforcement_stage": "stage_2_protocol",
+      "regression_tests": [
+        "仅 unsupported_claim_rate 必须失败",
+        "加入 semantic_change 与 informativeness 指标后构念检查通过"
+      ],
+      "repair_id": "repair-5cdb0f34200c",
+      "required_rule_change": "质量/可靠性研究若缺少支持性与信息性双轨构念，计划或协议不得进入 publication 路线。",
+      "root_cause": "科学构念覆盖得分 0.30，低于硬下限 0.55。 代理指标没有完整测量信息性和科学用途。",
+      "source_codes": [
+        "RC-CONSTRUCT-UNDERCOVERAGE",
+        "READINESS-CONSTRUCT-COVERAGE-BELOW-HARD-MINIMUM"
+      ],
+      "status": "active_for_future_runs",
+      "system_gap": "计划批准时只冻结支持性代理指标，没有冻结信息性、删除/保留和语义变化。"
+    },
+    {
+      "applicability": "新建实验和基于本项目启动的下一版协议；历史冻结协议与结果保持不可变。",
+      "earliest_repair_stage": "stage_2_protocol",
+      "enforcement_points": [
+        "study_models.Stage2Protocol",
+        "root_cause_preflight.analyze_root_causes",
+        "study.freeze_stage2_protocol"
+      ],
+      "enforcement_stage": "stage_2_protocol",
+      "regression_tests": [
+        "baseline-then-treatment 整块顺序必须失败",
+        "共享 artifact 加随机分支顺序必须通过识别检查"
+      ],
+      "repair_id": "repair-4bd7ed50f4ed",
+      "required_rule_change": "publication 目标的下游干预比较必须声明内容寻址的共享 artifact 分支；否则冻结失败。",
+      "root_cause": "原始两组没有隔离同一实验产物上的反事实效应。 方法与因果识别得分 0.17，低于硬下限 0.55。",
+      "source_codes": [
+        "RC-COUNTERFACTUAL-NONISOLATION",
+        "READINESS-SCIENTIFIC-IDENTIFICATION-BELOW-HARD-MINIMUM"
+      ],
+      "status": "active_for_future_runs",
+      "system_gap": "协议把独立随机运行误当成配对反事实，没有冻结同一上游 artifact 的分支点与顺序随机化。"
+    },
+    {
+      "applicability": "新建实验和基于本项目启动的下一版协议；历史冻结协议与结果保持不可变。",
+      "earliest_repair_stage": "stage_4_synthesis",
+      "enforcement_points": [
+        "root_cause_preflight",
+        "publication_readiness",
+        "review routing"
+      ],
+      "enforcement_stage": "stage_4_synthesis",
+      "regression_tests": [
+        "延期人审时 publication_submission_ready 必须为 false",
+        "persona panel 不得改变人工验证字段"
+      ],
+      "repair_id": "repair-052787ae61f0",
+      "required_rule_change": "primary_analysis_interpretable=false 时只能进入 developmental review；投稿证书必须拒发。",
+      "root_cause": "当前证据仍是临时性 pilot，而投稿需要可解释的验证结果。",
+      "source_codes": [
+        "RC-MATURITY-TARGET-MISMATCH"
+      ],
+      "status": "deferred_external_validation",
+      "system_gap": "流程完成状态曾可能被误解为 publication 审批资格。"
+    },
+    {
+      "applicability": "新建实验和基于本项目启动的下一版协议；历史冻结协议与结果保持不可变。",
+      "earliest_repair_stage": "stage_2_protocol",
+      "enforcement_points": [
+        "root_cause_preflight.analyze_root_causes",
+        "study.freeze_stage2_protocol"
+      ],
+      "enforcement_stage": "stage_2_protocol",
+      "regression_tests": [
+        "同源且无校准必须阻断下一版 Stage 2 freeze",
+        "跨家族评估器也必须提供校准证据而非仅换模型名"
+      ],
+      "repair_id": "repair-973cda589e37",
+      "required_rule_change": "publication 目标的协议只要仍存在同源测量且无冻结校准，就必须在执行前失败。",
+      "root_cause": "生成器、干预和主评估器没有完成独立校准。 独立测量与校准得分 0.35，低于硬下限 0.60。",
+      "source_codes": [
+        "RC-MEASUREMENT-CIRCULARITY",
+        "READINESS-INDEPENDENT-VALIDATION-BELOW-HARD-MINIMUM"
+      ],
+      "status": "active_for_future_runs",
+      "system_gap": "协议冻结允许生成器、干预器和主评估器同源，却没有独立校准合同。"
+    },
+    {
+      "applicability": "新建实验和基于本项目启动的下一版协议；历史冻结协议与结果保持不可变。",
+      "earliest_repair_stage": "stage_2_protocol",
+      "enforcement_points": [
+        "publication target contract",
+        "study.freeze_stage2_protocol"
+      ],
+      "enforcement_stage": "stage_2_protocol",
+      "regression_tests": [
+        "3 tasks x 3 seeds 在激活修复单后必须失败",
+        "8 tasks x 5 seeds 应满足默认广度合同"
+      ],
+      "repair_id": "repair-a7487fc44a87",
+      "required_rule_change": "publication 修复版协议在冻结前至少声明 8 个异质任务和每任务 5 个种子，或记录有依据的等效功效方案。",
+      "root_cause": "证据广度与稳定性得分 0.53，低于硬下限 0.55。",
+      "source_codes": [
+        "READINESS-EVIDENCE-BREADTH-BELOW-HARD-MINIMUM"
+      ],
+      "status": "active_for_future_runs",
+      "system_gap": "计划允许少量任务和种子完成 pipeline，却没有按投稿目标反推证据广度下限。"
+    },
+    {
+      "applicability": "新建实验和基于本项目启动的下一版协议；历史冻结协议与结果保持不可变。",
+      "earliest_repair_stage": "stage_1_discovery",
+      "enforcement_points": [
+        "Stage 1 literature refresh",
+        "study.freeze_stage2_protocol"
+      ],
+      "enforcement_stage": "stage_2_protocol",
+      "regression_tests": [
+        "激活 novelty 修复且缺 refresh artifact 时冻结失败",
+        "有效 refresh artifact 必须绑定来源与生成时间"
+      ],
+      "repair_id": "repair-c83614b6539a",
+      "required_rule_change": "进入修复版 Stage 2 前必须存在独立的 novelty_refresh.json，绑定检索式、筛选账本和贡献矩阵。",
+      "root_cause": "新颖性与领域定位得分 0.44，低于硬下限 0.50。",
+      "source_codes": [
+        "READINESS-NOVELTY-POSITIONING-BELOW-HARD-MINIMUM"
+      ],
+      "status": "active_for_future_runs",
+      "system_gap": "冻结实验文献包曾同时承担投稿定位，缺少投稿前独立 contextual refresh。"
+    }
+  ],
+  "venue_id": "research-integrity-and-peer-review",
+  "venue_name": "Research Integrity and Peer Review",
+  "venue_type": "journal"
+}

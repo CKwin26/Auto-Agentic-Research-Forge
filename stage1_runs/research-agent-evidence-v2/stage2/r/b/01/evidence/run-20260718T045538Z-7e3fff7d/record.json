@@ -1,0 +1,119 @@
+{
+  "aggregate_metrics": {
+    "Accuracy": 0.5907052588666939
+  },
+  "code_hash": "8e76bd9888a2b7f85a26bc96309137026a451e17f5c0b8037ad8eb0f85e8572c",
+  "contract_hash": "90fb2bbf355de30ea065d3ddab87a4b1e61ad66331e15f893aac014d4b1a4283",
+  "error": null,
+  "finished_at": "2026-07-18T04:55:47.044923+00:00",
+  "improvement": 0.022013860578883104,
+  "is_baseline": false,
+  "isolation_verified": true,
+  "metric_stddev": {
+    "Accuracy": 0.0
+  },
+  "parameters": {
+    "constant_label": 1
+  },
+  "proposal_id": "proposal-2026-07-18T045538.708088+0000-8e4d42",
+  "run_id": "run-20260718T045538Z-7e3fff7d",
+  "runtime": "docker",
+  "runtime_attestation": {
+    "candidate_evaluator_separated": true,
+    "capabilities": {
+      "actual_python": "3.12.13",
+      "capabilities": [
+        "numpy-array-computing",
+        "scipy-scientific-computing",
+        "pandas-tabular-data",
+        "scikit-learn-classical-ml",
+        "scikit-learn-text-classification"
+      ],
+      "controlled": true,
+      "dependency_policy": "wheel hashes and versions are frozen; runtime package installation is disabled",
+      "environment": "rf-airs-cpu",
+      "errors": [],
+      "installed_packages": {
+        "joblib": "1.5.3",
+        "narwhals": "2.24.0",
+        "numpy": "2.5.1",
+        "pandas": "3.0.3",
+        "python-dateutil": "2.9.0.post0",
+        "scikit-learn": "1.9.0",
+        "scipy": "1.18.0",
+        "six": "1.17.0",
+        "threadpoolctl": "3.6.0",
+        "tzdata": "2026.3"
+      },
+      "network_policy": "disabled by the Research Forge Docker runtime",
+      "packages": {
+        "joblib": "1.5.3",
+        "narwhals": "2.24.0",
+        "numpy": "2.5.1",
+        "pandas": "3.0.3",
+        "python-dateutil": "2.9.0.post0",
+        "scikit-learn": "1.9.0",
+        "scipy": "1.18.0",
+        "six": "1.17.0",
+        "threadpoolctl": "3.6.0",
+        "tzdata": "2026.3"
+      },
+      "platform": "linux/amd64",
+      "python": "3.12",
+      "schema_version": 1,
+      "status": "ok",
+      "verified": true,
+      "version": "v1"
+    },
+    "capabilities_dropped": true,
+    "capability_manifest_sha256": "a2ad47c62d247ae9aa6c3fc573ec1e5aaf7f14325e5105813f64353d9af67dba",
+    "capability_verified": true,
+    "controlled_environment": true,
+    "docker_server_version": "29.6.1",
+    "image": "rf-airs-cpu:v1",
+    "image_id": "sha256:ed0c4ef7a59bc0587c92b69ef994b1873d0fa9eb84c01ec8ce4f8bb5b126812d",
+    "image_platform": "linux/amd64",
+    "isolation_verified": true,
+    "limits": {
+      "cpus": 1.0,
+      "image": "rf-airs-cpu:v1",
+      "kind": "docker",
+      "max_output_mb": 256,
+      "memory_mb": 2048,
+      "pids_limit": 256,
+      "tmpfs_mb": 512
+    },
+    "network": "none",
+    "no_new_privileges": true,
+    "read_only_rootfs": true,
+    "runtime": "docker"
+  },
+  "schema_version": 1,
+  "started_at": "2026-07-18T04:55:38.790302+00:00",
+  "trials": [
+    {
+      "duration_seconds": 4.25,
+      "error": null,
+      "evaluator_exit_code": 0,
+      "exit_code": 0,
+      "index": 1,
+      "metrics": {
+        "Accuracy": 0.5907052588666939
+      },
+      "valid": true
+    },
+    {
+      "duration_seconds": 4.0,
+      "error": null,
+      "evaluator_exit_code": 0,
+      "exit_code": 0,
+      "index": 2,
+      "metrics": {
+        "Accuracy": 0.5907052588666939
+      },
+      "valid": true
+    }
+  ],
+  "valid": true,
+  "verdict": "candidate_improves"
+}

@@ -1,0 +1,58 @@
+{
+  "arm_metrics": {
+    "baseline": {
+      "abstained_claims": 1,
+      "citation_correctness": 0.6666666666666666,
+      "evidence_coverage": 1.0,
+      "experiment_detail_error_rate": 0.3333333333333333,
+      "final_claims": 36,
+      "initial_claims": 36,
+      "mean_task_native_score": 0.6005729103167291,
+      "registries": 9,
+      "retention_rate": 1.0,
+      "total_wall_clock_seconds": 2721.128495,
+      "unsupported_claim_rate": 0.3055555555555556,
+      "unsupported_claims": 11,
+      "verifier_abstention_rate": 0.027777777777777776
+    },
+    "treatment": {
+      "abstained_claims": 0,
+      "citation_correctness": 0.8888888888888888,
+      "evidence_coverage": 1.0,
+      "experiment_detail_error_rate": 0.05555555555555555,
+      "final_claims": 36,
+      "initial_claims": 36,
+      "mean_task_native_score": 0.6221338108013964,
+      "registries": 9,
+      "retention_rate": 1.0,
+      "total_wall_clock_seconds": 4514.38356,
+      "unsupported_claim_rate": 0.08333333333333333,
+      "unsupported_claims": 3,
+      "verifier_abstention_rate": 0.0
+    }
+  },
+  "audited_at": "2026-07-18T07:44:43.663087+00:00",
+  "checks": {
+    "both_arms_complete": true,
+    "evaluation_artifacts_load": true,
+    "evaluation_manifest_exact": true,
+    "evaluations_integral": true,
+    "manual_audit_sample_frozen": true,
+    "primary_analysis_withheld": true,
+    "stage2_protocol_valid": true
+  },
+  "complete": true,
+  "evaluated_registries": 18,
+  "expected_registries": 18,
+  "manual_audit_required": true,
+  "paired_effects": {
+    "mean_paired_unsupported_claim_rate_effect": -0.2222222222222222,
+    "paired_cohen_dz": -0.8432740427115677,
+    "tasks_with_lower_unsupported_claim_rate": 3
+  },
+  "passed": true,
+  "primary_analysis_interpretable": false,
+  "protocol_id": "stage2-22e124e44294",
+  "schema_version": 1,
+  "violations": []
+}

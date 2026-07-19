@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "panel_id": "smoke-panel-a",
+  "persona_id": "feynman",
+  "source_sample_sha256": "0ef6aff20a330b8e247554971f58999c85290726a949005becc8feffbb30ef6e",
+  "blinded": true,
+  "items": [
+    {
+      "audit_id": "audit-05fe62b553253bd3",
+      "verdict": "supported",
+      "rationale": "Each named system is directly identified in a linked source record, and each record describes the corresponding verification target: CliVER for scientific claims, ECE for evidence coverage, and RefLens for citations. The packet therefore supports every material part of the scoped literature-inclusion claim without requiring inference beyond the supplied evidence.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_source_records[0].title: Retrieval augmented scientific claim verification; notes: developed CliVER, an end-to-end scientific Claim VERification system",
+        "linked_source_records[1].title: Evidence Coverage Evaluator: A Comprehensive Framework for Assessing Grounding Quality in Retrieval-Augmented Generation Systems; notes: presents the Evidence Coverage Evaluator (ECE)",
+        "linked_source_records[2].title: RefLens: End-to-End Evidence-Grounded Citation Verification with LLM Agents; notes: RefLens is an end-to-end system that automates citation verification"
+      ]
+    }
+  ]
+}

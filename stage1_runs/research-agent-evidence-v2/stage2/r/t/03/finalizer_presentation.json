@@ -1,0 +1,9 @@
+{
+  "actual_arm": "treatment",
+  "actual_cell_id": "treatment--textualclassificationsickaccuracy--seed-2",
+  "arm_masked": true,
+  "artifact_prefix_remapped_after_output": true,
+  "presented_arm": "baseline",
+  "presented_cell_id": "baseline--textualclassificationsickaccuracy--seed-2",
+  "schema_version": 1
+}

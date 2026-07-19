@@ -1,0 +1,17 @@
+{
+  "judgments": [
+    {
+      "claim_id": "claim-4",
+      "rationale": "The packet directly supports the claimed split: EvoScientist, Autonomous Research Loops, and Heuresis are described as multi-agent or autonomous AI research frameworks, while RefLens, ECE, and CliVER are described as evidence-grounded citation/grounding/claim-verification systems. Thus the cited sources contain these two separate lines of work.",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-49947e5b991037d5",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7"
+      ],
+      "verdict": "supported"
+    }
+  ]
+}

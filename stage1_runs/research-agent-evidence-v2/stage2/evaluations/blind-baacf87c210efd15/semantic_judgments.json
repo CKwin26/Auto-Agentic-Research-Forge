@@ -1,0 +1,39 @@
+{
+  "judgments": [
+    {
+      "claim_id": "claim-01",
+      "rationale": "The linked experiment evidence marks run baseline-20260718T065855Z-eec56d9f as a valid baseline with verdict baseline_verified and aggregate Accuracy exactly 0.6346153846153846.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-02",
+      "rationale": "The linked experiment evidence marks run run-20260718T065938Z-497d8189 as non-baseline with verdict valid_non_improving and aggregate Accuracy exactly 0.36538461538461536.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-03",
+      "rationale": "CliVER is described as a scientific claim verification system, ECE as an evidence coverage evaluator with citation-related assessment, and RefLens as an end-to-end citation verification system.",
+      "supporting_source_ids": [
+        "paper-35ad838f0ac171a7",
+        "paper-69c6e5faa8ef37c2",
+        "paper-e48872d23c4d9e23"
+      ],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-04",
+      "rationale": "The supplied records describe CliVER, ECE, and RefLens as dedicated claim/evidence/citation verification frameworks, while EvoScientist, Autonomous Research Loops, and Heuresis are evaluated on broader research-loop outcomes such as idea quality, code execution success, artifact quality, failure modes, and quality/diversity/novelty.",
+      "supporting_source_ids": [
+        "paper-35ad838f0ac171a7",
+        "paper-69c6e5faa8ef37c2",
+        "paper-e48872d23c4d9e23",
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-49947e5b991037d5"
+      ],
+      "verdict": "supported"
+    }
+  ]
+}

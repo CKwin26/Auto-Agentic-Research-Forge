@@ -1,0 +1,17 @@
+{
+  "judgments": [
+    {
+      "claim_id": "claim-04",
+      "rationale": "The evidence packet directly supports the contrast. CliVER is described as a scientific claim verification system, ECE as a framework that extracts fine-grained claims and scores claim-evidence support plus citation quality, and RefLens as an evidence-grounded citation verification system with citation-level outputs. By contrast, EvoScientist is evaluated on idea quality and code execution success, Autonomous Research Loops on research artifact quality and observed failure modes, and Heuresis on quality/diversity/novelty plus execution-time fabrications.",
+      "supporting_source_ids": [
+        "paper-35ad838f0ac171a7",
+        "paper-69c6e5faa8ef37c2",
+        "paper-e48872d23c4d9e23",
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-49947e5b991037d5"
+      ],
+      "verdict": "supported"
+    }
+  ]
+}

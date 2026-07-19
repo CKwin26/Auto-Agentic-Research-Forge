@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "research-forge"
+version = "0.1.0"
+description = "A local-first, evidence-preserving AI research loop with deterministic execution gates."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "openai-codex==0.1.0b3",
+  "pydantic>=2.10,<3",
+  "pyyaml>=6.0,<7",
+  "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+api = [
+  "openai-agents>=0.18,<1",
+]
+dev = [
+  "pillow>=11.0",
+  "pytest>=8.3",
+]
+nli = [
+  "onnxruntime==1.27.0",
+  "tokenizers==0.23.1",
+]
+
+[project.scripts]
+research-forge = "research_forge.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["research_forge"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

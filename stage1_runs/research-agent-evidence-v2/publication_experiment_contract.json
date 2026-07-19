@@ -1,0 +1,46 @@
+{
+  "blocking_root_cause_codes": [
+    "RC-MEASUREMENT-CIRCULARITY",
+    "RC-COUNTERFACTUAL-NONISOLATION",
+    "RC-CONSTRUCT-UNDERCOVERAGE"
+  ],
+  "contract_id": "pubexp-e046e1f785524b81",
+  "created_at": "2026-07-18T17:02:13.911468+00:00",
+  "final_readiness_threshold": 0.6,
+  "minimum_seeds_per_task": 5,
+  "minimum_tasks": 8,
+  "project_path": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2",
+  "recommendation_quality_score": 0.4767,
+  "recommendation_rank": 1,
+  "recommendation_report_path": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\venue_recommendation.json",
+  "recommendation_report_sha256": "4bff4551a0351c4ccd2e7f297f0c50349b9c102824f189be28e081fc0c4d2e80",
+  "recommendation_routing_label": "do_not_submit_yet",
+  "recommendation_scope_fit": 0.875,
+  "registry_id": "strict-ai-research-venues-v2",
+  "registry_sha256": "d55738e3ef47fe46dfbfc357841968b4a0300182e5a6dc2ba3b66b3fee4361e4",
+  "registry_source_checked_at": "2026-07-18",
+  "require_contextual_novelty_refresh": true,
+  "require_independent_calibration_contract": true,
+  "require_shared_artifact_counterfactual": true,
+  "required_construct_metrics": [
+    "claim_retention_or_deletion",
+    "semantic_change_type",
+    "informativeness_or_usefulness"
+  ],
+  "schema_version": 1,
+  "target_switch_policy": "Changing venue or track requires a new contract id and a new pre-experiment audit; an experiment cannot inherit a passing gate from another venue.",
+  "track": "Research Article",
+  "venue_id": "research-integrity-and-peer-review",
+  "venue_name": "Research Integrity and Peer Review",
+  "venue_quality_bar": 0.68,
+  "venue_quality_weights": {
+    "evidence": 0.22,
+    "maturity": 0.15,
+    "method_rigor": 0.25,
+    "novelty": 0.08,
+    "reporting": 0.13,
+    "reproducibility": 0.17
+  },
+  "venue_target_locked": true,
+  "venue_type": "journal"
+}

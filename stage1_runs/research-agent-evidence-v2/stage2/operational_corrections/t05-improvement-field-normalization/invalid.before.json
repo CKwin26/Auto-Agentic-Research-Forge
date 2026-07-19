@@ -1,0 +1,9 @@
+{
+  "cell_id": "treatment--textualsimilaritysickspearmancorrelation--seed-1",
+  "invalid_at": "2026-07-18T06:47:02.936327+00:00",
+  "reason": "treatment initial registry structural integrity failure",
+  "schema_version": 1,
+  "violations": [
+    "claim-02: metrics_exact"
+  ]
+}

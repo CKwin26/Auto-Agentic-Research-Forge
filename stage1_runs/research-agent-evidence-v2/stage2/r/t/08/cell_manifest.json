@@ -1,0 +1,15 @@
+{
+  "backbone_manifest_hash": "6ab9e5595188dacaa9b9b05c771c55254398b75b32985d34aa945ef32b738110",
+  "cell": {
+    "arm": "treatment",
+    "cell_id": "treatment--coreferenceresolutionsupergluewscaccuracy--seed-1",
+    "seed": 1,
+    "sequence": 17,
+    "task_id": "coreferenceresolutionsupergluewscaccuracy"
+  },
+  "created_at": "2026-07-18T07:03:00.918390+00:00",
+  "orchestration_manifest_hash": "f98c90cf32191668dc33481795ba7348b741a66ee659e90da96322808fe34854",
+  "protocol_id": "stage2-22e124e44294",
+  "schema_version": 1,
+  "status": "started"
+}

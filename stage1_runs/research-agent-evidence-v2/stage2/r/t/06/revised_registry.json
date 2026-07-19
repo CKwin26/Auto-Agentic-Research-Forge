@@ -1,0 +1,95 @@
+{
+  "arm": "treatment",
+  "cell_id": "treatment--textualsimilaritysickspearmancorrelation--seed-2",
+  "claims": [
+    {
+      "arm": "treatment",
+      "artifact_paths": [
+        "stage2/r/t/06/evidence/baseline-20260718T065344Z-93c11316/record.json",
+        "stage2/r/t/06/evidence/baseline-20260718T065344Z-93c11316/trial-001-metrics.json",
+        "stage2/r/t/06/evidence/baseline-20260718T065344Z-93c11316/trial-002-metrics.json"
+      ],
+      "claim_id": "claim-1",
+      "claim_text": "The verified baseline run achieved SpearmanCorrelation 0.5757186473267853.",
+      "claim_type": "experiment",
+      "experiment_run_id": "baseline-20260718T065344Z-93c11316",
+      "metric_values": {
+        "SpearmanCorrelation": 0.5757186473267853
+      },
+      "run_id": "agent-treatment--textualsimilaritysickspearmancorrelation--seed-2",
+      "schema_version": 1,
+      "seed": 2,
+      "source_ids": [],
+      "task_pack": "textualsimilaritysickspearmancorrelation"
+    },
+    {
+      "arm": "treatment",
+      "artifact_paths": [
+        "stage2/r/t/06/evidence/run-20260718T065450Z-1b42fcd7/record.json",
+        "stage2/r/t/06/evidence/run-20260718T065450Z-1b42fcd7/trial-001-metrics.json",
+        "stage2/r/t/06/evidence/run-20260718T065450Z-1b42fcd7/trial-002-metrics.json"
+      ],
+      "claim_id": "claim-2",
+      "claim_text": "The tested intervention run reports SpearmanCorrelation 0.5725548964668126 and improvement -0.0031637508599727804 relative to baseline.",
+      "claim_type": "experiment",
+      "experiment_run_id": "run-20260718T065450Z-1b42fcd7",
+      "metric_values": {
+        "SpearmanCorrelation": 0.5725548964668126
+      },
+      "run_id": "agent-treatment--textualsimilaritysickspearmancorrelation--seed-2",
+      "schema_version": 1,
+      "seed": 2,
+      "source_ids": [],
+      "task_pack": "textualsimilaritysickspearmancorrelation"
+    },
+    {
+      "arm": "treatment",
+      "artifact_paths": [],
+      "claim_id": "claim-3",
+      "claim_text": "The bounded literature packet contains both end-to-end research-agent studies that report failure modes such as hallucinated experimental details or fabricated results and verification studies that audit claim or citation support against retrieved evidence.",
+      "claim_type": "literature",
+      "experiment_run_id": null,
+      "metric_values": {},
+      "run_id": "agent-treatment--textualsimilaritysickspearmancorrelation--seed-2",
+      "schema_version": 1,
+      "seed": 2,
+      "source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-49947e5b991037d5",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7"
+      ],
+      "task_pack": "textualsimilaritysickspearmancorrelation"
+    },
+    {
+      "arm": "treatment",
+      "artifact_paths": [],
+      "claim_id": "claim-4",
+      "claim_text": "Within the bounded reviewed set, the cited works split across two strands: research-agent workflow systems (EvoScientist, Autonomous Research Loops, Heuresis) and evidence, citation, or claim verification systems (RefLens, Evidence Coverage Evaluator, CliVER).",
+      "claim_type": "novelty",
+      "experiment_run_id": null,
+      "metric_values": {},
+      "run_id": "agent-treatment--textualsimilaritysickspearmancorrelation--seed-2",
+      "schema_version": 1,
+      "seed": 2,
+      "source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "task_pack": "textualsimilaritysickspearmancorrelation"
+    }
+  ],
+  "created_at": "2026-07-18T06:58:18.966590+00:00",
+  "final_output_text": "The verified baseline run achieved SpearmanCorrelation 0.5757186473267853.\nThe tested intervention run reports SpearmanCorrelation 0.5725548964668126 and improvement -0.0031637508599727804 relative to baseline.\nThe bounded literature packet contains both end-to-end research-agent studies that report failure modes such as hallucinated experimental details or fabricated results and verification studies that audit claim or citation support against retrieved evidence.\nWithin the bounded reviewed set, the cited works split across two strands: research-agent workflow systems (EvoScientist, Autonomous Research Loops, Heuresis) and evidence, citation, or claim verification systems (RefLens, Evidence Coverage Evaluator, CliVER).",
+  "protocol_id": "stage2-22e124e44294",
+  "registry_id": "registry-db6acbaa4143",
+  "run_id": "agent-treatment--textualsimilaritysickspearmancorrelation--seed-2",
+  "schema_version": 1,
+  "seed": 2,
+  "task_pack": "textualsimilaritysickspearmancorrelation"
+}

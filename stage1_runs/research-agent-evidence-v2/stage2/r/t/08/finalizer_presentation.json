@@ -1,0 +1,9 @@
+{
+  "actual_arm": "treatment",
+  "actual_cell_id": "treatment--coreferenceresolutionsupergluewscaccuracy--seed-1",
+  "arm_masked": true,
+  "artifact_prefix_remapped_after_output": true,
+  "presented_arm": "baseline",
+  "presented_cell_id": "baseline--coreferenceresolutionsupergluewscaccuracy--seed-1",
+  "schema_version": 1
+}

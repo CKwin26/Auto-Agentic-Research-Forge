@@ -1,0 +1,40 @@
+{
+  "judgments": [
+    {
+      "claim_id": "claim-01",
+      "rationale": "The linked experiment evidence supports the run ID, Accuracy 0.6147574398695475, and an improvement of 0.04606604158173666, but it does not identify seed 2 or the textualclassificationsickaccuracy task, so the full scoped claim is not directly supported.",
+      "supporting_source_ids": [],
+      "verdict": "unsupported"
+    },
+    {
+      "claim_id": "claim-02",
+      "rationale": "The linked experiment evidence supports the ending Accuracy 0.6147574398695475, but it does not show that this run was the best candidate run or that the task target score was 0.905, so material parts of the claim are not established.",
+      "supporting_source_ids": [],
+      "verdict": "unsupported"
+    },
+    {
+      "claim_id": "claim-03",
+      "rationale": "The packet includes end-to-end scientific-agent systems with persistent memory or automated research loops (EvoScientist; Autonomous Research Loops) and separate evidence-grounded verification systems for citation or claim support (RefLens; CliVER).",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-35ad838f0ac171a7"
+      ],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-04",
+      "rationale": "Across the bounded records, some papers describe research-agent systems and others describe separate verification or evidence-audit systems, but none of the supplied records reports a controlled same-backbone before/after ablation adding a claim-level evidence audit to an end-to-end research-agent system.",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "verdict": "supported"
+    }
+  ]
+}

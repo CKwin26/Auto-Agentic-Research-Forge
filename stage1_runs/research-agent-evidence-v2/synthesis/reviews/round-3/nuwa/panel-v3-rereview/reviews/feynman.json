@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "panel_id": "rr3-v3-rereview",
+  "persona_id": "feynman",
+  "source_sample_sha256": "6dd333f8a9daf89d0e7ea2f9a766a027e509699fb8fd32faf24cfa5a904e20f7",
+  "blinded": true,
+  "items": [
+    {
+      "audit_id": "rr3-claim-01",
+      "verdict": "unsupported",
+      "rationale": "The packet directly supports the evaluator counts, paired effect, resample count, and interval, but it does not identify an 18-cell study or establish that this study was frozen. Those are material design descriptors in the claim.",
+      "failure_modes": [
+        "missing_evidence"
+      ],
+      "decisive_evidence": [
+        "condition_A.final_claims = 36; condition_A.unsupported_claims = 11",
+        "condition_B.final_claims = 36; condition_B.unsupported_claims = 3",
+        "paired_analysis contains the stated effect, 10,000 resamples, and interval, but linked_evidence contains no 18-cell or frozen-study field"
+      ]
+    },
+    {
+      "audit_id": "rr3-claim-02",
+      "verdict": "unsupported",
+      "rationale": "The packet supports nine pairs, four derivation paths, and the no-rerun boundary. It does not directly state that 36 branch registries and nine linked evidence trees were hash-bound before evaluator inference; the integrity booleans do not establish those artifact counts, the hash operation, or its timing.",
+      "failure_modes": [
+        "missing_evidence"
+      ],
+      "decisive_evidence": [
+        "pair_count = 9; paths_per_pair = 4",
+        "execution_boundary: The controller, conclusion generator, and gate were not rerun.",
+        "integrity_checks lists nine_shared_pairs_bound, unchanged sources/results, and passed, but no pre-inference hash-binding field for 36 registries and nine evidence trees"
+      ]
+    },
+    {
+      "audit_id": "rr3-claim-03",
+      "verdict": "unsupported",
+      "rationale": "The path counts, paired difference, p-value, model revision, and model hash all match the claim. However, the packet identifies only the NLI proxy; it supplies no comparator model family or upstream-model binding from which the material 'cross-family' description can be checked.",
+      "failure_modes": [
+        "missing_evidence"
+      ],
+      "decisive_evidence": [
+        "path_P0.neutral_or_abstain = 5 and contradiction = 0; P1, P2, and P3 each have zero neutral_or_abstain and contradiction",
+        "paired_analysis_each_active_path.mean_difference = -0.18518518518518517; exact_two_sided_sign_flip_pvalue = 0.125",
+        "model_binding gives one model_id, revision, and onnx_sha256 but no second family binding needed to verify 'cross-family'"
+      ]
+    },
+    {
+      "audit_id": "rr3-claim-04",
+      "verdict": "supported",
+      "rationale": "The retention fields exactly match the claimed counts, and all 36 revised-to-final claim traces are unchanged with zero word, character, and numeric-token deltas. The supplied scope boundary limits the inference to no observed marginal change in this artifact sample.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "retention: P1 retained 22 of 36; P2 and P3 each retained 36 of 36",
+        "revised_to_final: claim_trace_count = 36; change_types.unchanged = 36; word_delta = 0; character_delta = 0; numeric_token_delta = 0",
+        "scope_boundary: No observed marginal change in this artifact sample; not a general claim that rechecking is useless."
+      ]
+    },
+    {
+      "audit_id": "rr3-claim-05",
+      "verdict": "unsupported",
+      "rationale": "The packet supports no measured difference between P2 and P3 and states the retrospective, uncalibrated, non-ground-truth limits. But it gives neither a P0 baseline nor definitions mapping P1 and P2 to the first verification and delivery decision, so the claimed localization of improvement is not directly established.",
+      "failure_modes": [
+        "missing_evidence"
+      ],
+      "decisive_evidence": [
+        "observations: P1, P2, and P3 each have zero NLI non-entailment; P2 and P3 are identical on all measured outcomes",
+        "explicit_limits include retrospective post-hoc design, no human calibration, and lexical proxies are not semantic-preservation ground truth",
+        "linked_evidence contains no P0 measurement or path-to-stage definitions establishing where the improvement occurred"
+      ]
+    },
+    {
+      "audit_id": "rr3-claim-06",
+      "verdict": "unsupported",
+      "rationale": "The bounded review supports only the broader absence of a controlled claim-level evidence-audit ablation in 12 abstract- or notes-level records. It does not directly document the same-backbone, same-task, same-budget criteria, the immediately-before-delivery placement, or that the reviewed set was frozen.",
+      "failure_modes": [
+        "missing_evidence"
+      ],
+      "decisive_evidence": [
+        "review_scope: Bounded abstract/notes-based synthesis of 12 verified 2024-2026 records",
+        "gap_statement describes a controlled ablation of a claim-level evidence audit in an end-to-end research agent",
+        "linked_evidence contains no fields for same backbone, same task, same budget, immediate pre-delivery placement, or frozen-set status"
+      ]
+    }
+  ]
+}

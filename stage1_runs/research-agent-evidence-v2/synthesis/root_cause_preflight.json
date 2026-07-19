@@ -1,0 +1,174 @@
+{
+  "created_at": "2026-07-18T17:31:34.308068+00:00",
+  "developmental_review_allowed": true,
+  "execution_allowed": true,
+  "findings": [
+    {
+      "causal_consequence": "unsupported_claim_rate 的下降最多证明内部代理指标下降，不能区分真实证据改进与同源评估器偏好。",
+      "code": "RC-MEASUREMENT-CIRCULARITY",
+      "evidence": [
+        "backbone.model=codex:gpt-5.4",
+        "protocol.treatment_gate=structural_plus_frozen_codex_gate",
+        "protocol.protected_evaluator=hybrid_structural_plus_arm_blinded_codex",
+        "human_validation_complete=False"
+      ],
+      "latest_prevention_stage": "before protocol freeze",
+      "name": "测量回路同源",
+      "origin_stage": "Stage 2 measurement design",
+      "permanent_rule": "只要 generator/intervention/evaluator 同源且无独立校准，结论上限自动降为 internal_proxy_association；禁止 publication-ready。",
+      "required_action": "增加跨模型家族评估器或完成冻结的双人盲审，并报告评估器混淆矩阵；否则只按内部 pilot 解释。",
+      "resolved": false,
+      "review_symptoms": [
+        "审稿人质疑 same-family evaluator",
+        "审稿人提出评估器偏好替代解释",
+        "审稿人要求独立校准"
+      ],
+      "root_cause": "生成器、干预 gate 与主结果评估器共享同一模型家族，且独立人工校准未完成。系统因此同时参与了优化目标和目标测量。",
+      "severity": "critical"
+    },
+    {
+      "causal_consequence": "组间差异混合了 gate 效果、上游随机差异和时间顺序效应；结果只能表述为观察到的组间关联，不能识别 gate 的因果效果。",
+      "code": "RC-COUNTERFACTUAL-NONISOLATION",
+      "evidence": [
+        "cell_arm_order=baseline -> baseline -> baseline -> baseline -> baseline -> baseline -> baseline -> baseline -> baseline -> treatment -> treatment -> treatment -> treatment -> treatment -> treatment -> treatment -> treatment -> treatment",
+        "blocked_baseline_then_treatment=True",
+        "shared_artifact_branching_declared=False"
+      ],
+      "latest_prevention_stage": "before protocol freeze",
+      "name": "反事实对照未隔离",
+      "origin_stage": "Stage 2 experimental design",
+      "permanent_rule": "下游干预必须从内容寻址的同一上游 artifact 生成两条分支；若做不到，必须随机化或按 pair 交错执行，并自动禁止 causal-effect 措辞。",
+      "required_action": "把每个 task-seed 的实验产物只运行一次，再将同一 artifact 同时送入无 gate 与有 gate 的结论生成分支；分支顺序随机化。",
+      "resolved": false,
+      "review_symptoms": [
+        "审稿人指出独立随机运行",
+        "审稿人指出固定整块顺序",
+        "审稿人要求同一运行产物分叉",
+        "审稿人观察到上游结果差异"
+      ],
+      "root_cause": "两组由独立随机运行产生，而不是从同一上游运行产物分叉；协议还按整块顺序先执行全部 baseline，再执行 treatment。",
+      "severity": "critical"
+    },
+    {
+      "causal_consequence": "即使 unsupported 标签下降，也无法判断是事实纠正，还是通过把主张写得更弱来规避判错。",
+      "code": "RC-CONSTRUCT-UNDERCOVERAGE",
+      "evidence": [
+        "primary_metric=unsupported_claim_rate",
+        "construct_metrics=[]"
+      ],
+      "latest_prevention_stage": "before plan approval",
+      "name": "指标没有覆盖完整科学构念",
+      "origin_stage": "Stage 1 metric contract",
+      "permanent_rule": "任何以“可靠性/质量改善”为目标的 gate 实验必须同时冻结支持性、语义变化类型和信息性指标；只测支持性时，构念名称强制改为 claim-evidence fidelity proxy。",
+      "required_action": "增加 revision-trace 编码：删除、事实纠正、限定、语义收缩；再增加成对的信息性/有用性判断。",
+      "resolved": false,
+      "review_symptoms": [
+        "审稿人提出语义收缩替代解释",
+        "审稿人指出相同数量不代表信息量相同",
+        "审稿人要求测量信息性或有用性"
+      ],
+      "root_cause": "主指标只测 supplied evidence 下的 unsupported 标签，没有同时测量主张是否被删除、弱化、限定，以及输出对科学用户是否仍有信息价值。",
+      "severity": "high"
+    },
+    {
+      "causal_consequence": "在不改变证据的情况下，发表评审给出大修是可预测结果，而不是写作润色能够消除的意外。",
+      "code": "RC-MATURITY-TARGET-MISMATCH",
+      "evidence": [
+        "human_validation=deferred",
+        "manual_audit_is_preregistered=true",
+        "primary_analysis_interpretable=False"
+      ],
+      "latest_prevention_stage": "before external review submission",
+      "name": "研究成熟度与审批目标不匹配",
+      "origin_stage": "review routing",
+      "permanent_rule": "若 primary_analysis_interpretable=false 或 publication_ready=false，外部 AI 审稿只能标记为 developmental critique；系统不得把它路由为发表审批。",
+      "required_action": "本阶段保留 provisional pilot 身份；等独立审计完成后再开启 publication target。",
+      "resolved": false,
+      "review_symptoms": [
+        "审稿人把延期人审视为发表关键缺口",
+        "审稿人区分工程 pilot 与发表证据",
+        "编辑结论为大修"
+      ],
+      "root_cause": "协议把独立人工审计定义为主分析解释条件，但当前流程主动延期该审计，却仍把论文送入publication-level 审批语境。",
+      "severity": "critical"
+    },
+    {
+      "causal_consequence": "综合均值和 bootstrap 区间掩盖了每个 cell 以 0.25 为步长的离散性。",
+      "code": "RC-REPORTING-CONTRACT-GAP",
+      "evidence": [
+        "raw_pair_reporting_preregistered=False"
+      ],
+      "latest_prevention_stage": "before plan approval",
+      "name": "报告合同缺少逐配对数据",
+      "origin_stage": "Stage 1 reporting contract",
+      "permanent_rule": "当配对单元数不超过 20 时，报告合同自动要求逐单元表、聚合结果与 leave-one-group-out 敏感性分析。",
+      "required_action": "在协议的 reporting_requirements 中加入 pair_level_table=true。",
+      "resolved": false,
+      "review_symptoms": [
+        "审稿人要求公开九个原始配对效应"
+      ],
+      "root_cause": "计划要求 paired comparison，但没有硬性规定在论文中列出每个 task-seed 的原始配对效应。",
+      "severity": "medium"
+    },
+    {
+      "causal_consequence": "论文阶段无法从不存在的日志恢复完整成本，只能披露缺失。",
+      "code": "RC-TELEMETRY-SCHEMA-GAP",
+      "evidence": [
+        "wall_clock_runtime_seconds=true",
+        "additional_cost_metrics=[]"
+      ],
+      "latest_prevention_stage": "before execution",
+      "name": "成本遥测在运行前没有冻结",
+      "origin_stage": "Stage 1 metric contract",
+      "permanent_rule": "凡比较 agent 工作流成本，执行合同至少冻结 wall-clock、model-call count、token usage 和 escalation count；缺字段时在开跑前失败。",
+      "required_action": "扩展 cell completion schema 并在 runner 中逐调用累计遥测。",
+      "resolved": false,
+      "review_symptoms": [
+        "审稿人指出成本口径不完整"
+      ],
+      "root_cause": "运行只强制记录 wall-clock，没有同步记录 token、模型调用次数、货币成本和人工升级工作量。",
+      "severity": "medium"
+    },
+    {
+      "causal_consequence": "冻结新颖性主张可以保持有效，但投稿版领域定位不完整。",
+      "code": "RC-LITERATURE-SCOPE-COUPLING",
+      "evidence": [
+        "round-1 review corpus contains canonical-literature omission"
+      ],
+      "latest_prevention_stage": "before manuscript synthesis",
+      "name": "实验冻结文献与投稿定位文献被混为一层",
+      "origin_stage": "Stage 1 literature architecture",
+      "permanent_rule": "分离 frozen experimental corpus 与 post-freeze contextual review；后者可更新，但不得反向改变已冻结实验假设。",
+      "required_action": "在 synthesis 前执行 contextual literature refresh，并显式标注 post-freeze 来源。",
+      "resolved": false,
+      "review_symptoms": [
+        "审稿人指出 canonical autonomous-science 与 judge-bias 文献缺失"
+      ],
+      "root_cause": "同一份冻结短名单同时承担实验内证据边界和最终论文的领域定位，导致新近 canonical systems 与 evaluator-bias 文献没有进入投稿版 related work。",
+      "severity": "medium"
+    }
+  ],
+  "gate_passed": false,
+  "maximum_claim_tier": "internal_proxy_association",
+  "predicted_editorial_outcome": "major_revision_or_reject",
+  "prevention_order": [
+    "RC-MATURITY-TARGET-MISMATCH",
+    "RC-COUNTERFACTUAL-NONISOLATION",
+    "RC-MEASUREMENT-CIRCULARITY",
+    "RC-CONSTRUCT-UNDERCOVERAGE",
+    "RC-TELEMETRY-SCHEMA-GAP",
+    "RC-LITERATURE-SCOPE-COUPLING",
+    "RC-REPORTING-CONTRACT-GAP"
+  ],
+  "project": "research-agent-evidence-v2",
+  "publication_submission_ready": false,
+  "root_conclusion": "本轮大修的主因不是文字质量，而是测量同源、反事实不隔离，以及尚未完成人工校准时就进入发表审批语境。稿件修订能改善透明度，但不能补造缺失的实验识别条件。",
+  "schema_version": 1,
+  "source_paths": [
+    "research_contract.json",
+    "stage2/protocol.json",
+    "stage2/backbone_manifest.json",
+    "stage2/provisional_analysis.json"
+  ],
+  "target": "publication"
+}

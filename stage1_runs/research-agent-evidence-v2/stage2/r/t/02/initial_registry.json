@@ -1,0 +1,96 @@
+{
+  "arm": "treatment",
+  "cell_id": "treatment--textualclassificationsickaccuracy--seed-1",
+  "claims": [
+    {
+      "arm": "treatment",
+      "artifact_paths": [
+        "stage2/r/t/02/evidence/run-20260718T061648Z-07736a6f/record.json",
+        "stage2/r/t/02/evidence/run-20260718T061648Z-07736a6f/trial-001-metrics.json",
+        "stage2/r/t/02/evidence/run-20260718T061648Z-07736a6f/trial-002-metrics.json"
+      ],
+      "claim_id": "claim-exp-result",
+      "claim_text": "The evaluated candidate run achieved Accuracy 0.7745617611088463 on textualclassificationsickaccuracy.",
+      "claim_type": "experiment",
+      "experiment_run_id": "run-20260718T061648Z-07736a6f",
+      "metric_values": {
+        "Accuracy": 0.7745617611088463
+      },
+      "run_id": "agent-treatment--textualclassificationsickaccuracy--seed-1",
+      "schema_version": 1,
+      "seed": 1,
+      "source_ids": [],
+      "task_pack": "textualclassificationsickaccuracy"
+    },
+    {
+      "arm": "treatment",
+      "artifact_paths": [
+        "stage2/r/t/02/evidence/run-20260718T061648Z-07736a6f/record.json",
+        "stage2/r/t/02/evidence/run-20260718T061648Z-07736a6f/trial-001-metrics.json",
+        "stage2/r/t/02/evidence/run-20260718T061648Z-07736a6f/trial-002-metrics.json"
+      ],
+      "claim_id": "claim-exp-limit",
+      "claim_text": "This Accuracy 0.7745617611088463 result remained below the task target score of 0.905.",
+      "claim_type": "experiment",
+      "experiment_run_id": "run-20260718T061648Z-07736a6f",
+      "metric_values": {
+        "Accuracy": 0.7745617611088463
+      },
+      "run_id": "agent-treatment--textualclassificationsickaccuracy--seed-1",
+      "schema_version": 1,
+      "seed": 1,
+      "source_ids": [],
+      "task_pack": "textualclassificationsickaccuracy"
+    },
+    {
+      "arm": "treatment",
+      "artifact_paths": [],
+      "claim_id": "claim-lit-context",
+      "claim_text": "The bounded literature packet spans both whole-system autonomous research-agent frameworks and standalone evidence-grounding or claim-verification methods.",
+      "claim_type": "literature",
+      "experiment_run_id": null,
+      "metric_values": {},
+      "run_id": "agent-treatment--textualclassificationsickaccuracy--seed-1",
+      "schema_version": 1,
+      "seed": 1,
+      "source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-49947e5b991037d5",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7"
+      ],
+      "task_pack": "textualclassificationsickaccuracy"
+    },
+    {
+      "arm": "treatment",
+      "artifact_paths": [],
+      "claim_id": "claim-novelty-gap",
+      "claim_text": "Within the reviewed set, no cited record establishes a controlled same-backbone ablation of a claim-level evidence gate on unsupported-claim reduction while also tracking task quality and throughput.",
+      "claim_type": "novelty",
+      "experiment_run_id": null,
+      "metric_values": {},
+      "run_id": "agent-treatment--textualclassificationsickaccuracy--seed-1",
+      "schema_version": 1,
+      "seed": 1,
+      "source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "task_pack": "textualclassificationsickaccuracy"
+    }
+  ],
+  "created_at": "2026-07-18T06:18:30.666876+00:00",
+  "final_output_text": "The evaluated candidate run achieved Accuracy 0.7745617611088463 on textualclassificationsickaccuracy.\nThis Accuracy 0.7745617611088463 result remained below the task target score of 0.905.\nThe bounded literature packet spans both whole-system autonomous research-agent frameworks and standalone evidence-grounding or claim-verification methods.\nWithin the reviewed set, no cited record establishes a controlled same-backbone ablation of a claim-level evidence gate on unsupported-claim reduction while also tracking task quality and throughput.",
+  "protocol_id": "stage2-22e124e44294",
+  "registry_id": "registry-daeb506cc5d7",
+  "run_id": "agent-treatment--textualclassificationsickaccuracy--seed-1",
+  "schema_version": 1,
+  "seed": 1,
+  "task_pack": "textualclassificationsickaccuracy"
+}

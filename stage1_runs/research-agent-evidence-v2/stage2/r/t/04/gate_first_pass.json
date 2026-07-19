@@ -1,0 +1,38 @@
+{
+  "judgments": [
+    {
+      "claim_id": "claim-01-task-result",
+      "rationale": "The linked experiment evidence directly supports that the baseline run was verified, valid, isolated, and achieved SpearmanCorrelation 0.5757186473267853, but the packet does not directly establish that this run was on the SICK textual relatedness task.",
+      "supporting_source_ids": [],
+      "verdict": "unsupported"
+    },
+    {
+      "claim_id": "claim-02-experiment-limitation",
+      "rationale": "The linked experiment evidence directly supports that run-20260718T063854Z-59f657e8 was a valid non-baseline run with SpearmanCorrelation 0.5725548964668126, but it does not directly support the exclusivity claim that it was the only valid non-baseline candidate run.",
+      "supporting_source_ids": [],
+      "verdict": "unsupported"
+    },
+    {
+      "claim_id": "claim-03-literature-context",
+      "rationale": "The linked literature directly supports the listed failure modes across the reviewed agent-research systems: Autonomous Research Loops reports hallucinated experimental details, broken implementations, and misinterpretation of metrics, while Heuresis reports confirmed fabrications during execution.",
+      "supporting_source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-49947e5b991037d5"
+      ],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-04-bounded-novelty-context",
+      "rationale": "The linked sources are relevant to end-to-end research agents, evidence-grounded verification, and claim verification, but they do not directly establish via controlled ablation that inserting a claim-level evidence audit into an end-to-end research agent reduces hallucinated experimental details and unsupported conclusions, nor do they directly establish that bounded-set literature gap.",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "verdict": "unsupported"
+    }
+  ]
+}

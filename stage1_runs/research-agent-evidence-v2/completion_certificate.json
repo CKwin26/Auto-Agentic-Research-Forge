@@ -1,0 +1,20 @@
+{
+  "artifact_hashes": {
+    "stage2/closed_loop_status.json": "1c9e3b852a0cf96d78d70b52ebb80243309c0ceea93dd80560cd67ca9c54b7bf",
+    "stage2/evaluations/summary.json": "e1502a4c59e57c01b64178c51069174e4522b755a7f24bb34f0d422447f72c59",
+    "stage2/frozen_manifest.json": "aff2ee30de391ce867af1a3f5307d16764720964ac85fc79339e3c3d5123272c",
+    "stage2/manual_audit_manifest.json": "c40afad623de9624f7a780bc1fa73d893560644c2750429dfa67cfafa96187a5",
+    "stage2/operator_decisions.json": "dc9e53fd376e9bc070db60b82d54626b74b818f981a969911c8d138c29c9b2c5",
+    "stage2/persona_panel/panel-v1-full/final.json": "83b88309107359f4e86eab2bea19939bbf041d3a930ce1655539ce0bee077d2e",
+    "stage2/protocol.json": "265e1d9b3afb84e3dc680dbf350943123affcb7fee8a3bd8f0825620a911fcb4",
+    "stage2/provisional_analysis.json": "7f5e2bf8668c2e496a18162ac0145a0541d972ce51b2ca6b11a5d019e7eafe89",
+    "synthesis/audit.json": "aad0fae962f93c491ab714fb31f62aba3fab0a6a68249d12cc7af5619561b188",
+    "synthesis/claims.json": "3cedf8d0a657bb2199a0cb75889376392f2181d6cf4a0459060965f24b555016",
+    "synthesis/manuscript.md": "e062c080bf48c748b7bd3ed2673138fcbe26d6dbb878fa943424bc0a40c290c1",
+    "synthesis/manuscript.tex": "15eeeb6906425c6cafb06b5b9fb5c2ca407dbeb6f31e4d95012f98261fbb861e"
+  },
+  "audit_hash": "aad0fae962f93c491ab714fb31f62aba3fab0a6a68249d12cc7af5619561b188",
+  "completed_at": "2026-07-18T09:39:16.266543+00:00",
+  "publication_ready": false,
+  "schema_version": 1
+}

@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "service": "Stanford Agentic Reviewer",
+  "service_url": "https://paperreview.ai/",
+  "review_mode": "developmental_critique",
+  "target_venue": null,
+  "submission_status": "review_complete_major_revision_required",
+  "last_browser_state": "review_loaded_successfully",
+  "submitted_at": "2026-07-18T17:59:05.3297318+07:00",
+  "last_checked_at": "2026-07-18T18:04:21.0840465+07:00",
+  "review_completed_email_at": "2026-07-18T11:02:14Z",
+  "review_artifact": {
+    "path": "stage1_runs/research-agent-evidence-v2/synthesis/reviews/stanford-agentic-review/raw_review.md",
+    "sha256": "967cb909b3c87e13c2c11bb6a8aa0d43d3a277db98cc747a36b246c1a808506b",
+    "reviewer_class": "ai_generated_not_human_validation",
+    "editorial_interpretation": "major_revision_required"
+  },
+  "review_response": {
+    "path": "stage1_runs/research-agent-evidence-v2/synthesis/reviews/stanford-agentic-review/response_and_revision.md",
+    "sha256": "c873cd0173c2768abd4c30b52531594361bcaf604e9066810362201f397f4ae7",
+    "manuscript_action": "keep_submitted_pdf_immutable_create_new_version_for_post_review_changes"
+  },
+  "polling": {
+    "automation_id": "stanford",
+    "kind": "thread_heartbeat",
+    "interval_minutes": 30,
+    "status": "PAUSED"
+  },
+  "notification_email": "a***@gmail.com",
+  "review_token_masked": "nHX9...Sxz4",
+  "private_receipt_path": ".private/stanford-agentic-review-receipt.json",
+  "external_receipt": {
+    "success_message": "Paper uploaded successfully. You will receive an email when the review is ready.",
+    "processing_notice": "Processing can take hours or even longer if server load is high. Do not resubmit while waiting.",
+    "status_message": "Review is currently being processed. Please check back later."
+  },
+  "paper": {
+    "path": "output/pdf/research-agent-evidence-v2-paper-en.pdf",
+    "title": "Pre-Delivery Claim-Evidence Gating in Autonomous Research Agents: A Same-Family Protected-Evaluator Pilot",
+    "sha256": "5d48c9e0fb0a0acd5ad2915fd6a2dc57facf76ba426bb3531f7c07afb2e03ee3",
+    "bytes": 128207,
+    "pages": 11,
+    "latex_warning_count": 0
+  },
+  "routing": {
+    "developmental_review_allowed": true,
+    "publication_submission_ready": false,
+    "maximum_claim_tier": "internal_proxy_association",
+    "predicted_publication_outcome": "major_revision_or_reject",
+    "human_validation": "deferred"
+  },
+  "bound_checks": [
+    {
+      "path": "stage1_runs/research-agent-evidence-v2/synthesis/root_cause_preflight.json",
+      "sha256": "e7f145a35a5f3b5ac44f2ea8fb727a45fede89a42f03cd10d9b79ebfc44b00a1"
+    },
+    {
+      "path": "stage1_runs/research-agent-evidence-v2/synthesis/reviews/round-2/02_editorial_routing_decision.md",
+      "sha256": "d749ef38378071b997a18823ed48ecb8b7351d5438f479b942ae327e422a1573"
+    }
+  ],
+  "pending_user_data": []
+}

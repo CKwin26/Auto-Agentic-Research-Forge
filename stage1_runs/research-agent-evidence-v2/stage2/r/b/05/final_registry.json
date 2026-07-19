@@ -1,0 +1,95 @@
+{
+  "arm": "baseline",
+  "cell_id": "baseline--textualsimilaritysickspearmancorrelation--seed-1",
+  "claims": [
+    {
+      "arm": "baseline",
+      "artifact_paths": [
+        "stage2/r/b/05/evidence/baseline-20260718T051537Z-54e75d11/record.json",
+        "stage2/r/b/05/evidence/baseline-20260718T051537Z-54e75d11/trial-001-metrics.json",
+        "stage2/r/b/05/evidence/baseline-20260718T051537Z-54e75d11/trial-002-metrics.json"
+      ],
+      "claim_id": "claim-1",
+      "claim_text": "The verified baseline run achieved SpearmanCorrelation 0.5757186473267853.",
+      "claim_type": "experiment",
+      "experiment_run_id": "baseline-20260718T051537Z-54e75d11",
+      "metric_values": {
+        "SpearmanCorrelation": 0.5757186473267853
+      },
+      "run_id": "agent-baseline--textualsimilaritysickspearmancorrelation--seed-1",
+      "schema_version": 1,
+      "seed": 1,
+      "source_ids": [],
+      "task_pack": "textualsimilaritysickspearmancorrelation"
+    },
+    {
+      "arm": "baseline",
+      "artifact_paths": [
+        "stage2/r/b/05/evidence/run-20260718T051626Z-e474ff7c/record.json",
+        "stage2/r/b/05/evidence/run-20260718T051626Z-e474ff7c/trial-001-metrics.json",
+        "stage2/r/b/05/evidence/run-20260718T051626Z-e474ff7c/trial-002-metrics.json"
+      ],
+      "claim_id": "claim-2",
+      "claim_text": "The only valid non-baseline run had verdict valid_non_improving and achieved SpearmanCorrelation 0.5160162351235488.",
+      "claim_type": "experiment",
+      "experiment_run_id": "run-20260718T051626Z-e474ff7c",
+      "metric_values": {
+        "SpearmanCorrelation": 0.5160162351235488
+      },
+      "run_id": "agent-baseline--textualsimilaritysickspearmancorrelation--seed-1",
+      "schema_version": 1,
+      "seed": 1,
+      "source_ids": [],
+      "task_pack": "textualsimilaritysickspearmancorrelation"
+    },
+    {
+      "arm": "baseline",
+      "artifact_paths": [],
+      "claim_id": "claim-3",
+      "claim_text": "The reviewed literature packet contains end-to-end AI research agent systems and standalone claim- or citation-verification frameworks.",
+      "claim_type": "literature",
+      "experiment_run_id": null,
+      "metric_values": {},
+      "run_id": "agent-baseline--textualsimilaritysickspearmancorrelation--seed-1",
+      "schema_version": 1,
+      "seed": 1,
+      "source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7"
+      ],
+      "task_pack": "textualsimilaritysickspearmancorrelation"
+    },
+    {
+      "arm": "baseline",
+      "artifact_paths": [],
+      "claim_id": "claim-4",
+      "claim_text": "Within the reviewed bounded set, the evidence does not establish a same-backbone intervention study with direct before/after measurement of whether a claim-level evidence audit reduces hallucinated experimental details or unsupported conclusions.",
+      "claim_type": "novelty",
+      "experiment_run_id": null,
+      "metric_values": {},
+      "run_id": "agent-baseline--textualsimilaritysickspearmancorrelation--seed-1",
+      "schema_version": 1,
+      "seed": 1,
+      "source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "task_pack": "textualsimilaritysickspearmancorrelation"
+    }
+  ],
+  "created_at": "2026-07-18T05:18:27.183141+00:00",
+  "final_output_text": "The verified baseline run achieved SpearmanCorrelation 0.5757186473267853.\nThe only valid non-baseline run had verdict valid_non_improving and achieved SpearmanCorrelation 0.5160162351235488.\nThe reviewed literature packet contains end-to-end AI research agent systems and standalone claim- or citation-verification frameworks.\nWithin the reviewed bounded set, the evidence does not establish a same-backbone intervention study with direct before/after measurement of whether a claim-level evidence audit reduces hallucinated experimental details or unsupported conclusions.",
+  "protocol_id": "stage2-22e124e44294",
+  "registry_id": "registry-18f1bff3ae66",
+  "run_id": "agent-baseline--textualsimilaritysickspearmancorrelation--seed-1",
+  "schema_version": 1,
+  "seed": 1,
+  "task_pack": "textualsimilaritysickspearmancorrelation"
+}

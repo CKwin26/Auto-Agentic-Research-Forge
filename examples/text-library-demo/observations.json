@@ -1,0 +1,13 @@
+{
+  "selectedEvaluation": {
+    "learners": 96,
+    "fixedIntervalRetentionRate": 0.58,
+    "adaptiveIntervalRetentionRate": 0.66,
+    "missingFollowUp": 11
+  },
+  "evidenceBoundary": {
+    "protocolFrozen": false,
+    "prospectiveBlind": false,
+    "causalEffectAllowed": false
+  }
+}

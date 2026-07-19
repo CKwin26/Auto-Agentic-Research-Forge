@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "protocol_id": "stage2-22e124e44294",
+  "decisions": [
+    {
+      "decision_id": "operator-decision-2026-07-18-defer-human-validation",
+      "recorded_at": "2026-07-18T09:19:05.4301406Z",
+      "decision": "defer_preregistered_human_validation",
+      "status": "active",
+      "scope": "current_stage_only",
+      "operator_instruction": "现阶段不要真人验证。",
+      "protocol_effect": "none",
+      "operational_effects": [
+        "Do not recruit, distribute packets to, or collect responses from the two independent human auditors.",
+        "Do not run submit-manual-audit or finalize-manual-audit while this decision is active.",
+        "Keep the protected-evaluator treatment effect provisional and primary_analysis_interpretable=false.",
+        "Keep the same-model scientist-persona panel as supplementary internal review only.",
+        "Do not unlock the preregistered final analysis or claim that the primary hypothesis is human-validated."
+      ],
+      "resume_condition": "A later explicit operator instruction to resume human validation."
+    }
+  ]
+}

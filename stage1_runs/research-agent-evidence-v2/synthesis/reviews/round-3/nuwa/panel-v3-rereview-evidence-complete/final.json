@@ -1,0 +1,345 @@
+{
+  "schema_version": 1,
+  "panel_id": "rr3-v3-rereview-evidence-complete",
+  "panel_version": "nuwa-scientist-panel-v1",
+  "aggregation_version": "nuwa-deterministic-aggregation-v1.1",
+  "aggregator_sha256": "55a0550e1846af8d60d74506af515591dccb869ff8956465cd5ca28dc6ca7e43",
+  "ensemble_label": "same-model persona ensemble",
+  "source_sample_sha256": "f05349a3ceab1a73fb684ef83f94bda59e13acd74d90e9a14836dbdaad8c30cf",
+  "manifest_path": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\reviews\\round-3\\nuwa\\panel-v3-rereview-evidence-complete\\manifest.json",
+  "review_sha256": {
+    "feynman": "842c73aef766c3334ee6800b84a94d3bf973b8a82005622ead2798a89c3070a8",
+    "tukey": "32ea0bf97428ceda99fac8ac4531cd6592a88069d3636878b558984b235a5ef4",
+    "shannon": "a81880f9395c7ae6bb31983be0dc4aef5d679fa1338fd3eb191aaa9a580a0679",
+    "popper": "0f9d38cc45a78e7f71bd30b1458431beaac6cdc89a57b994e11a27c46204430f"
+  },
+  "item_count": 6,
+  "verdict_counts": {
+    "supported": 5,
+    "unsupported": 1
+  },
+  "disagreement_count": 1,
+  "human_adjudication_queue": [
+    "rr3-claim-02"
+  ],
+  "limitations": [
+    "Persona contexts were isolated, but all reviewers used the same underlying model family.",
+    "Hard-veto failure modes were proposed by model reviewers and were not independently machine-verified.",
+    "The result is internal adversarial review, not human validation, cross-model validation, or replication."
+  ],
+  "items": [
+    {
+      "audit_id": "rr3-claim-01",
+      "routed_personas": [
+        "feynman",
+        "tukey",
+        "shannon"
+      ],
+      "final_verdict": "supported",
+      "vote_agreement": "unanimous",
+      "requires_human_adjudication": false,
+      "hard_veto_failure_modes": [],
+      "votes": [
+        {
+          "persona_id": "feynman",
+          "audit_id": "rr3-claim-01",
+          "verdict": "supported",
+          "rationale": "The packet directly matches the claim's frozen design, unsupported-claim counts, paired effect definition, resample count, and interval, while preserving the automated-evaluator boundary.",
+          "failure_modes": [],
+          "decisive_evidence": [
+            "analysis_status: protected_evaluator_complete_manual_audit_pending",
+            "condition_A: final_claims 36; unsupported_claims 11",
+            "condition_B: final_claims 36; unsupported_claims 3",
+            "paired_analysis: mean_paired_effect -0.2222222222222222; bootstrap_resamples 10000; ci95_low -0.4166666666666667; ci95_high -0.08333333333333333"
+          ]
+        },
+        {
+          "persona_id": "tukey",
+          "audit_id": "rr3-claim-01",
+          "verdict": "supported",
+          "rationale": "The packet directly reports the arm denominators and unsupported counts, defines the paired unit and B-minus-A contrast, and supplies the stated hierarchical resampling scheme and interval. The claim remains descriptive and identifies the evaluator as automated, so it does not overstate the pending human audit.",
+          "failure_modes": [],
+          "decisive_evidence": [
+            "condition_A: final_claims 36, unsupported_claims 11; condition_B: final_claims 36, unsupported_claims 3",
+            "paired_analysis: pair_count 9, mean_paired_effect -0.2222222222222222, bootstrap_resamples 10000, ci95_low -0.4166666666666667, ci95_high -0.08333333333333333",
+            "interpretation_boundary: Automated protected-evaluator result; human audit pending."
+          ]
+        },
+        {
+          "persona_id": "shannon",
+          "audit_id": "rr3-claim-01",
+          "verdict": "supported",
+          "rationale": "The cell count, condition-specific claim totals and unsupported counts, effect direction, paired mean, resampling count, and interval endpoints all map directly to defined packet fields; the claim also preserves the automated-evaluator boundary.",
+          "failure_modes": [],
+          "decisive_evidence": [
+            "design.completed_cells: 18; design.pair_count: 9",
+            "condition_A: final_claims 36, unsupported_claims 11; condition_B: final_claims 36, unsupported_claims 3",
+            "paired_analysis: effect_definition 'condition B minus condition A', mean_paired_effect -0.2222222222222222, bootstrap_resamples 10000, ci95_low -0.4166666666666667, ci95_high -0.08333333333333333",
+            "interpretation_boundary: 'Automated protected-evaluator result; human audit pending.'"
+          ]
+        }
+      ]
+    },
+    {
+      "audit_id": "rr3-claim-02",
+      "routed_personas": [
+        "feynman",
+        "tukey",
+        "shannon"
+      ],
+      "final_verdict": "unsupported",
+      "vote_agreement": "mixed",
+      "requires_human_adjudication": true,
+      "hard_veto_failure_modes": [
+        "missing_evidence"
+      ],
+      "votes": [
+        {
+          "persona_id": "feynman",
+          "audit_id": "rr3-claim-02",
+          "verdict": "supported",
+          "rationale": "The supplied protocol and integrity fields directly describe nine shared pairs, four frozen path derivations per pair, pre-inference freezing, all claimed hash bindings, and the stated non-rerun boundary.",
+          "failure_modes": [],
+          "decisive_evidence": [
+            "protocol_frozen_at: 2026-07-18T14:33:49.613643+00:00; inference_completed_at: 2026-07-18T14:34:30.262787+00:00",
+            "pair_count: 9; paths_per_pair: 4; branch_registry_hash_count: 36; evidence_tree_hash_count: 9",
+            "execution_boundary: The controller, conclusion generator, and gate were not rerun.",
+            "integrity_checks: nine_shared_pairs_bound true; source_cells_and_evidence_unchanged true; passed true"
+          ]
+        },
+        {
+          "persona_id": "tukey",
+          "audit_id": "rr3-claim-02",
+          "verdict": "supported",
+          "rationale": "The design metadata accounts for nine shared pairs, four paths per pair, 36 branch-registry hashes, and nine evidence-tree hashes. The freeze and inference timestamps, listed binding fields, execution boundary, and passed integrity checks directly support the retrospective and pre-inference binding statements.",
+          "failure_modes": [],
+          "decisive_evidence": [
+            "pair_count 9; paths_per_pair 4; branch_registry_hash_count 36; evidence_tree_hash_count 9",
+            "protocol_frozen_at 2026-07-18T14:33:49.613643+00:00; inference_completed_at 2026-07-18T14:34:30.262787+00:00",
+            "execution_boundary: The controller, conclusion generator, and gate were not rerun.",
+            "integrity_checks: nine_shared_pairs_bound true; source_cells_and_evidence_unchanged true; passed true"
+          ]
+        },
+        {
+          "persona_id": "shannon",
+          "audit_id": "rr3-claim-02",
+          "verdict": "unsupported",
+          "rationale": "The packet supports nine shared pairs, four derived paths, 36 branch hashes, nine evidence-tree hashes, and no upstream rerun, but it does not provide an inference-start timestamp or an explicit field stating that the listed hash bindings were complete before evaluator inference began. Protocol freeze before inference completion is insufficient to establish that exact temporal assertion.",
+          "failure_modes": [
+            "missing_evidence"
+          ],
+          "decisive_evidence": [
+            "protocol_frozen_at: '2026-07-18T14:33:49.613643+00:00'",
+            "inference_completed_at: '2026-07-18T14:34:30.262787+00:00'",
+            "branch_registry_hash_count: 36; evidence_tree_hash_count: 9",
+            "execution_boundary: 'The controller, conclusion generator, and gate were not rerun.'"
+          ]
+        }
+      ]
+    },
+    {
+      "audit_id": "rr3-claim-03",
+      "routed_personas": [
+        "feynman",
+        "tukey",
+        "shannon"
+      ],
+      "final_verdict": "supported",
+      "vote_agreement": "unanimous",
+      "requires_human_adjudication": false,
+      "hard_veto_failure_modes": [],
+      "votes": [
+        {
+          "persona_id": "feynman",
+          "audit_id": "rr3-claim-03",
+          "verdict": "supported",
+          "rationale": "The model revision and artifact hash identify the proxy, and the path-level observations and paired-analysis fields directly reproduce every count, effect, and p-value in the claim without extending beyond the stated proxy interpretation.",
+          "failure_modes": [],
+          "decisive_evidence": [
+            "nli_proxy: model_id cross-encoder/nli-deberta-v3-base; revision 6c749ce3425cd33b46d187e45b92bbf96ee12ec7; onnx_sha256 36784d97274ef019db9f54fd16812f9a460e787703658b0f3b2200999692680b",
+            "path_P0: evaluable 27; entailed 22; neutral_or_abstain 5; contradiction 0",
+            "path_P1/path_P2/path_P3: neutral_or_abstain 0; contradiction 0",
+            "paired_analysis_each_active_path: mean_difference -0.18518518518518517; exact_two_sided_sign_flip_pvalue 0.125"
+          ]
+        },
+        {
+          "persona_id": "tukey",
+          "audit_id": "rr3-claim-03",
+          "verdict": "supported",
+          "rationale": "The path-specific denominators and label counts match the claimed proxy results, and the packet reports the same nine-pair mean contrast and exact sign-flip p-value for every active path. The claim does not infer significance, calibration, or human validity and therefore stays within the supplied post-hoc proxy boundary.",
+          "failure_modes": [],
+          "decisive_evidence": [
+            "path_P0: evaluable 27, neutral_or_abstain 5, contradiction 0; path_P1: evaluable 21, neutral_or_abstain 0, contradiction 0; path_P2 and path_P3: evaluable 27 each, neutral_or_abstain 0, contradiction 0",
+            "paired_analysis_each_active_path: pair_count 9, mean_difference -0.18518518518518517, exact_two_sided_sign_flip_pvalue 0.125",
+            "interpretation_boundary: Post-hoc uncalibrated proxy; no significance or human-validity claim."
+          ]
+        },
+        {
+          "persona_id": "shannon",
+          "audit_id": "rr3-claim-03",
+          "verdict": "supported",
+          "rationale": "The proxy identity and pinned revision/hash are explicit, the cross-family term is operationally bounded, and each count and paired statistic maps directly to a packet field; the displayed -0.1852 is a faithful rounding of the supplied mean.",
+          "failure_modes": [],
+          "decisive_evidence": [
+            "nli_proxy: model_family 'DeBERTa-v3', revision '6c749ce3425cd33b46d187e45b92bbf96ee12ec7', onnx_sha256 '36784d97274ef019db9f54fd16812f9a460e787703658b0f3b2200999692680b'",
+            "path_P0: evaluable 27, neutral_or_abstain 5, contradiction 0; path_P1: evaluable 21, neutral_or_abstain 0, contradiction 0; path_P2 and path_P3: evaluable 27, neutral_or_abstain 0, contradiction 0",
+            "paired_analysis_each_active_path: mean_difference -0.18518518518518517, exact_two_sided_sign_flip_pvalue 0.125",
+            "interpretation_boundary: 'Post-hoc uncalibrated proxy; no significance or human-validity claim.'"
+          ]
+        }
+      ]
+    },
+    {
+      "audit_id": "rr3-claim-04",
+      "routed_personas": [
+        "feynman",
+        "tukey",
+        "shannon"
+      ],
+      "final_verdict": "supported",
+      "vote_agreement": "unanimous",
+      "requires_human_adjudication": false,
+      "hard_veto_failure_modes": [],
+      "votes": [
+        {
+          "persona_id": "feynman",
+          "audit_id": "rr3-claim-04",
+          "verdict": "supported",
+          "rationale": "The retention totals directly match, every one of the nine pair-level identity checks is true, and the trace-level deltas independently report no revised-to-final content change in this sample.",
+          "failure_modes": [],
+          "decisive_evidence": [
+            "retention: P1 retained 22 of 36; P2 retained 36 of 36; P3 retained 36 of 36",
+            "pair_level_P2_P3_claim_content_identity: pair-01 through pair-09 true",
+            "revised_to_final: claim_trace_count 36; unchanged 36; word_delta 0; character_delta 0; numeric_token_delta 0",
+            "scope_boundary: No observed marginal change in this artifact sample; not a general claim that rechecking is useless."
+          ]
+        },
+        {
+          "persona_id": "tukey",
+          "audit_id": "rr3-claim-04",
+          "verdict": "supported",
+          "rationale": "Retention counts match exactly, and claim-content identity between P2 and P3 is reported for every one of the nine pairs. The 36 unchanged traces and zero word, character, and numeric-token deltas justify the sample-bounded statement of no observed marginal delivery change.",
+          "failure_modes": [],
+          "decisive_evidence": [
+            "retention: P1 retained 22 of 36; P2 retained 36 of 36; P3 retained 36 of 36",
+            "pair_level_P2_P3_claim_content_identity: pair-01 through pair-09 are true",
+            "revised_to_final: claim_trace_count 36, unchanged 36, word_delta 0, character_delta 0, numeric_token_delta 0",
+            "scope_boundary: No observed marginal change in this artifact sample; not a general claim that rechecking is useless."
+          ]
+        },
+        {
+          "persona_id": "shannon",
+          "audit_id": "rr3-claim-04",
+          "verdict": "supported",
+          "rationale": "Retention counts map exactly to the packet, all nine pair-level identity flags are true, and the 36 unchanged traces with zero textual and numeric-token deltas operationally support no observed marginal delivery change in this sample.",
+          "failure_modes": [],
+          "decisive_evidence": [
+            "retention: P1 retained 22 of initial 36; P2 retained 36 of initial 36; P3 retained 36 of initial 36",
+            "pair_level_P2_P3_claim_content_identity: pair-01 through pair-09 are true",
+            "revised_to_final: claim_trace_count 36, change_types.unchanged 36, word_delta 0, character_delta 0, numeric_token_delta 0",
+            "scope_boundary: 'No observed marginal change in this artifact sample; not a general claim that rechecking is useless.'"
+          ]
+        }
+      ]
+    },
+    {
+      "audit_id": "rr3-claim-05",
+      "routed_personas": [
+        "feynman",
+        "tukey",
+        "shannon"
+      ],
+      "final_verdict": "supported",
+      "vote_agreement": "unanimous",
+      "requires_human_adjudication": false,
+      "hard_veto_failure_modes": [],
+      "votes": [
+        {
+          "persona_id": "feynman",
+          "audit_id": "rr3-claim-05",
+          "verdict": "supported",
+          "rationale": "Across the defined retrospective paths, the proxy changes between P0 and the first-verification delivery path, while P2 and P3 are identical on measured outcomes; the claim explicitly withholds prospective causality and semantic-preservation conclusions.",
+          "failure_modes": [],
+          "decisive_evidence": [
+            "path_results: P0_non_entailment 5/27; P1_non_entailment 0/21; P2_non_entailment 0/27; P3_non_entailment 0/27",
+            "recheck_identity: P2_equals_P3_on_measured_outcomes true; unchanged_claim_traces 36/36",
+            "explicit_limits: retrospective post-hoc design; no human calibration; lexical proxies are not semantic-preservation ground truth; not a prospective causal effect"
+          ]
+        },
+        {
+          "persona_id": "tukey",
+          "audit_id": "rr3-claim-05",
+          "verdict": "supported",
+          "rationale": "P1 already changes the proxy result from 5/27 non-entailed claims in P0 to 0/21 after the first verification and delivery decision, while P2 and P3 are identical on measured outcomes and all 36 recheck traces are unchanged. The claim appropriately limits this localization to the retrospective sample and explicitly disclaims prospective causality and preserved scientific informativeness.",
+          "failure_modes": [],
+          "decisive_evidence": [
+            "path_results: P0_non_entailment 5/27; P1_non_entailment 0/21; P2_non_entailment 0/27; P3_non_entailment 0/27",
+            "recheck_identity: P2_equals_P3_on_measured_outcomes true; unchanged_claim_traces 36/36",
+            "explicit_limits: retrospective post-hoc design; three tasks; no human calibration; lexical proxies are not semantic-preservation ground truth; not a prospective causal effect"
+          ]
+        },
+        {
+          "persona_id": "shannon",
+          "audit_id": "rr3-claim-05",
+          "verdict": "supported",
+          "rationale": "Within the explicitly retrospective scope, the first-verification delivery path already changes the proxy outcome from 5/27 to 0/21, while the later active paths remain at zero and P2 equals P3 on measured outcomes. The claim explicitly declines prospective causality and preservation of scientific informativeness, matching the packet's limits.",
+          "failure_modes": [],
+          "decisive_evidence": [
+            "path_results: P0_non_entailment '5/27', P1_non_entailment '0/21', P2_non_entailment '0/27', P3_non_entailment '0/27'",
+            "recheck_identity: P2_equals_P3_on_measured_outcomes true; unchanged_claim_traces '36/36'",
+            "explicit_limits: 'retrospective post-hoc design', 'lexical proxies are not semantic-preservation ground truth', 'not a prospective causal effect'"
+          ]
+        }
+      ]
+    },
+    {
+      "audit_id": "rr3-claim-06",
+      "routed_personas": [
+        "popper",
+        "shannon",
+        "feynman"
+      ],
+      "final_verdict": "supported",
+      "vote_agreement": "unanimous",
+      "requires_human_adjudication": false,
+      "hard_veto_failure_modes": [],
+      "votes": [
+        {
+          "persona_id": "feynman",
+          "audit_id": "rr3-claim-06",
+          "verdict": "supported",
+          "rationale": "The claim is confined to the frozen 12-record, abstract-and-notes review set, and the screening result directly states that no included record satisfied the full conjunction; the packet also explicitly prevents extrapolation to all prior work.",
+          "failure_modes": [],
+          "decisive_evidence": [
+            "review_scope: Bounded abstract/notes-based synthesis of 12 verified 2024-2026 records",
+            "screening_result: no screening record described all of same backbone, same task, same budget, paired gate/no-gate paths, and immediate pre-delivery placement",
+            "limitations: absence from this set is not evidence that no prior work exists; abstract/notes based only; human full-text review is required before publication-grade novelty claims"
+          ]
+        },
+        {
+          "persona_id": "shannon",
+          "audit_id": "rr3-claim-06",
+          "verdict": "supported",
+          "rationale": "The novelty statement is restricted to the frozen 12-source abstract/notes-level set, and the packet's screening result explicitly reports that no record contained the full stated comparison configuration. The claim does not extend absence beyond that bounded set.",
+          "failure_modes": [],
+          "decisive_evidence": [
+            "review_scope: 'Bounded abstract/notes-based synthesis of 12 verified 2024-2026 records on autonomous scientific research agents and adjacent evidence-grounding systems.'",
+            "screening_result: 'Among the 12 included records, end-to-end agent papers and claim/citation-verification papers occurred as separate groups; no screening record described all of same backbone, same task, same budget, paired gate/no-gate paths, and immediate pre-delivery placement.'",
+            "limitations: 'absence from this set is not evidence that no prior work exists'; 'abstract/notes based only'; 'human full-text review is required before publication-grade novelty claims'"
+          ]
+        },
+        {
+          "persona_id": "popper",
+          "audit_id": "rr3-claim-06",
+          "verdict": "supported",
+          "rationale": "The claim is explicitly bounded to the frozen 12-record set and specifies the material comparison needed to refute the asserted gap. The packet's screening result reports that no included record described all of the required same-backbone, same-task, same-budget, paired gate/no-gate, immediate-pre-delivery conditions, while its limitations prevent expansion into a universal novelty claim.",
+          "failure_modes": [],
+          "decisive_evidence": [
+            "screening_result: Among the 12 included records, end-to-end agent papers and claim/citation-verification papers occurred as separate groups; no screening record described all of same backbone, same task, same budget, paired gate/no-gate paths, and immediate pre-delivery placement.",
+            "limitations: absence from this set is not evidence that no prior work exists"
+          ]
+        }
+      ]
+    }
+  ]
+}

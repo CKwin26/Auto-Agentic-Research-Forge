@@ -1,0 +1,96 @@
+{
+  "arm": "treatment",
+  "cell_id": "treatment--textualsimilaritysickspearmancorrelation--seed-1",
+  "claims": [
+    {
+      "arm": "treatment",
+      "artifact_paths": [
+        "stage2/r/t/05/evidence/baseline-20260718T064442Z-757696e4/record.json",
+        "stage2/r/t/05/evidence/baseline-20260718T064442Z-757696e4/trial-001-metrics.json",
+        "stage2/r/t/05/evidence/baseline-20260718T064442Z-757696e4/trial-002-metrics.json"
+      ],
+      "claim_id": "claim-01",
+      "claim_text": "The verified baseline run achieved SpearmanCorrelation 0.5757186473267853.",
+      "claim_type": "experiment",
+      "experiment_run_id": "baseline-20260718T064442Z-757696e4",
+      "metric_values": {
+        "SpearmanCorrelation": 0.5757186473267853
+      },
+      "run_id": "agent-treatment--textualsimilaritysickspearmancorrelation--seed-1",
+      "schema_version": 1,
+      "seed": 1,
+      "source_ids": [],
+      "task_pack": "textualsimilaritysickspearmancorrelation"
+    },
+    {
+      "arm": "treatment",
+      "artifact_paths": [
+        "stage2/r/t/05/evidence/run-20260718T064546Z-d7638911/record.json",
+        "stage2/r/t/05/evidence/run-20260718T064546Z-d7638911/trial-001-metrics.json",
+        "stage2/r/t/05/evidence/run-20260718T064546Z-d7638911/trial-002-metrics.json"
+      ],
+      "claim_id": "claim-02",
+      "claim_text": "The evaluated non-baseline run was valid_non_improving, with SpearmanCorrelation 0.5725548964668126 and improvement -0.0031637508599727804 relative to the verified baseline.",
+      "claim_type": "experiment",
+      "experiment_run_id": "run-20260718T064546Z-d7638911",
+      "metric_values": {
+        "SpearmanCorrelation": 0.5725548964668126
+      },
+      "run_id": "agent-treatment--textualsimilaritysickspearmancorrelation--seed-1",
+      "schema_version": 1,
+      "seed": 1,
+      "source_ids": [],
+      "task_pack": "textualsimilaritysickspearmancorrelation"
+    },
+    {
+      "arm": "treatment",
+      "artifact_paths": [],
+      "claim_id": "claim-03",
+      "claim_text": "The bounded literature packet includes end-to-end multi-agent research systems and separate evidence-grounding or citation-verification systems, including Autonomous Research Loops, EvoScientist, Heuresis, CliVER, Evidence Coverage Evaluator, and RefLens.",
+      "claim_type": "literature",
+      "experiment_run_id": null,
+      "metric_values": {},
+      "run_id": "agent-treatment--textualsimilaritysickspearmancorrelation--seed-1",
+      "schema_version": 1,
+      "seed": 1,
+      "source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-965b07ca55b0b420",
+        "paper-49947e5b991037d5",
+        "paper-35ad838f0ac171a7",
+        "paper-69c6e5faa8ef37c2",
+        "paper-e48872d23c4d9e23"
+      ],
+      "task_pack": "textualsimilaritysickspearmancorrelation"
+    },
+    {
+      "arm": "treatment",
+      "artifact_paths": [],
+      "claim_id": "claim-04",
+      "claim_text": "In the supplied bounded review, adjacent prior work separates end-to-end research-agent systems (Autonomous Research Loops, EvoScientist, Heuresis) from evidence-grounding or citation-verification systems (CliVER, Evidence Coverage Evaluator, RefLens).",
+      "claim_type": "novelty",
+      "experiment_run_id": null,
+      "metric_values": {},
+      "run_id": "agent-treatment--textualsimilaritysickspearmancorrelation--seed-1",
+      "schema_version": 1,
+      "seed": 1,
+      "source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-965b07ca55b0b420",
+        "paper-49947e5b991037d5",
+        "paper-35ad838f0ac171a7",
+        "paper-69c6e5faa8ef37c2",
+        "paper-e48872d23c4d9e23"
+      ],
+      "task_pack": "textualsimilaritysickspearmancorrelation"
+    }
+  ],
+  "created_at": "2026-07-18T06:53:42.848906+00:00",
+  "final_output_text": "The verified baseline run achieved SpearmanCorrelation 0.5757186473267853.\nThe evaluated non-baseline run was valid_non_improving, with SpearmanCorrelation 0.5725548964668126 and improvement -0.0031637508599727804 relative to the verified baseline.\nThe bounded literature packet includes end-to-end multi-agent research systems and separate evidence-grounding or citation-verification systems, including Autonomous Research Loops, EvoScientist, Heuresis, CliVER, Evidence Coverage Evaluator, and RefLens.\nIn the supplied bounded review, adjacent prior work separates end-to-end research-agent systems (Autonomous Research Loops, EvoScientist, Heuresis) from evidence-grounding or citation-verification systems (CliVER, Evidence Coverage Evaluator, RefLens).",
+  "protocol_id": "stage2-22e124e44294",
+  "registry_id": "registry-eba6d5d60bd5",
+  "run_id": "agent-treatment--textualsimilaritysickspearmancorrelation--seed-1",
+  "schema_version": 1,
+  "seed": 1,
+  "task_pack": "textualsimilaritysickspearmancorrelation"
+}

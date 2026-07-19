@@ -1,0 +1,7 @@
+{
+  "created_at": "2026-07-17T15:14:30.797735+00:00",
+  "idea": "Study how end-to-end autonomous scientific research agents can bind literature claims, experiment evidence, and novelty evaluation to reduce hallucination and unsupported conclusions.",
+  "name": "Evidence-grounded autonomous research agents v2",
+  "schema_version": 1,
+  "slug": "research-agent-evidence-v2"
+}

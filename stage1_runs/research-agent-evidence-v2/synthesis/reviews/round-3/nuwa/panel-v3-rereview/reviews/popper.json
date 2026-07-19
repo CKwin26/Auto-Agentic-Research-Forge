@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "panel_id": "rr3-v3-rereview",
+  "persona_id": "popper",
+  "source_sample_sha256": "6dd333f8a9daf89d0e7ea2f9a766a027e509699fb8fd32faf24cfa5a904e20f7",
+  "blinded": true,
+  "items": [
+    {
+      "audit_id": "rr3-claim-06",
+      "verdict": "unsupported",
+      "rationale": "The packet supports only the broader statement that the bounded set did not establish a controlled ablation of a claim-level evidence audit. It does not provide source-by-source findings or an excerpt establishing the claim's added same-backbone, same-task, same-budget, paired-design, and immediate-pre-delivery criteria, so the precise bounded novelty/gap assertion is not evidenced at the level claimed.",
+      "failure_modes": [
+        "missing_evidence",
+        "unsupported_novelty"
+      ],
+      "decisive_evidence": [
+        "gap_statement: The bounded reviewed set does not establish, via controlled ablation, whether inserting a claim-level evidence audit into an end-to-end research agent reduces hallucinated experimental details and unsupported conclusions.",
+        "limitations: abstract/notes based only",
+        "limitations: human full-text review is required before publication-grade novelty claims"
+      ]
+    }
+  ]
+}

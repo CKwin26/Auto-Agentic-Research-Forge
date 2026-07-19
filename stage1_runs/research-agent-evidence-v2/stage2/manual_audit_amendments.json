@@ -1,0 +1,23 @@
+{
+  "amendments": [
+    {
+      "added_audit_ids": [
+        "audit-ea397cb12584ed0b"
+      ],
+      "amended_at": "2026-07-18T07:44:35.854716+00:00",
+      "amendment_id": "manual-audit-amendment-01",
+      "behavior_change": "Keep 48 total and 8 per task-arm stratum, include all 14 available evaluator-unsupported claims, and fill the remaining 34 positions from the deterministic non-unsupported order. Arm, task, and evaluator verdict remain blinded.",
+      "current_sample_sha256": "0ef6aff20a330b8e247554971f58999c85290726a949005becc8feffbb30ef6e",
+      "human_audits_started": 0,
+      "implementation_sha256": "946e735df2fa61c44e848ad18f2abf298bc36ea7e926bad1b2d899c8e8d8c0e2",
+      "phase": "after_protected_evaluation_before_any_human_audit",
+      "previous_sample_sha256": "3142881dcb4a7b99c0c6ec85053ed6a7f0737e0452ae6414a02a11938c262f62",
+      "reason": "The frozen stop condition requires auditing all available evaluator-unsupported claims when the planned unsupported quota is not met. The v1 sampler capped each task-arm stratum at four unsupported claims and omitted one of fourteen available claims.",
+      "removed_audit_ids": [
+        "audit-8da31aae0d2eff2d"
+      ]
+    }
+  ],
+  "protocol_id": "stage2-22e124e44294",
+  "schema_version": 1
+}

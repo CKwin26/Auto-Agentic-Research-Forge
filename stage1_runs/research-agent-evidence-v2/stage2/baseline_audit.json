@@ -1,0 +1,37 @@
+{
+  "audited_at": "2026-07-18T14:33:48.327176+00:00",
+  "checks": {
+    "baseline_cells_integral": true,
+    "baseline_matrix_exact_when_complete": true,
+    "baseline_order_is_prefix": true,
+    "no_invalid_baseline_cells": true,
+    "stage2_protocol_valid": false
+  },
+  "complete": false,
+  "completed_cells": 9,
+  "expected_cells": 9,
+  "passed": false,
+  "protocol_id": "stage2-22e124e44294",
+  "schema_version": 1,
+  "task_native_scores": {
+    "coreferenceresolutionsupergluewscaccuracy": [
+      0.6346153846153846,
+      0.6346153846153846,
+      0.6346153846153846
+    ],
+    "textualclassificationsickaccuracy": [
+      0.5907052588666939,
+      0.5686913982878108,
+      0.6147574398695475
+    ],
+    "textualsimilaritysickspearmancorrelation": [
+      0.5757186473267853,
+      0.5757186473267853,
+      0.5757186473267853
+    ]
+  },
+  "total_wall_clock_seconds": 2721.128495,
+  "violations": [
+    "frozen Stage 2 protocol failed audit"
+  ]
+}

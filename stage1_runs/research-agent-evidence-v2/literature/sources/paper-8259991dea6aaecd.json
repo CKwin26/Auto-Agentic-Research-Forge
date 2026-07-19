@@ -1,0 +1,17 @@
+{
+  "added_at": "2026-07-17T15:21:46.536584+00:00",
+  "authors": [
+    "Alicem Koyun"
+  ],
+  "locator": "https://doi.org/10.1145/3802133.3802134",
+  "notes": "There is a growing need for new methods to accelerate scientific discovery as machine learning research continues to scale. This paper introduces Autonomous Research Loops, a framework that employs LLM-based agents to automate the entire life cycle of machine learning research. The framework supports end-to-end workflows, including hypothesis generation, literature search, coding, experiment execution, results analysis, manuscript preparation, and peer-style review. In this setup, tool-augmented LLMs act as central controllers that iteratively coordinate multiple specialized agents across research cycles. The framework provides lightweight machine learning templates that enable autonomous hypothesis formulation, code-level modifications, fault-tolerant experimentation with recovery from failure, and generation of structured research papers. A notable component of the framework is a conference-specification-aware reviewer agent that performs multi-pass critique and self-reflection to approximate human accept–reject decisions. Evaluation across multiple machine learning domains indicates that the system can generate medium-quality research artifacts at an approximate cost of $15 per paper. At the same time, several major failure modes were observed, including hallucination of experimental details, broken implementations, and misinterpretation of metrics. Overall, the study demonstrates that tightly coupled LLM agents can realize end-to-end research pipelines. This capability holds promise for enabling faster, more reproducible, and more auditable AI-powered scientific progress, provided that effective verification mechanisms and safety constraints are incorporated from the outset.",
+  "origin": "discovery",
+  "origin_id": "discovery-2026-07-17T151524.143318+0000-35e67c",
+  "schema_version": 1,
+  "source_id": "paper-8259991dea6aaecd",
+  "source_type": "paper",
+  "title": "Autonomous Research Loops: An LLM-Agent Framework for End-to-End ML Experimentation, Manuscripting, and Self-Evaluation",
+  "verification_method": "Exact Crossref DOI lookup matched the normalized title.",
+  "verified": true,
+  "year": 2026
+}

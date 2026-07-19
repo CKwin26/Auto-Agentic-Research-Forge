@@ -1,0 +1,63 @@
+{
+  "actual_total": 48,
+  "amendment_id": "manual-audit-amendment-01",
+  "group_counts": {
+    "coreferenceresolutionsupergluewscaccuracy|baseline": 8,
+    "coreferenceresolutionsupergluewscaccuracy|treatment": 8,
+    "textualclassificationsickaccuracy|baseline": 8,
+    "textualclassificationsickaccuracy|treatment": 8,
+    "textualsimilaritysickspearmancorrelation|baseline": 8,
+    "textualsimilaritysickspearmancorrelation|treatment": 8
+  },
+  "planned_total": 48,
+  "protocol_id": "stage2-22e124e44294",
+  "sample_path": "C:\\Users\\austa\\.research-forge-blind\\stage2-22e124e44294\\manual-audit\\sample.json",
+  "sample_sha256": "0ef6aff20a330b8e247554971f58999c85290726a949005becc8feffbb30ef6e",
+  "schema_version": 2,
+  "selection_compliance": {
+    "audit_all_available_unsupported": true,
+    "available_evaluator_unsupported": 14,
+    "group_counts": {
+      "coreferenceresolutionsupergluewscaccuracy|baseline": {
+        "available_evaluator_unsupported": 2,
+        "evaluator_non_unsupported": 6,
+        "evaluator_unsupported": 2,
+        "total": 8
+      },
+      "coreferenceresolutionsupergluewscaccuracy|treatment": {
+        "available_evaluator_unsupported": 0,
+        "evaluator_non_unsupported": 8,
+        "evaluator_unsupported": 0,
+        "total": 8
+      },
+      "textualclassificationsickaccuracy|baseline": {
+        "available_evaluator_unsupported": 4,
+        "evaluator_non_unsupported": 4,
+        "evaluator_unsupported": 4,
+        "total": 8
+      },
+      "textualclassificationsickaccuracy|treatment": {
+        "available_evaluator_unsupported": 1,
+        "evaluator_non_unsupported": 7,
+        "evaluator_unsupported": 1,
+        "total": 8
+      },
+      "textualsimilaritysickspearmancorrelation|baseline": {
+        "available_evaluator_unsupported": 5,
+        "evaluator_non_unsupported": 3,
+        "evaluator_unsupported": 5,
+        "total": 8
+      },
+      "textualsimilaritysickspearmancorrelation|treatment": {
+        "available_evaluator_unsupported": 2,
+        "evaluator_non_unsupported": 6,
+        "evaluator_unsupported": 2,
+        "total": 8
+      }
+    },
+    "planned_unsupported_quota": 24,
+    "selected_evaluator_non_unsupported": 34,
+    "selected_evaluator_unsupported": 14
+  },
+  "status": "awaiting_two_independent_auditors"
+}

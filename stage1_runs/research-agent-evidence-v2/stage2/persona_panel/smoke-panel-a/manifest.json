@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "panel_id": "smoke-panel-a",
+  "panel_version": "nuwa-scientist-panel-v1",
+  "ensemble_label": "same-model persona ensemble",
+  "source_sample_path": "C:\\Users\\austa\\.research-forge-blind\\stage2-22e124e44294\\manual-audit\\sample.json",
+  "source_sample_sha256": "0ef6aff20a330b8e247554971f58999c85290726a949005becc8feffbb30ef6e",
+  "persona_config_path": "C:\\Users\\austa\\.codex\\skills\\nuwa-scientist-panel\\references\\personas.json",
+  "persona_config_sha256": "4c2fdf2749ff90cf1691f46d0580734a512526a9a0addb108422f2031535c16f",
+  "blinded": true,
+  "item_count": 1,
+  "routes": {
+    "audit-05fe62b553253bd3": [
+      "feynman",
+      "shannon",
+      "popper"
+    ]
+  },
+  "hard_veto_failure_modes": [
+    "missing_evidence",
+    "source_misattribution",
+    "experiment_artifact_mismatch",
+    "exact_metric_mismatch",
+    "statistical_invalidity",
+    "internal_contradiction"
+  ],
+  "jobs": {
+    "feynman": {
+      "path": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\stage2\\persona_panel\\smoke-panel-a\\jobs\\feynman.json",
+      "sha256": "b5c5ebf54b181afed36a21466f61bb7208142d0401a685e4524bbc24c5f43e0f",
+      "audit_ids": [
+        "audit-05fe62b553253bd3"
+      ]
+    },
+    "shannon": {
+      "path": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\stage2\\persona_panel\\smoke-panel-a\\jobs\\shannon.json",
+      "sha256": "f1b413e1618e3a5f66991bf66317e1e3b9061f587ebbfc4023596b69369c9e5c",
+      "audit_ids": [
+        "audit-05fe62b553253bd3"
+      ]
+    },
+    "popper": {
+      "path": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\stage2\\persona_panel\\smoke-panel-a\\jobs\\popper.json",
+      "sha256": "1aa28079fc943f8b35a60b7ad9ef839f93a42d3180ff1c2e37dc99d91401db77",
+      "audit_ids": [
+        "audit-05fe62b553253bd3"
+      ]
+    }
+  }
+}

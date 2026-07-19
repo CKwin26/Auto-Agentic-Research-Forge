@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "environment": "rf-airs-cpu",
+  "version": "v1",
+  "controlled": true,
+  "python": "3.12",
+  "platform": "linux/amd64",
+  "packages": {
+    "joblib": "1.5.3",
+    "narwhals": "2.24.0",
+    "numpy": "2.5.1",
+    "pandas": "3.0.3",
+    "python-dateutil": "2.9.0.post0",
+    "scikit-learn": "1.9.0",
+    "scipy": "1.18.0",
+    "six": "1.17.0",
+    "threadpoolctl": "3.6.0",
+    "tzdata": "2026.3"
+  },
+  "capabilities": [
+    "numpy-array-computing",
+    "scipy-scientific-computing",
+    "pandas-tabular-data",
+    "scikit-learn-classical-ml",
+    "scikit-learn-text-classification"
+  ],
+  "dependency_policy": "wheel hashes and versions are frozen; runtime package installation is disabled",
+  "network_policy": "disabled by the Research Forge Docker runtime"
+}

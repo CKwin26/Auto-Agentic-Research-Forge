@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "panel_id": "smoke-panel-a",
+  "persona_id": "shannon",
+  "source_sample_sha256": "0ef6aff20a330b8e247554971f58999c85290726a949005becc8feffbb30ef6e",
+  "blinded": true,
+  "items": [
+    {
+      "audit_id": "audit-05fe62b553253bd3",
+      "verdict": "supported",
+      "rationale": "Each named system maps directly to a linked source record and to the stated verification object: CliVER verifies scientific claims, ECE assesses evidence coverage, and RefLens verifies citations. The claim adds no quantitative or functional detail beyond those operational descriptions.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "paper-35ad838f0ac171a7 notes: developed CliVER, an end-to-end scientific Claim VERification system",
+        "paper-69c6e5faa8ef37c2 title: Evidence Coverage Evaluator: A Comprehensive Framework for Assessing Grounding Quality in Retrieval-Augmented Generation Systems",
+        "paper-e48872d23c4d9e23 notes: RefLens, an end-to-end system that automates citation verification"
+      ]
+    }
+  ]
+}

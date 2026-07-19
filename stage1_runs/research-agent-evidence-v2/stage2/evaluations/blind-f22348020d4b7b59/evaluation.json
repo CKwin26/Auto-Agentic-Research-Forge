@@ -1,0 +1,102 @@
+{
+  "arm_blinded": true,
+  "cell_id": "treatment--textualclassificationsickaccuracy--seed-1",
+  "citation_correctness": 1.0,
+  "claims": [
+    {
+      "claim_id": "claim-exp-result",
+      "claim_type": "experiment",
+      "failure_modes": [],
+      "resolved_experiment_run_id": "run-20260718T061648Z-07736a6f",
+      "resolved_source_ids": [],
+      "semantic_rationale": "The linked experiment evidence for run-20260718T061648Z-07736a6f reports aggregate Accuracy exactly 0.7745617611088463 for the non-baseline candidate run.",
+      "structural_checks": {
+        "artifacts_allowed": true,
+        "artifacts_exist": true,
+        "artifacts_present": true,
+        "metrics_exact": true,
+        "metrics_present": true,
+        "run_id_present": true,
+        "run_isolated": true,
+        "run_resolves": true,
+        "run_valid": true,
+        "source_support_absent": true
+      },
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-exp-limit",
+      "claim_type": "experiment",
+      "failure_modes": [],
+      "resolved_experiment_run_id": "run-20260718T061648Z-07736a6f",
+      "resolved_source_ids": [],
+      "semantic_rationale": "The linked experiment evidence marks the candidate run as valid=true and isolation_verified=true, and reports aggregate Accuracy exactly 0.7745617611088463.",
+      "structural_checks": {
+        "artifacts_allowed": true,
+        "artifacts_exist": true,
+        "artifacts_present": true,
+        "metrics_exact": true,
+        "metrics_present": true,
+        "run_id_present": true,
+        "run_isolated": true,
+        "run_resolves": true,
+        "run_valid": true,
+        "source_support_absent": true
+      },
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-lit-context",
+      "claim_type": "literature",
+      "failure_modes": [],
+      "resolved_experiment_run_id": null,
+      "resolved_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7"
+      ],
+      "semantic_rationale": "The linked packet includes whole-system autonomous research-agent frameworks (for example, EvoScientist and Autonomous Research Loops) and also evidence-grounding or claim-verification methods (for example, RefLens, ECE, and CliVER).",
+      "structural_checks": {
+        "experiment_support_absent": true,
+        "source_ids_present": true,
+        "source_ids_resolve": true
+      },
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-novelty-gap",
+      "claim_type": "novelty",
+      "failure_modes": [],
+      "resolved_experiment_run_id": null,
+      "resolved_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7"
+      ],
+      "semantic_rationale": "Within the reviewed sources, some papers study end-to-end autonomous research-agent frameworks (such as EvoScientist and Autonomous Research Loops), while others study evidence-grounding or claim-verification methods (such as RefLens, ECE, and CliVER).",
+      "structural_checks": {
+        "experiment_support_absent": true,
+        "novelty_sources_bound": true,
+        "source_ids_present": true,
+        "source_ids_resolve": true
+      },
+      "verdict": "supported"
+    }
+  ],
+  "evaluated_at": "2026-07-18T07:29:27.913191+00:00",
+  "evaluator": "hybrid_structural_plus_arm_blinded_codex",
+  "evidence_coverage": 1.0,
+  "experiment_detail_error_rate": 0.0,
+  "failure_mode_count": {},
+  "integrity_violations": [],
+  "protocol_id": "stage2-22e124e44294",
+  "protocol_valid": true,
+  "registry_id": "registry-47de1d89a150",
+  "schema_version": 1,
+  "unsupported_claim_rate": 0.0,
+  "verifier_abstention_rate": 0.0
+}

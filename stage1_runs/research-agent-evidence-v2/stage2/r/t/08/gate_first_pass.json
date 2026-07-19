@@ -1,0 +1,39 @@
+{
+  "judgments": [
+    {
+      "claim_id": "task-result",
+      "rationale": "The linked experiment evidence for baseline-20260718T070301Z-b8e67646 records Accuracy 0.6346153846153846 and verdict baseline_verified, with the run marked valid and isolated.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "experiment-limitation",
+      "rationale": "The linked experiment evidence for run-20260718T070345Z-6037e0f3 records Accuracy 0.36538461538461536 and verdict valid_non_improving with improvement -0.2692307692307692, with the run marked valid and isolated.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "literature-context",
+      "rationale": "The EvoScientist record states higher novelty, feasibility, relevance, and clarity plus improved code execution success rates; the Autonomous Research Loops record lists hallucinated experimental details, broken implementations, and metric misinterpretation; and the Heuresis record states 40 confirmed fabrications across 1,628 scored runs.",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-49947e5b991037d5"
+      ],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "novelty-context",
+      "rationale": "The reviewed records describe standalone verification systems and whole-system reports, but they do not provide direct evidence about the selected novelty candidate itself. That makes the asserted difference and same-backbone controlled-ablation framing an unsupported novelty comparison on this packet.",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "verdict": "unsupported"
+    }
+  ]
+}

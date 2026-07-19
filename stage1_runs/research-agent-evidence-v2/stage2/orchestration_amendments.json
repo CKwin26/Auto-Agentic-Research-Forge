@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "protocol_id": "stage2-22e124e44294",
+  "amendments": [
+    {
+      "amendment_id": "orchestration-amendment-01",
+      "amended_at": "2026-07-18T06:23:32.2193834Z",
+      "effective_from_sequence": 11,
+      "previous_implementation_version": "treatment-and-blinded-evaluation-v1",
+      "current_implementation_version": "treatment-and-blinded-evaluation-v2",
+      "previous_manifest_sha256": "92ea6d8ce5b4aec46896836755370b482ec6a236fb22c3d113243eb86881f785",
+      "current_manifest_sha256": "cd396df1bf48310b2a486614b65703811ed7fb9c9be933efd607b93e442d6ed1",
+      "previous_study_runner_sha256": "2ac7d4647c58d6135608b8ea41ec3ac9125122e5b90c0ff9035d413b0ec644a8",
+      "current_study_runner_sha256": "a4ca08121303821ec029d9d19796d2201bf455c51562dc04efc736efad0ddb47",
+      "reason": "The semantic judgment schema permits supporting_source_ids for all claim types, but experiment claims are structurally forbidden from linking literature. Two model responses populated this irrelevant auxiliary field and were rejected despite otherwise usable judgments.",
+      "behavior_change": "For experiment claims only, deterministically replace supporting_source_ids with an empty list before linked-source validation. Verdict, rationale, claim text, evidence, metrics, and gate decisions are unchanged.",
+      "prior_completed_cells": [
+        "treatment--textualclassificationsickaccuracy--seed-0"
+      ],
+      "prior_result_affected": false,
+      "controller_reruns": 0,
+      "finalizer_reruns": 0,
+      "reviser_reruns": 0
+    },
+    {
+      "amendment_id": "orchestration-amendment-02",
+      "amended_at": "2026-07-18T06:47:41.6187788Z",
+      "effective_from_sequence": 14,
+      "previous_implementation_version": "treatment-and-blinded-evaluation-v2",
+      "current_implementation_version": "treatment-and-blinded-evaluation-v3",
+      "previous_manifest_sha256": "cd396df1bf48310b2a486614b65703811ed7fb9c9be933efd607b93e442d6ed1",
+      "current_manifest_sha256": "f98c90cf32191668dc33481795ba7348b741a66ee659e90da96322808fe34854",
+      "previous_study_runner_sha256": "a4ca08121303821ec029d9d19796d2201bf455c51562dc04efc736efad0ddb47",
+      "current_study_runner_sha256": "665bb5616a815bf7bca37fcb63df00f29e055f0931a714618cc1ed587cac348f",
+      "reason": "The shared finalizer copied the exact top-level run-record improvement field into metric_values. The structural checker correctly limits metric_values to aggregate_metrics keys, causing a mechanical false positive even though the same linked record directly supports the improvement value in claim text.",
+      "behavior_change": "When and only when metric_values.improvement exactly equals the linked run record improvement field and aggregate_metrics has no improvement metric, remove that key from metric_values. Claim text, linked record, metric score, verdict, and all model outputs remain unchanged; unknown extra metrics still fail closed.",
+      "prior_completed_cells": [
+        "treatment--textualclassificationsickaccuracy--seed-0",
+        "treatment--textualclassificationsickaccuracy--seed-1",
+        "treatment--textualclassificationsickaccuracy--seed-2",
+        "treatment--textualsimilaritysickspearmancorrelation--seed-0"
+      ],
+      "prior_result_affected": false,
+      "controller_reruns": 0,
+      "finalizer_reruns": 0,
+      "reviser_reruns": 0
+    }
+  ]
+}

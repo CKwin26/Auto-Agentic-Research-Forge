@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "panel_id": "rr3-v3-rereview-evidence-complete",
+  "panel_version": "nuwa-scientist-panel-v1",
+  "ensemble_label": "same-model persona ensemble",
+  "source_sample_path": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\reviews\\round-3\\nuwa\\input_packet_v2.json",
+  "source_sample_sha256": "f05349a3ceab1a73fb684ef83f94bda59e13acd74d90e9a14836dbdaad8c30cf",
+  "persona_config_path": "C:\\Users\\austa\\.codex\\skills\\nuwa-scientist-panel\\references\\personas.json",
+  "persona_config_sha256": "4c2fdf2749ff90cf1691f46d0580734a512526a9a0addb108422f2031535c16f",
+  "blinded": true,
+  "item_count": 6,
+  "routes": {
+    "rr3-claim-01": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "rr3-claim-02": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "rr3-claim-03": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "rr3-claim-04": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "rr3-claim-05": [
+      "feynman",
+      "tukey",
+      "shannon"
+    ],
+    "rr3-claim-06": [
+      "popper",
+      "shannon",
+      "feynman"
+    ]
+  },
+  "hard_veto_failure_modes": [
+    "missing_evidence",
+    "source_misattribution",
+    "experiment_artifact_mismatch",
+    "exact_metric_mismatch",
+    "statistical_invalidity",
+    "internal_contradiction"
+  ],
+  "jobs": {
+    "feynman": {
+      "path": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\reviews\\round-3\\nuwa\\panel-v3-rereview-evidence-complete\\jobs\\feynman.json",
+      "sha256": "65e9d5a13b4fd1d09158aad7d34d0035eb5e8d9f38b53b10a78aec3c0f163007",
+      "audit_ids": [
+        "rr3-claim-01",
+        "rr3-claim-02",
+        "rr3-claim-03",
+        "rr3-claim-04",
+        "rr3-claim-05",
+        "rr3-claim-06"
+      ]
+    },
+    "tukey": {
+      "path": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\reviews\\round-3\\nuwa\\panel-v3-rereview-evidence-complete\\jobs\\tukey.json",
+      "sha256": "facbe603a12cba96fba80c742789e2240a70892bd2a2617639db5e2b9ab3393b",
+      "audit_ids": [
+        "rr3-claim-01",
+        "rr3-claim-02",
+        "rr3-claim-03",
+        "rr3-claim-04",
+        "rr3-claim-05"
+      ]
+    },
+    "shannon": {
+      "path": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\reviews\\round-3\\nuwa\\panel-v3-rereview-evidence-complete\\jobs\\shannon.json",
+      "sha256": "2758d8c1d91794fcd357d0b6aa06ad1d21ed1d91c88dae155a9fcc357a31bce9",
+      "audit_ids": [
+        "rr3-claim-01",
+        "rr3-claim-02",
+        "rr3-claim-03",
+        "rr3-claim-04",
+        "rr3-claim-05",
+        "rr3-claim-06"
+      ]
+    },
+    "popper": {
+      "path": "C:\\Users\\austa\\Documents\\自动研究器\\stage1_runs\\research-agent-evidence-v2\\synthesis\\reviews\\round-3\\nuwa\\panel-v3-rereview-evidence-complete\\jobs\\popper.json",
+      "sha256": "00b7931b0d6a443fbb0aa8ea7f107cb72b13c31017b80d8c733fd48cba9f22dc",
+      "audit_ids": [
+        "rr3-claim-06"
+      ]
+    }
+  }
+}

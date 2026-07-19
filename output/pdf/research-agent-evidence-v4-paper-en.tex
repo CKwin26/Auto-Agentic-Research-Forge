@@ -1,0 +1,489 @@
+\documentclass[11pt]{article}
+
+\usepackage[a4paper,top=2.0cm,bottom=2.1cm,left=2.25cm,right=2.25cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{microtype}
+\usepackage{fancyhdr}
+
+\graphicspath{{figures/}}
+\definecolor{paperblue}{HTML}{173F5F}
+\hypersetup{
+  pdftitle={Pre-Delivery Claim-Evidence Gating in Autonomous Research Agents: A Protected-Evaluator Pilot with Same-Artifact Cross-Family Rebranching},
+  pdfauthor={Anonymous Author},
+  colorlinks=true,
+  linkcolor=paperblue,
+  citecolor=paperblue,
+  urlcolor=paperblue
+}
+
+\setlength{\parindent}{1.5em}
+\setlength{\parskip}{0.22em}
+\linespread{1.07}
+\setlength{\tabcolsep}{5.2pt}
+\captionsetup{font=small,labelfont=bf,labelsep=period}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Claim-Evidence Gating in Research Agents}
+\fancyhead[R]{\small Revised Post-Review Evidence Study}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.35pt}
+
+\title{\bfseries Pre-Delivery Claim-Evidence Gating in Autonomous Research Agents:\\A Protected-Evaluator Pilot with Same-Artifact Cross-Family Rebranching\thanks{Study status: This revised manuscript adds a retrospective, frozen same-artifact rebranch evaluated by a local cross-family NLI model. The preregistered two-auditor sample remains frozen and deferred. Neither the original protected-evaluator outcome nor the post-review NLI outcome can be interpreted as human validation, and the preregistered primary analysis remains uninterpretable.}}
+\author{Anonymous Author (blind-review manuscript)}
+\date{July 18, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+End-to-end research agents can retrieve literature, execute code, and draft manuscripts, yet successful execution does not ensure that each delivered claim is supported by its cited source or linked artifact. We evaluate a pre-delivery claim-evidence gate that permits one constrained revision and a recheck. The original frozen study contains two arms, three CPU AIRS-lite tasks, three seeds, and 18 cells. Its protected Codex-family evaluator labels 11 of 36 baseline claims and 3 of 36 gated claims as unsupported, with a mean paired effect of $-0.2222$ and a 95\% hierarchical-bootstrap interval of $[-0.4167,-0.0833]$. Because those arms came from separate fixed-order stochastic runs, we conducted a post-review rebranch from the nine identical pre-gate registries. Four delivery paths were derived without rerunning the controller: no gate, verify-only selective delivery, verify plus revision without recheck, and verify plus revision with recheck. A local commit- and hash-pinned DeBERTa-v3 NLI evaluator labeled 5 of 27 evaluable no-gate claims as non-entailed and 0 claims in each active path. The paired mean difference was $-0.1852$ for every active path versus no gate (exact sign-flip $p=0.125$). Verify-only retained 22 of 36 claims, while both revision paths retained all 36. Recheck changed none of the 36 revised claims. These post-hoc proxy results isolate the delivery transformation and evaluator family more tightly, but the sample contains only three tasks and the NLI evaluator is not human-calibrated. The preregistered two-auditor assessment remains deferred.
+
+\medskip
+\noindent\textbf{Keywords:} autonomous research agents; claim verification; evidence provenance; component ablation; natural-language inference; claim-evidence fidelity
+\end{abstract}
+
+\section{Introduction}
+
+Autonomous research systems increasingly connect several stages of scientific work into executable workflows. Existing systems can combine idea generation, literature retrieval, code modification, experiment execution, result interpretation, and manuscript drafting in one loop; some also introduce persistent memory, internal validation, or interactive human checkpoints \cite{arl,evo,rethink}. This integration expands the range of work an agent can attempt, but it also concentrates the risk that an upstream error will propagate into the final scientific narrative. End-to-end systems have reported hallucinated experimental details, implementation failures, and metric misinterpretation \cite{arl}. Open-ended search work has also observed fabricated runs produced to obtain favorable scores \cite{heuresis}. Executable code and available run logs therefore do not, by themselves, establish that the claims in a delivered manuscript match their evidence.
+
+This distinction separates two reliability questions that are often collapsed. The first is whether an agent produced a valid experimental artifact: code executed, metrics were recorded, and the run satisfied a task contract. The second is whether the prose delivered after that run states only what the artifact and cited literature support. A system can pass the first test while failing the second by attaching the wrong run identifier, copying an incorrect value, adding an unmeasured target, or turning a bounded observation into a broader claim. Conversely, a structurally complete citation can still fail to entail the sentence it accompanies. Claim-evidence fidelity is therefore a delivery property layered on top of experimental validity rather than a synonym for it.
+
+The placement of a control matters because errors become harder to isolate as the research loop expands. A general reviewer at the end of a full paper may detect incoherence, but its verdict combines judgments about novelty, writing, methods, and evidence. A pre-delivery gate can instead operate on atomic claims while their source identifiers and run provenance are still explicit. That location also permits deterministic checks for identifiers and numeric values before a semantic model is asked to judge entailment. The engineering attraction of this decomposition is clear, but its empirical benefit cannot be assumed: the gate may merely prefer its own phrasing, delete informative claims, or share errors with the generator.
+
+Prior work follows two broadly complementary directions. One improves search, collaboration, and self-evolution so that research agents can generate more candidates, reuse prior experience, or operate in theoretical and domain-specific settings \cite{evo,nova,hypo,reasflow,triagent,medagent}. The other verifies scientific claims, retrieves supporting evidence, or checks citations at claim level \cite{cliver,ece,reflens}. The first direction typically evaluates artifact quality, execution success, or domain task performance; the second often appears as a standalone verifier or a domain-specific component. Within the frozen set of 12 metadata- and abstract-level sources used in this study, these lines of work do not provide a same-backbone, same-task, same-budget paired ablation that isolates a claim-evidence gate immediately before delivery. This statement is limited to the frozen source set and is not a comprehensive novelty claim.
+
+We ask the following question: on CPU AIRS-lite tasks and a fixed Research Forge/Codex backbone, is a pre-delivery reject-revise-recheck gate associated with a lower protected-evaluator rate of unsupported factual claims than a no-gate version when the model, non-gate prompts, retrieval set, runtime limits, iteration budget, and task order are held fixed? The study does not introduce a new foundation model or reasoning architecture. It treats one delivery component as the planned intervention. The primary outcome is the proportion of unsupported claims in the final claim registry. Secondary outcomes include experiment-detail error rate, citation correctness, evidence coverage, task-native score, claim retention, and wall-clock time. Because the arms were not generated as counterfactual branches of identical run artifacts, the analysis does not identify a causal gate effect.
+
+The paper makes three bounded contributions. First, it reports a preregistered 18-cell paired comparison with a frozen claim schema, explicit provenance requirements, blind identifiers, and all nine task-seed effects rather than only pooled rates. Second, it adds a post-review rebranch in which four delivery policies are derived from the same nine pre-gate registries and scored by a pinned cross-family NLI proxy. This rebranch separates selective delivery, constrained revision, and rechecking at the artifact level without pretending that the post-hoc comparison is prospective randomization. Third, it reports coverage, edit-shape, runtime, and sensitivity diagnostics that reveal how an apparent reliability improvement can arise. The intended contribution is an auditable component study and a reusable evaluation pattern, not a claim that one gate has solved scientific reliability.
+
+The resulting claim ceiling is deliberately low. The automated outcomes can show disagreement between frozen claims and supplied evidence under specified evaluators. They cannot establish that the evidence itself is scientifically adequate, that omitted counterevidence is absent, or that a corrected sentence remains equally informative to a domain expert. The two-human blind audit required by the protocol is deferred, and the rebranch covers only three CPU text tasks. These boundaries motivate the paper's emphasis on mechanism localization and failure modes rather than a universal performance claim.
+
+\section{Related Work}
+
+\subsection{End-to-end research agents and open-ended search}
+
+Recent end-to-end research agents have primarily expanded workflow coverage and search capability. Autonomous Research Loops links hypothesis generation, literature retrieval, coding, experimentation, manuscript preparation, and simulated review, while also reporting hallucinated experimental details, incorrect implementations, and metric misreadings \cite{arl}. EvoScientist uses research, engineering, and evolution-management roles with persistent memory to learn from prior successes and failures \cite{evo}. Interactive multi-agent workflows maintain a persistent world state and add human checkpoints to shorten the researcher feedback cycle \cite{rethink}. Together, these systems show that research agents are no longer only code generators. They also show why workflow completeness cannot be assumed to imply reliable final claims.
+
+Several influential systems identified during manuscript review were not part of the 12-source packet frozen for the experiment. The AI Scientist connects idea generation, coding, experimentation, paper writing, and simulated review \cite{aiscientist}, while The AI Scientist-v2 replaces hand-authored templates with agentic tree search and adds iterative visual review \cite{aiscientistv2}. Agent Laboratory organizes literature review, experimentation, and report writing while allowing structured human feedback \cite{agentlab}. We cite these systems to provide post-freeze field context; they were not used to define the preregistered intervention, novelty statement, or evidence packet. Their placement of review at the paper or workflow level complements the claim-level delivery gate studied here.
+
+Work on ideation and open-ended search further exposes the tension among quality, novelty, and truthfulness. Nova uses iterative planning and external knowledge retrieval to increase idea diversity \cite{nova}. HypoAgents applies Bayesian updating and information entropy to select uncertain hypotheses for revision \cite{hypo}. Heuresis compares quality-diversity search strategies and reports 40 fabricated behaviors across 1,628 scoring runs \cite{heuresis}. These systems focus on candidate research directions or search trajectories. Our study instead focuses on whether atomic claims in the delivered text are supported by frozen evidence.
+
+Research agents have also been applied to mathematical reasoning and clinical tasks. ReasFlow integrates literature synthesis, algorithm design, theorem proving, experiments, manuscript preparation, and internal logical audits \cite{reasflow}. TriAgent and MedAgent combine multi-agent research with clinical evidence retrieval, stratification, and answer generation \cite{triagent,medagent}. These domain systems underscore the need for evidence grounding, but their objectives, training procedures, and evaluation settings differ from the same-backbone intervention studied here.
+
+\subsection{Review placement, evaluator dependence, and workflow controls}
+
+End-to-end systems place review at different points in the research lifecycle. The AI Scientist and its successor include simulated paper review as part of an automated discovery loop, while Agent Laboratory exposes structured human feedback across literature, experimentation, and report writing \cite{aiscientist,aiscientistv2,agentlab}. Interactive workflows similarly use checkpoints to let researchers redirect a persistent multi-agent state \cite{rethink}. These approaches evaluate or steer a broad research artifact. They are valuable for overall coherence and usefulness, but a paper-level score does not necessarily reveal which sentence is unsupported or which provenance field failed.
+
+Claim-level placement changes both the unit of intervention and the available controls. Immediately before delivery, the system can require every experimental statement to resolve to a run, metric, value, and artifact, and every literature statement to resolve to a frozen source. Deterministic validation can reject missing identifiers and exact-value mismatches without an LLM. Semantic judgment is then reserved for whether the complete claim is entailed by the linked record. This layered arrangement does not remove model judgment; it limits where probabilistic judgment is needed and leaves a trace that can be inspected after revision.
+
+Evaluator dependence remains a central threat wherever an LLM helps generate and score text. Self-preference has been documented in LLM-as-a-judge settings \cite{selfpreference}. A same-family evaluator may reward stylistic or inferential patterns shared with the generator even when arm labels are hidden. Using another model family reduces one direct dependency but does not create human ground truth, because models can share training data, task biases, or sensitivity to lexical overlap. For this reason, the present work distinguishes four labels that should not be conflated: arm-blinded evaluation, cross-family proxy evaluation, human calibration, and independent replication. Only the first two are available here.
+
+This distinction also clarifies why deterministic governance and semantic review are complements. Structural rules are narrow but reproducible; semantic models are flexible but evaluator-dependent; human review can examine scientific meaning but is slower and subject to inter-rater variation. A defensible research-agent workflow should assign each layer the claims it can actually verify, retain abstention when the supplied evidence is inadequate, and avoid converting agreement among automated layers into a stronger validation label.
+
+\subsection{Claims, evidence coverage, and citation verification}
+
+Claim-level verification decomposes an answer into checkable units and classifies whether retrieved material supports, contradicts, or fails to determine each unit. CliVER retrieves and selects sentences from PubMed abstracts before classifying clinical scientific claims as supported, contradicted, or neutral \cite{cliver}. Evidence Coverage Evaluator separates evidence coverage from surface correctness and combines fine-grained claim extraction, evidence retrieval, and natural-language inference or language-model judgment \cite{ece}. RefLens extracts passages from original PDFs and presents citation cards and paper-level verification reports \cite{reflens}. These systems provide independent ways to assess whether a claim matches its evidence.
+
+The present study moves that idea to the delivery boundary of an autonomous research workflow and makes it the only planned intervention. Both arms use the same conclusion-generator specification to produce structured claims, although they operate on separate stochastic upstream runs. Only the gated arm then receives one cycle of rejection, constrained revision, and rechecking. The design does not compare two complete agent systems or test which foundation model is stronger. It narrows the intervention surface to examine the relationship between claim-level evidence checking and a proxy measure of claim-evidence fidelity.
+
+The closest conceptual connection is therefore not a new verifier architecture but a controlled placement study. Existing verification systems motivate claim decomposition, evidence retrieval, and entailment labels; end-to-end agents motivate the workflow in which those labels must operate. The experiment joins these strands by holding the research backbone fixed and changing the final delivery path. Its evidence can speak to this configuration and these artifacts, while broader conclusions require additional tasks, evaluators, and human judgments.
+
+\section{Methods}
+
+\subsection{Preregistered design and experiment matrix}
+
+Protocol \texttt{stage2-22e124e44294} was frozen before execution. The paired design was 2 arms (baseline and gated) $\times$ 3 tasks $\times$ 3 seeds, for 18 cells. Seeds were 0, 1, and 2; baseline and gated runs were paired by task and seed. The study stopped after exactly 18 cells. It did not permit task expansion, candidate reordering, or selective reruns in response to interim results. Integrity conditions required consistent model and literature manifests, schema-valid claim registries, resolvable run IDs and artifacts for experimental claims, exact source IDs for literature claims, and an unchanged blind-evaluation configuration.
+
+The frozen execution order ran all nine baseline cells before the nine gated cells rather than interleaving arms at random. This order was part of the protocol, but it allows time-order or backend nondeterminism to contribute to the measured arm difference. We treat this as an internal-validity limitation.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.98\textwidth]{study_design_en.pdf}
+  \caption{Paired ablation pathway. Both arms share the research backbone, task configuration, literature packet, and initial conclusion generator. The only planned difference occurs in the pre-delivery claim-evidence path. Final registries from both arms enter protected evaluation under randomized blind identifiers. The preregistered two-auditor sample is frozen, but auditing is deferred at this stage.}
+  \label{fig:design}
+\end{figure}
+
+\subsection{Research backbone and controlled runtime}
+
+The experimental backbone was the Research Forge controller with a \texttt{codex:gpt-5.4} backend. The controller enabled candidate deduplication and failure diagnosis, used a candidate-pool size of 1, allowed at most 2 proposals per iteration, and imposed a one-iteration task limit. The runtime limit was 120 seconds per task. Experimental code ran in the \texttt{rf-airs-cpu:v1} Docker image with one CPU, 2,048 MB memory, a read-only root filesystem, no network access, and no-new-privileges enabled. The manifest froze the Python version and principal dependencies. The document-production environment was separate from the experimental runtime.
+
+The three AIRS-lite tasks were SICK text classification accuracy, SICK semantic similarity measured by Spearman correlation, and SuperGLUE WSC coreference accuracy. Table~\ref{tab:tasks} reports the reference baseline and resource limit frozen in each task pack. Because the native metrics are not commensurate across tasks, their cross-task average is descriptive and is not used to infer general task capability.
+
+\begin{table}[H]
+\centering
+\caption{Frozen AIRS-lite task configuration.}
+\label{tab:tasks}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X l r r}
+\toprule
+Task & Native metric & Reference baseline & Limit (s) \\
+\midrule
+SICK text classification & Accuracy & 0.568691 & 120 \\
+SICK semantic similarity & SpearmanCorrelation & 0.575719 & 120 \\
+SuperGLUE WSC coreference & Accuracy & 0.634615 & 120 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Pre-delivery claim-evidence gate}
+
+The shared conclusion generator received only completed runs, protected run records, frozen task descriptions, and the frozen literature packet. It produced a structured claim registry. Experimental claims had to include an exact run ID, metric name, value, and artifact path. Literature and novelty claims had to include frozen source IDs, and novelty comparisons were restricted to the reviewed source set. The generator was prohibited from inferring unreported metrics, causal mechanisms, statistical significance, or generality.
+
+After generation, the baseline arm delivered its registry without verifier-driven rejection or revision. In the gated arm, a semantic verifier labeled each claim as supported, unsupported, or indeterminate using only the linked frozen evidence. Unsupported or indeterminate claims could be revised once. A revision could not add sources, runs, metrics, artifacts, or claims. The system then rechecked the revision; a claim that still failed was removed according to protocol. Because judgment, constrained revision, and rechecking were bundled, the present experiment cannot attribute the observed effect to one subcomponent.
+
+\subsection{Claim unit, provenance binding, and decision trace}
+
+The unit of analysis was an atomic factual conclusion claim rather than a paragraph, whole answer, or paper-level score. Each cell's conclusion registry contained four final claims, giving 36 claims per arm. Atomicity matters because a compound sentence can join a supported metric with an unsupported target, mechanism, or generalization. The registry format kept the complete claim text together with its claim kind and required provenance, allowing the evaluator to judge the asserted unit rather than an isolated citation string.
+
+Provenance requirements differed by claim type. An experiment-grounded claim required the exact run identifier, metric name, numeric value, and artifact path; a literature-grounded or bounded novelty claim required registered source identifiers. Structural validation checked whether those identifiers resolved and whether reported values agreed with protected records. The frozen failure taxonomy included missing or misattributed source IDs, source non-support, missing run IDs, exact-metric mismatch, missing artifacts, unsupported novelty comparisons, verifier abstention, and gate removal. These categories separate a broken reference from a semantic disagreement and make aggregate error rates auditable.
+
+The gated path retained an internal trace across initial claim, first verdict, optional constrained revision, second verdict, and delivery decision. The reviser could qualify or correct a claim using existing evidence, but it could not obtain a new source or introduce a new experimental result. This restriction reduces the chance that revision silently changes the evidentiary universe. It also creates a known limitation: a correct but currently unlinked claim can be removed rather than rescued by additional retrieval. The study consequently evaluates evidence-bound delivery under a frozen packet, not the broader ability of an agent to search for missing support.
+
+These design choices define the denominator of every reported rate. Unsupported-claim rate is calculated over claims that reached the final registry, while retention records how many initial claims survive the delivery policy. Reporting both is necessary because a system can lower an error rate by deleting difficult claims. The original comparison happened to retain 36 claims in both arms, but the same-artifact verify-only path retained only 22. The component analysis therefore treats reliability and coverage as separate outcomes rather than collapsing them into one score.
+
+\subsection{Protected evaluation and outcomes}
+
+The 18 final registries received blind identifiers before the arms were revealed. The evaluator first performed deterministic structural checks, including whether source IDs, run IDs, metric values, and artifact paths resolved. A claim that failed a required structural check was labeled unsupported. If the structure passed, a Codex semantic evaluator viewed only the frozen evidence packet and labeled the complete atomic claim as supported, unsupported, or indeterminate. Its prompt prohibited external knowledge and inference of the study arm from metadata.
+
+The term \emph{protected evaluation} refers to specific access and masking controls, not to statistical or model-family independence. Table~\ref{tab:protection} states the implemented properties and residual limitations.
+
+\begin{table}[H]
+\centering
+\caption{Protection properties and unresolved evaluator dependencies.}
+\label{tab:protection}
+\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X l >{\raggedright\arraybackslash}X}
+\toprule
+Property & Status & Residual limitation \\
+\midrule
+Arm labels replaced by blind IDs & Implemented & Final wording may retain arm-correlated style cues \\
+Semantic evaluator restricted to frozen evidence & Implemented & Frozen evidence may be incomplete or scientifically weak \\
+References checked deterministically & Implemented & Structural validity does not imply semantic support \\
+Evaluator independent of generator model family & Not implemented & Generator, gate, and evaluator use Codex-family reasoning \\
+Human calibration of unsupported labels & Deferred & Frozen two-auditor sample has not been judged \\
+Both paths branch from identical run artifacts & Not implemented & Arms use separate stochastic runs in fixed order \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Let $N$ denote the number of final claims and $N_u$ the number labeled unsupported. The primary proxy outcome was $N_u/N$. Citation correctness was the proportion of literature and novelty claims labeled supported. Experiment-detail error rate was the proportion of experimental claims labeled unsupported. Evidence coverage was the proportion of claims that passed every deterministic structural check. Task-native scores came directly from task records, and runtime was the sum of cell wall-clock times. These outcomes are estimates from the protected automated evaluator, not human ground truth.
+
+\subsection{Statistical analysis and deferred human audit}
+
+The treatment effect was defined as the gated unsupported-claim rate minus the baseline rate for the same task and seed, so negative values favor the gate. We averaged the nine paired effects and calculated paired Cohen's $d_z$. The hierarchical bootstrap first resampled the three tasks with replacement and then resampled the three seed effects within each sampled task. The protocol fixed 10,000 resamples, a random seed derived from the protocol identifier, and the 2.5th and 97.5th percentiles as the reported interval.
+
+The preregistered audit requires two independent auditors to judge 48 blinded claims, with eight claims sampled from each task-by-arm stratum. Only 14 automated-unsupported claims were available, so the amended frozen rule includes all 14 and fills the remaining 34 slots in deterministic order. The sample and its hashes are frozen, but neither auditor has begun work. Human validation is deferred at the researcher's direction; the automated effect therefore does not unlock the preregistered primary analysis.
+
+\subsection{Post-review same-artifact component rebranch}
+
+After the external developmental review, we froze protocol \texttt{rebranch-3500a068037b} before running the cross-family evaluator. This analysis is post hoc with respect to the original study. It reuses the nine gated cells because each contains a \texttt{gate\_input\_registry.json} created before verifier feedback. For every task-seed pair, four delivery paths were derived from that identical registry: (1) no gate, which preserves the registry; (2) verify-only selective delivery, which retains claims labeled supported in the frozen first pass; (3) verify plus constrained revision without recheck, which uses the frozen revised registry; and (4) verify plus constrained revision with recheck, which uses the frozen final registry. The controller, conclusion generator, and gate were not rerun. The protocol records hashes for all 36 branch registries, nine evidence trees, source-cell artifacts, evaluator code, dependency versions, and model assets. It records protocol-freeze and inference-completion times but not a distinct inference-start timestamp; we therefore claim hash-bound inputs for the frozen rebranch, not independently attested completion of every binding before the first inference call.
+
+The cross-family proxy evaluator was a quantized DeBERTa-v3-base NLI cross-encoder \cite{debertav3,debertanli}. The full model revision and SHA-256 are recorded in the frozen protocol. We pinned \texttt{onnxruntime} 1.27.0 and \texttt{tokenizers} 0.23.1. The model card defines output indices 0, 1, and 2 as contradiction, entailment, and neutral, respectively \cite{debertanli}. Each non-novelty claim was paired with its linked experiment record or verified source abstract. We classified a claim as entailed when the maximum entailment probability was at least 0.5 and exceeded contradiction, contradicted when the converse threshold held, and otherwise neutral/abstained. Novelty claims were always abstained because pairwise NLI cannot establish absence of prior work.
+
+The primary post-review proxy was the proportion of NLI-evaluable claims not labeled entailment. We also report contradiction rate, entailment probability, claim retention, and deterministic lexical changes in words, characters, hedge markers, modal verbs, and numeric tokens. Active paths were compared with no gate across the nine task-seed pairs using an exact two-sided sign-flip test over all $2^9=512$ assignments. The lexical classes and counts are proxies for edit shape, not human judgments of informativeness. Runtime telemetry includes ONNX inference calls, encoded claim-evidence pairs, tokenizer tokens, CPU time, and wall-clock time. This rebranch does not replace the deferred human audit and cannot calibrate NLI false-positive or false-negative rates.
+
+\section{Results}
+
+\subsection{Unsupported-claim rate}
+
+The protected evaluator labeled 11 of 36 final baseline claims and 3 of 36 final gated claims as unsupported. The corresponding rates were 30.5556\% and 8.3333\%, a group-level difference of $-22.22$ percentage points. Across the nine task-seed pairs, the mean effect was $-0.2222$ and paired Cohen's $d_z=-0.8433$. The median of the 10,000 hierarchical bootstrap estimates was $-0.2222$, with a 95\% interval of $[-0.4167,-0.0833]$.
+
+Mean paired effects had the same direction in all three tasks: $-0.2500$ for SICK classification, $-0.2500$ for SICK similarity, and $-0.1667$ for WSC coreference. Each registry contained only four claims, so a cell-level rate changed in steps of 0.25. The agreement in direction should not be interpreted as precise stability of task-level effects. Figure~\ref{fig:results}B displays the task effects and the overall bootstrap interval.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.99\textwidth]{protected_results_en.pdf}
+  \caption{Protected automated evaluation. Panel A compares primary and secondary rate outcomes by arm. Panel B shows gated-minus-baseline paired effects for the three tasks; the red interval is the 95\% hierarchical bootstrap interval for the overall effect. This interval describes the frozen automated proxy and is not a confidence interval for a human-audited effect.}
+  \label{fig:results}
+\end{figure}
+
+All nine paired observations are reported in Table~\ref{tab:pairs} because the cell-level outcome is discrete. Leave-one-task-out mean effects were $-0.2083$ without SICK classification, $-0.2083$ without SICK similarity, and $-0.2500$ without WSC. The direction is unchanged, but three task clusters are too few to treat this check as evidence of precise generalization.
+
+The pair table shows that the pooled contrast is not the product of a uniform quarter-point change in every cell. Four pairs had zero difference, three had a $-0.25$ difference, one had a $-0.50$ difference, and one had a $-0.75$ difference. The largest single change occurred in SICK similarity seed 2, where the baseline registry had three unsupported claims and the gated registry had none. With four claims per registry, one claim changes a cell rate by 0.25, so the apparent magnitude is sensitive to a small number of discrete decisions.
+
+The hierarchical bootstrap interval answers a limited descriptive question under the frozen resampling rule. It propagates variation over the observed task and seed effects, but it cannot manufacture new task clusters or correct evaluator error. Its exclusion of zero is therefore evidence about the automated proxy matrix, not a substitute for the pending human-audit gate. The leave-one-task-out estimates show directional robustness within the three observed clusters, while the later task-level sign-flip sensitivity shows how little inferential resolution remains when task rather than seed is treated as the independent unit.
+
+\begin{table}[H]
+\centering
+\caption{All task-seed paired unsupported-claim rates.}
+\label{tab:pairs}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Task & Seed & Baseline & Gated & Effect \\
+\midrule
+SICK classification & 0 & 0.25 & 0.25 & 0.00 \\
+SICK classification & 1 & 0.25 & 0.00 & $-0.25$ \\
+SICK classification & 2 & 0.50 & 0.00 & $-0.50$ \\
+SICK similarity & 0 & 0.25 & 0.25 & 0.00 \\
+SICK similarity & 1 & 0.25 & 0.25 & 0.00 \\
+SICK similarity & 2 & 0.75 & 0.00 & $-0.75$ \\
+WSC coreference & 0 & 0.25 & 0.00 & $-0.25$ \\
+WSC coreference & 1 & 0.25 & 0.00 & $-0.25$ \\
+WSC coreference & 2 & 0.00 & 0.00 & 0.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Secondary proxy outcomes and claim retention}
+
+Experiment-detail error rate decreased from 33.3333\% in the baseline arm to 5.5556\% in the gated arm, while citation correctness increased from 66.6667\% to 88.8889\%. Evidence coverage was 100\% in both arms. That measure establishes only that final claims carried resolvable structured evidence links; it does not establish semantic support. The evaluator returned one indeterminate claim in the baseline arm and none in the gated arm.
+
+Both arms retained all 36 initial claims as final claims, for a retention rate of 100\%. The group-level difference was therefore not produced by a direct reduction in final claim count. Equal counts do not, however, rule out narrower wording or reduced claim strength in the gated arm. The post-review rebranch below adds deterministic edit-shape diagnostics, while retaining the boundary that lexical change is not semantic preservation.
+
+The secondary outcomes also have different evidentiary meanings. Experiment-detail error is comparatively rule-bound because an exact run identifier and metric value can be checked against a protected record. Citation correctness requires a semantic judgment that the cited source supports the complete sentence. Evidence coverage is weaker still as an accuracy measure: a value of 100\% only means that every final claim supplied the required resolvable fields. Presenting these outcomes together is useful for diagnosis, but they should not be averaged into a single reliability score.
+
+The unchanged original-arm claim count and the rebranch retention contrast jointly rule out one simple story while leaving others open. The original gated arm did not achieve its lower proxy error rate merely by delivering fewer claims. In the shared-artifact rebranch, however, verify-only did reduce coverage, whereas constrained revision restored delivery of all 36 claims under the NLI proxy. That pattern is consistent with revision correcting or qualifying claims, but only human semantic review can determine whether the revised versions preserve the scientific content that made the initial claims useful.
+
+\begin{table}[H]
+\centering
+\caption{Protected automated outcomes by study arm.}
+\label{tab:protected}
+\begin{tabularx}{0.88\textwidth}{>{\raggedright\arraybackslash}X r r}
+\toprule
+Outcome & Baseline & Gated \\
+\midrule
+Unsupported-claim rate & 30.56\% (11/36) & 8.33\% (3/36) \\
+Experiment-detail error rate & 33.33\% & 5.56\% \\
+Citation correctness & 66.67\% & 88.89\% \\
+Evidence coverage & 100.00\% & 100.00\% \\
+Final claim count & 36 & 36 \\
+Indeterminate claim count & 1 & 0 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Task scores and runtime cost}
+
+Mean SICK classification score across three seeds changed from 0.5914 to 0.6561, a difference of $+0.0647$. SICK similarity and WSC coreference means remained 0.5757 and 0.6346 in both arms. The frozen protocol required the absolute mean difference for every task to be no greater than 0.02. That Boolean check was false because SICK classification had a positive difference, not because all three tasks deteriorated. The arms consisted of independent stochastic runs, and the gate acted only at conclusion delivery; we therefore do not interpret the positive difference as improved task capability caused by the gate.
+
+Total wall-clock time was 2,721.13 seconds in the baseline arm and 4,514.38 seconds in the gated arm. The increase was 1,793.26 seconds, or about 29.89 minutes, corresponding to 65.90\%. The gated arm took longer on SICK classification and similarity and slightly less time on WSC. The aggregate cost indicates that the current implementation trades additional semantic judgment and revision work for lower error rates under the protected proxy evaluator. The experiment does not establish whether that cost remains acceptable at larger scale.
+
+Wall-clock time is defined from each \path{cell_manifest.created_at} timestamp to the corresponding \path{complete.completed_at} timestamp and therefore includes the controller, conclusion-generation, and, when applicable, gate path within a cell. The frozen records do not provide complete token, model-call, monetary, energy, or human-labor accounting, so the 65.90\% difference should not be interpreted as a full cost estimate.
+
+\begin{table}[H]
+\centering
+\caption{Task-native scores by study arm.}
+\label{tab:scores}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X r r r}
+\toprule
+Task & Baseline mean & Gated mean & Difference \\
+\midrule
+SICK classification Accuracy & 0.5914 & 0.6561 & $+0.0647$ \\
+SICK similarity SpearmanCorrelation & 0.5757 & 0.5757 & 0.0000 \\
+WSC coreference Accuracy & 0.6346 & 0.6346 & 0.0000 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Post-review same-artifact rebranch}
+
+Table~\ref{tab:rebranch} reports the cross-family NLI outcomes. The no-gate path contained 27 NLI-evaluable non-novelty claims: 22 were labeled entailment and 5 neutral. No claim in any path received a contradiction label. Each active path had a non-entailment rate of zero. Relative to no gate, the mean paired non-entailment difference was $-0.1852$ for all three active paths, with paired $d_z=-0.7647$ and exact two-sided sign-flip $p=0.125$. The contradiction-rate difference was zero with $p=1.000$. The NLI model therefore separated these paths through neutral versus entailment labels, not through contradiction labels.
+
+\begin{table}[H]
+\centering
+\caption{Post-review same-artifact cross-family NLI outcomes. Novelty claims are excluded from NLI-evaluable counts.}
+\label{tab:rebranch}
+\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X r r r r r}
+\toprule
+Delivery path & Claims & Retention & Evaluable & Non-entailment & Mean entailment \\
+\midrule
+No gate & 36 & 100.0\% & 27 & 5/27 (18.5\%) & 0.7950 \\
+Verify-only selective delivery & 22 & 61.1\% & 21 & 0/21 (0.0\%) & 0.9681 \\
+Verify + revise, no recheck & 36 & 100.0\% & 27 & 0/27 (0.0\%) & 0.9584 \\
+Verify + revise + recheck & 36 & 100.0\% & 27 & 0/27 (0.0\%) & 0.9584 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The equal proxy rate masks different delivery behavior. Verify-only removed 14 of 36 claims, whereas both revision paths retained all 36. Revision changed 14 initial claims and left 22 unchanged. Across the 36 claim traces, it reduced the text by 79 words and 311 characters, reduced hedge markers by 3, left modal-marker count unchanged, and added 4 numeric tokens. Five no-gate neutral cases were localized: two contained task-target statements absent from the permitted experiment evidence, two omitted the exact run identifier present in the record, and one combined a supported baseline score with an unbound target statement. Revision removed the unbound target clause or inserted the exact run identifier. These diagnostics show the mechanical edit pattern but do not establish preserved scientific informativeness.
+
+The revised and rechecked registries were byte-distinct files with identical claim content in all nine pairs: the recheck changed none of 36 revised claims. The post-review evaluator processed 73 unique claim-evidence pairs in 33 ONNX calls, encoding 23,626 tokenizer tokens. It used 263.72 process-CPU seconds and 28.47 wall-clock seconds under CPU execution. Because cached pairs were shared across paths, this runtime is the evaluation cost for the complete rebranch rather than an independent per-path cost estimate.
+
+The nine-pair exact test treats seeds within a task as exchangeable pairs. A conservative exploratory sensitivity check first averaged the three seeds within each task. The task-level differences were $-0.2222$, $-0.3333$, and $0.0000$; an exact sign-flip test over the three task means gives $p=0.500$. This change in resolution, together with five zero differences among the nine pairs, limits inferential claims despite the moderate paired standardized estimate.
+
+\subsection{Same-model scientist-persona panel}
+
+As a supplementary error-finding instrument, a same-model scientist-persona panel reviewed 48 blinded claims. Its aggregate verdicts were 37 supported and 11 unsupported, with mixed votes on 4 claims. Because the panel and the research backbone share a model family, the panel does not provide an independent error source. We use its findings only to surface disputed claims, not as human validation, cross-model replication, or primary-analysis evidence.
+
+The panel result is reported because disagreement is operationally useful even when it is not a new validation sample. Mixed votes identify claims whose interpretation depends on which failure mode a reviewer prioritizes, and they can be routed to later human adjudication. Agreement among personas, by contrast, cannot be converted into an independent vote count because all personas inherit the same underlying model family. The panel therefore functions as adversarial test generation for the evidence packet rather than a fourth outcome measure.
+
+\section{Discussion}
+
+\subsection{Interpretation within the automated evaluation boundary}
+
+Under the original frozen proxy evaluator, pre-delivery claim-evidence gating was associated with a lower unsupported-claim rate, lower experiment-detail error rate, and higher citation correctness. Mean paired effects were negative for all three tasks, and both arms retained the same number of final claims. The post-review rebranch narrows two ambiguities. Starting every path from the same registry removes upstream run variation from the delivery comparison, and the cross-family NLI model reduces direct same-family evaluator dependence. The rebranch also shows that verify-only and revision reach the same zero non-entailment rate through different coverage policies: selective delivery retains 61.1\% of claims, whereas revision retains 100\%. These are proxy outcomes. They do not show that informativeness was preserved.
+
+Two upstream design choices set a hard ceiling on the original comparison: Codex-family semantic evaluation and separate fixed-order stochastic arms. The post-review protocol addresses their engineering form, but not the full measurement problem. DeBERTa NLI is from a different model family and the four paths share identical source registries, yet the evaluator remains uncalibrated on this scientific-claim domain and the branch definitions reuse observed gate outputs. The rebranch is therefore a retrospective transformation comparison, not a prospective causal estimate or independently validated reliability effect.
+
+The largest change concerned experimental-detail claims. These claims carried exact run IDs, metric names, values, and artifact paths, which made inconsistencies amenable to deterministic checks. Literature and novelty claims required less determinate semantic entailment judgments. This error pattern suggests a practical architecture in which deterministic rules first handle identifiers, values, and artifact integrity, while semantic evaluation is reserved for high-risk or ambiguous claims. This is a design implication from the observed error structure, not a tested comparison with another gate implementation.
+
+\subsection{Alternative explanations and mechanism interpretation}
+
+Several mechanisms could produce the observed proxy differences. The intended mechanism is error correction: verification identifies a mismatch and constrained revision aligns the claim with the linked evidence. A second mechanism is qualification, in which the revised sentence becomes narrower without changing its central informational content. A third is semantic contraction, in which the system removes the difficult or useful part of a claim until an evaluator accepts what remains. A fourth is evaluator accommodation: revision may learn phrasing that the gate or NLI model prefers without improving correspondence as judged by a scientist. The available traces can distinguish deletion from retention and describe lexical edits, but they cannot fully separate qualification, contraction, and evaluator accommodation.
+
+The same-artifact paths provide partial localization. Verify-only reaches zero NLI non-entailment after retaining 22 of 36 claims, showing that selective delivery is sufficient for the proxy but has a substantial coverage cost. Revision without recheck and revision with recheck both retain all 36 and have identical measured outcomes, which locates the observed delivery change before the second verdict in this sample. This does not prove that recheck is redundant. No revised claim failed in a way that required the final removal rule, so the experiment contains no stress case in which recheck could show its intended safety value.
+
+Regression to easier wording remains possible because the NLI evaluator rewards entailment against supplied evidence rather than contribution value. The edit trace reports fewer words and hedge markers together with added numeric tokens, a mixed pattern that is compatible with both correction and contraction. Exact run identifiers increase auditability, but they do not guarantee that the surrounding sentence preserves the same scientific question. Human reviewers should therefore compare initial and revised claims as paired semantic objects, not merely label the final claim in isolation.
+
+Temporal and backend effects offer another explanation for the original arm difference. All baseline cells preceded all gated cells, and the arms came from separate stochastic executions. The shared-artifact rebranch removes that particular source of variation for the delivery transformation, but it reuses gate outputs produced in the observed treatment cells. Consequently, the original comparison and the rebranch answer different questions: the former measures an end-to-end association under the frozen order, while the latter describes what four delivery policies do to already observed registries. Neither alone identifies a prospective causal gate effect.
+
+\subsection{Implications for research-agent architecture}
+
+The component evidence supports a layered control surface rather than an all-agent reviewer. Stable identifiers, exact values, artifact existence, schema constraints, and retention accounting are deterministic properties and should remain code-owned. Semantic entailment is useful after those checks because many claims cannot be reduced to string equality. Human judgment is then needed for scientific adequacy, omitted evidence, informativeness, and the consequences of qualification. This division keeps each reviewer from being asked to certify properties it cannot observe.
+
+Coverage should be a first-class output of any delivery gate. A reliability rate without a retention or informativeness measure rewards systems that abstain or delete aggressively. The contrast between 22/36 verify-only retention and 36/36 revision-path retention makes this issue visible even though the present study lacks human informativeness scores. Future protocols should preregister a paired utility measure in which support and scientific content are judged separately, allowing correction to be distinguished from safe abstention and semantic collapse.
+
+The absence of an observed recheck contribution also suggests a risk-based policy for future evaluation, not an immediate implementation change. Rechecking every revised claim may be justified when failure costs are high, but its marginal value should be measured on cases that actually include failed or ambiguous revisions. A larger study could stratify claims by structural failure, semantic abstention, contradiction, and novelty status, then randomize recheck within those strata. Such a design would test whether the extra call changes delivery decisions enough to justify its latency.
+
+\subsection{Proxy-fidelity and cost trade-off}
+
+The 65.90\% increase in total runtime shows that the claim-evidence gate was not a cost-free addition. The present gate performs semantic judgment for every claim and allows one revision and recheck. Cost may continue to grow with the number of claims, literature sources, and experimental artifacts. Future implementations could test risk-based routing, batched structural checks, cached semantic judgments, and rechecking only modified claims. None of these optimizations was evaluated here.
+
+Task-native scores did not show consistent deterioration, but they also cannot establish that the gate has no effect on task quality. The gate occurs after task execution and should not alter completed task results in principle. The retrospective rebranch confirms that delivery paths can be compared from the same completed artifact without rerunning the controller. A stronger prospective study should adopt this branch point before outcomes are observed, expand task clusters, and measure component-specific latency without shared-cache accounting.
+
+\subsection{Threats to validity}
+
+Measurement validity remains the principal limitation. The original protected evaluator, gate verifier, and research backbone all use Codex-family reasoning and may share semantic preferences or blind spots. Empirical work has documented self-preference in LLM-as-a-judge settings \cite{selfpreference}, although that finding does not demonstrate the same bias here. The post-review NLI evaluator is cross-family, but it assigned no contradiction labels and identified all five no-gate defects as neutral. Its domain error rates are unknown. Until the two-auditor assessment is complete, neither the original 30.5556\% versus 8.3333\% rates nor the NLI 18.5\% versus 0.0\% rates can be treated as true error rates.
+
+The measured construct is claim-evidence fidelity, not scientific validity. A claim can be faithful to a frozen source while the source is incomplete, methodologically weak, or irrelevant to a broader scientific inference. Atomic support checks also do not detect omitted counterevidence or failures in argument-level coherence. The gate should therefore be treated as one manuscript control rather than a substitute for scientific review.
+
+Internal validity is limited by execution order and sample size in the original study and by retrospective reuse in the rebranch. All nine baseline cells ran before the gated cells. Each task has only three seeds, and each registry has four claims. The new component paths reveal no added effect from recheck in these nine pairs, but the absence of a difficult failed revision means this is not evidence that rechecking is generally unnecessary. The task-cluster sensitivity result of $p=0.500$ also shows that nine seed-level pairs overstate the apparent resolution when within-task dependence is plausible.
+
+External validity is similarly narrow. The experiment covers three CPU text tasks, one Codex backbone, one gate implementation, a candidate-pool size of 1, and one iteration. The findings do not generalize to laboratory science, multimodal data, long-horizon training, other foundation models, or disciplines with different evidence structures. The Stage 1 review used only 12 verified metadata and abstract records. It therefore supports positioning within that frozen collection, not exhaustive coverage or a claim of priority.
+
+\subsection{Next validation step}
+
+The immediate next step is completion of the frozen blind audit by two independent auditors and calculation of both automated evaluators' confusion matrices. If the protected evaluator's false-positive rate for unsupported labels exceeds 0.15, the original primary analysis is invalid under the protocol. A prospective follow-up should preserve the same-artifact branch point and four component paths introduced here, but increase the number of tasks and atomic claims, calibrate NLI thresholds before outcome analysis, and include cases where revision can fail so that recheck has a meaningful opportunity to act. Only then can the proxy differences be tested as reproducible human reliability gains.
+
+\section{Conclusion}
+
+Across 18 frozen cells, pre-delivery claim-evidence gating was associated with a reduction in the original protected evaluator's unsupported-claim rate from 30.5556\% to 8.3333\%. A post-review rebranch then compared four delivery paths from the same nine pre-gate registries using a cross-family NLI proxy. Non-entailment changed from 5/27 evaluable claims without a gate to zero in every active path, but the exact paired test was not significant ($p=0.125$). Verify-only retained 22/36 claims; revision retained 36/36; recheck changed no revised claim. This evidence localizes the observed proxy improvement to the first verification and delivery decision, while showing a coverage cost for selective delivery and no observed marginal recheck effect in this sample. The result remains post hoc, small, evaluator-dependent, and not human-validated. The preregistered blind audit is still required.
+
+More broadly, the study shows why research-agent reliability cannot be summarized by whether code ran or a paper was produced. Provenance integrity, semantic support, claim coverage, scientific informativeness, and human validity are distinct properties that require different controls. The present artifacts support a narrow engineering conclusion: deterministic provenance checks plus claim-level semantic review can expose and transform evidence mismatches at the delivery boundary. Whether that transformation improves scientific communication without unacceptable contraction remains the central unresolved question for prospective, human-calibrated evaluation.
+
+\section*{Data and Code Availability}
+
+The protocol, frozen manifests, 18 run cells, blind-evaluation summary, provisional analysis, claim registry, and synthesis audit are stored under \path{stage1_runs/research-agent-evidence-v2/}. Principal entry points include:
+\begin{itemize}
+  \item \path{stage2/protocol.json} and \path{stage2/evaluations/summary.json};
+  \item \path{stage2/provisional_analysis.json}; and
+  \item \path{synthesis/claims.json} and \path{synthesis/audit.json}; and
+  \item \path{post_review/counterfactual_rebranch_v1/} for the rebranch protocol, result summary, and validation report.
+\end{itemize}
+The human-audit sample resides in a protected blind directory; the arm mapping remains undisclosed until auditing is complete.
+
+\section*{Ethics, Funding, and Competing Interests}
+
+The current experiment involved no human participants, animals, or sensitive personal data. The preregistered human work consists only of blinded judgments by two independent claim auditors, which has not begun. No external funding information was provided, and no competing interests were reported.
+
+\section*{Author Contributions and AI Use Disclosure}
+
+The anonymous author formulated the research question, approved the protocols, supervised the experiment, and interpreted the results. Research Forge/Codex tools supported literature retrieval and verification, experimental control, code execution, protected evaluation, statistical analysis, manuscript structuring, writing, and typesetting. A local DeBERTa-v3 NLI model provided the post-review cross-family proxy evaluation. Both automated evaluators are study instruments, not independent human reviewers. The author retains responsibility for the submitted content and its accuracy.
+
+\begin{thebibliography}{99}
+
+\bibitem{arl}
+A. Koyun.
+\newblock Autonomous Research Loops: An LLM-Agent Framework for End-to-End ML Experimentation, Manuscripting, and Self-Evaluation.
+\newblock 2026. \url{https://doi.org/10.1145/3802133.3802134}
+
+\bibitem{evo}
+Y. Lyu, X. Zhang, X. Yi, et al.
+\newblock EvoScientist: Towards Multi-Agent Evolving AI Scientists for End-to-End Scientific Discovery.
+\newblock 2026. \url{https://doi.org/10.48550/arxiv.2603.08127}
+
+\bibitem{rethink}
+L. Weidener, M. Brki\'c, M. R. Jovanovic, et al.
+\newblock Rethinking the AI Scientist: Interactive Multi-Agent Workflows for Scientific Discovery.
+\newblock 2026. \url{https://doi.org/10.48550/arxiv.2601.12542}
+
+\bibitem{heuresis}
+A. Antoniades, D. Nathani, R. Saha, et al.
+\newblock Heuresis: Search Strategies for Autonomous AI Research Agents Across Quality, Diversity and Novelty.
+\newblock 2026. \url{https://www.semanticscholar.org/paper/ce30a6d54ba9a1bec69ca1a4e2d744b6be1479be}
+
+\bibitem{nova}
+X. Hu, H. Fu, J. Wang, et al.
+\newblock Nova: An Iterative Planning and Search Approach to Enhance Novelty and Diversity of LLM Generated Ideas.
+\newblock 2024. \url{https://doi.org/10.48550/arxiv.2410.14255}
+
+\bibitem{hypo}
+S. Duan, Y. Tian, Q.-T. Bing, and X. Shao.
+\newblock Bayes-Entropy Collaborative Driven Agents for Research Hypotheses Generation and Optimization.
+\newblock 2025. \url{https://doi.org/10.48550/arxiv.2508.01746}
+
+\bibitem{reasflow}
+Y. He, D. Li, G. Li, et al.
+\newblock ReasFlow: Assisting Reasoning-Centric Scientific Discovery in Applied Mathematics via a Knowledge-Based Multi-Agent System.
+\newblock 2026. \url{https://www.semanticscholar.org/paper/82f8c2296bba3d06dfc1dc9291963cc0a30359a0}
+
+\bibitem{triagent}
+K. Delikoyun, Q. Chen, W. Kuan, et al.
+\newblock TriAgent: Automated Biomarker Discovery with Deep Research Grounding for Triage in Acute Care by LLM-Based Multi-Agent Collaboration.
+\newblock 2025. \url{https://doi.org/10.48550/arxiv.2510.16080}
+
+\bibitem{medagent}
+F. Wang, Z. Guo, and Z. Ye.
+\newblock MedAgent: A Retrieval-Augmented Clinical Decision Support Agent with Verifiable Evidence Grounding for Evidence-Based Medicine.
+\newblock 2026. \url{https://doi.org/10.64898/2026.06.15.26355735}
+
+\bibitem{cliver}
+H. Liu, A. Soroush, J. G. Nestor, et al.
+\newblock Retrieval augmented scientific claim verification.
+\newblock \emph{JAMIA Open}, 2024. \url{https://doi.org/10.1093/jamiaopen/ooae021}
+
+\bibitem{ece}
+G. Adwant and M. Srivastav.
+\newblock Evidence Coverage Evaluator: A Comprehensive Framework for Assessing Grounding Quality in Retrieval-Augmented Generation Systems.
+\newblock 2026. \url{https://doi.org/10.36227/techrxiv.176784505.56675782/v1}
+
+\bibitem{reflens}
+S. Lee, J. Kwon, J. Choi, et al.
+\newblock RefLens: End-to-End Evidence-Grounded Citation Verification with LLM Agents.
+\newblock \emph{Proceedings of the AAAI Conference on Artificial Intelligence}, 40(48), 2026. \url{https://doi.org/10.1609/aaai.v40i48.42361}
+
+\bibitem{aiscientist}
+C. Lu, C. Lu, R. T. Lange, J. Foerster, J. Clune, and D. Ha.
+\newblock The AI Scientist: Towards Fully Automated Open-Ended Scientific Discovery.
+\newblock 2024. \url{https://doi.org/10.48550/arXiv.2408.06292}
+
+\bibitem{aiscientistv2}
+Y. Yamada, R. T. Lange, C. Lu, S. Hu, C. Lu, J. Foerster, J. Clune, and D. Ha.
+\newblock The AI Scientist-v2: Workshop-Level Automated Scientific Discovery via Agentic Tree Search.
+\newblock 2025. \url{https://doi.org/10.48550/arXiv.2504.08066}
+
+\bibitem{agentlab}
+S. Schmidgall, Y. Su, Z. Wang, et al.
+\newblock Agent Laboratory: Using LLM Agents as Research Assistants.
+\newblock 2025. \url{https://doi.org/10.48550/arXiv.2501.04227}
+
+\bibitem{selfpreference}
+K. Wataoka, T. Takahashi, and R. Ri.
+\newblock Self-Preference Bias in LLM-as-a-Judge.
+\newblock 2024. \url{https://doi.org/10.48550/arXiv.2410.21819}
+
+\bibitem{debertav3}
+P. He, J. Gao, and W. Chen.
+\newblock DeBERTaV3: Improving DeBERTa using ELECTRA-Style Pre-Training with Gradient-Disentangled Embedding Sharing.
+\newblock 2021. \url{https://doi.org/10.48550/arXiv.2111.09543}
+
+\bibitem{debertanli}
+N. Reimers and contributors.
+\newblock Cross-Encoder for Natural Language Inference: \texttt{cross-encoder/nli-deberta-v3-base} model card.
+\newblock Hugging Face; revision and SHA-256 are pinned in the study protocol. \url{https://huggingface.co/cross-encoder/nli-deberta-v3-base}
+
+\end{thebibliography}
+
+\end{document}

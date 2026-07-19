@@ -1,0 +1,41 @@
+{
+  "judgments": [
+    {
+      "claim_id": "claim-1-task-result",
+      "rationale": "The linked experiment evidence for run baseline-20260718T070732Z-d1ed92ba marks the run as a baseline with verdict baseline_verified and aggregate Accuracy 0.6346153846153846; the structural checks also indicate the run is valid, isolated, and metrics_exact.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-2-experiment-limitation",
+      "rationale": "The linked experiment evidence for run run-20260718T070831Z-3ac48732 marks the non-baseline run with verdict valid_non_improving and aggregate Accuracy 0.36538461538461536; the structural checks also indicate the run is valid, isolated, and metrics_exact.",
+      "supporting_source_ids": [],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-3-literature-context",
+      "rationale": "The packet includes Autonomous Research Loops and EvoScientist, whose notes describe end-to-end research-agent workflows, and it also includes CliVER, Evidence Coverage Evaluator, and RefLens, whose notes describe claim verification, evidence coverage assessment, or citation verification systems.",
+      "supporting_source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-965b07ca55b0b420",
+        "paper-35ad838f0ac171a7",
+        "paper-69c6e5faa8ef37c2",
+        "paper-e48872d23c4d9e23"
+      ],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-4-novelty-context",
+      "rationale": "The linked sources cover end-to-end AI scientist systems, evidence/citation verification systems, and novelty or fabrication issues, but they do not directly support the specific framing that the selected novelty candidate is a same-backbone intervention asking whether a claim-level evidence gate reduces unsupported claims while preserving task quality and throughput.",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "verdict": "unsupported"
+    }
+  ]
+}

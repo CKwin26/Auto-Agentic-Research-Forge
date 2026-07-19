@@ -1,0 +1,57 @@
+schema_version: 1
+pack_id: machine-learning-zh-cn
+language: zh-CN
+version: "1.0.0"
+terms:
+  - term_id: ml-backbone-network
+    english: backbone
+    chinese: 骨干网络
+    sense: 神经网络中承担主要特征提取功能的主干结构
+    domain: machine-learning
+    aliases: [backbone network]
+    discouraged: [骨干]
+    context_keywords: [neural, network, cnn, transformer, encoder, feature, architecture]
+    first_use: chinese_english
+    preserve_english: false
+    source: Research Forge curated machine-learning termbase
+    version: "1.0.0"
+    status: approved
+  - term_id: ml-backbone-model
+    english: backbone
+    chinese: 基础模型
+    sense: 为下游任务提供共同参数或表征能力的基础模型
+    domain: machine-learning
+    aliases: [model backbone]
+    discouraged: [骨干]
+    context_keywords: [foundation, model, weights, parameters, pretrained, fine-tuning]
+    first_use: chinese_english
+    preserve_english: false
+    source: Research Forge curated machine-learning termbase
+    version: "1.0.0"
+    status: approved
+  - term_id: ml-foundation-model
+    english: foundation model
+    chinese: 基础模型
+    sense: 通过大规模数据预训练并适配多类下游任务的模型
+    domain: machine-learning
+    aliases: [foundation models]
+    discouraged: [基座模型]
+    context_keywords: [pretrained, downstream, adaptation, language, multimodal]
+    first_use: chinese_english
+    preserve_english: false
+    source: Research Forge curated machine-learning termbase
+    version: "1.0.0"
+    status: approved
+  - term_id: ml-training-data
+    english: training data
+    chinese: 训练数据
+    sense: 用于模型参数学习或适配的数据集合
+    domain: machine-learning
+    aliases: [training dataset]
+    discouraged: []
+    context_keywords: [model, train, dataset, corpus]
+    first_use: chinese_english
+    preserve_english: false
+    source: Research Forge curated machine-learning termbase
+    version: "1.0.0"
+    status: approved

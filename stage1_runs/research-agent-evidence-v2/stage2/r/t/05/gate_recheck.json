@@ -1,0 +1,17 @@
+{
+  "judgments": [
+    {
+      "claim_id": "claim-04",
+      "rationale": "The first three sources are described as autonomous research-agent frameworks for scientific research pipelines (Autonomous Research Loops: entire life cycle/end-to-end workflows; EvoScientist: multi-agent AI scientist for end-to-end scientific discovery; Heuresis: autonomous AI research framework over the research pipeline). The other three are described as evidence-grounding or verification systems (CliVER: scientific claim verification; Evidence Coverage Evaluator: evidence-coverage/grounding assessment for RAG answers; RefLens: evidence-grounded citation verification). This supports the claimed separation between those two prior-work groups.",
+      "supporting_source_ids": [
+        "paper-8259991dea6aaecd",
+        "paper-965b07ca55b0b420",
+        "paper-49947e5b991037d5",
+        "paper-35ad838f0ac171a7",
+        "paper-69c6e5faa8ef37c2",
+        "paper-e48872d23c4d9e23"
+      ],
+      "verdict": "supported"
+    }
+  ]
+}

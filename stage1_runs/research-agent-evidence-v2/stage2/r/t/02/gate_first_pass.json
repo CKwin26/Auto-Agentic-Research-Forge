@@ -1,0 +1,35 @@
+{
+  "judgments": [
+    {
+      "claim_id": "claim-exp-result",
+      "rationale": "The linked run evidence directly supports a candidate run with Accuracy 0.7745617611088463, but the supplied experiment packet does not establish the additional identifier phrase \"on textualclassificationsickaccuracy.\" Complete support for the full atomic claim is therefore missing.",
+      "supporting_source_ids": [],
+      "verdict": "unsupported"
+    },
+    {
+      "claim_id": "claim-exp-limit",
+      "rationale": "The packet supports the Accuracy value 0.7745617611088463, but it does not supply the task target score 0.905 or a linked comparison showing the result was below that target. The full claim is not entailed by the linked evidence.",
+      "supporting_source_ids": [],
+      "verdict": "unsupported"
+    },
+    {
+      "claim_id": "claim-lit-context",
+      "rationale": "The cited packet includes whole-system autonomous research-agent frameworks (for example EvoScientist, Autonomous Research Loops, Heuresis) and also standalone evidence-grounding or claim-verification methods (for example RefLens, ECE, CliVER). That directly supports the claim about the packet spanning both categories.",
+      "supporting_source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-49947e5b991037d5",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7"
+      ],
+      "verdict": "supported"
+    },
+    {
+      "claim_id": "claim-novelty-gap",
+      "rationale": "The linked summaries do not directly establish the universal negative claim that no cited record contains a controlled same-backbone ablation of a claim-level evidence gate with unsupported-claim reduction, task quality, and throughput tracking. This is an unsupported novelty comparison from the supplied packet.",
+      "supporting_source_ids": [],
+      "verdict": "unsupported"
+    }
+  ]
+}

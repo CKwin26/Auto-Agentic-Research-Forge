@@ -1,0 +1,25 @@
+{
+  "analysis_status": "provisional_human_validation_deferred",
+  "boundary": "The engineering pipeline is complete, but the scientific primary analysis remains provisional until the preregistered human-validation gate is resumed and completed.",
+  "four_stage_gates": {
+    "stage_1_discovery": true,
+    "stage_2_protocol": true,
+    "stage_3_experimentation": true,
+    "stage_4_synthesis": true
+  },
+  "human_validation": "deferred",
+  "pipeline_complete": true,
+  "primary_analysis_interpretable": false,
+  "project_stage": "completed",
+  "protocol_id": "stage2-22e124e44294",
+  "publication_ready": false,
+  "schema_version": 1,
+  "study_evidence": {
+    "claim_count": 13,
+    "completed_cells": 18,
+    "manuscript_latex": "synthesis/manuscript.tex",
+    "manuscript_markdown": "synthesis/manuscript.md",
+    "protected_evaluations": 18
+  },
+  "synthesis_mode": "provisional_stage2_paired_study"
+}

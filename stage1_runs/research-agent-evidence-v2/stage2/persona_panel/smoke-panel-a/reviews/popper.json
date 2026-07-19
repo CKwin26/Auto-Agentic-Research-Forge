@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "panel_id": "smoke-panel-a",
+  "persona_id": "popper",
+  "source_sample_sha256": "0ef6aff20a330b8e247554971f58999c85290726a949005becc8feffbb30ef6e",
+  "blinded": true,
+  "items": [
+    {
+      "audit_id": "audit-05fe62b553253bd3",
+      "verdict": "supported",
+      "rationale": "The three linked source records directly identify dedicated systems whose stated functions match the claim's bounded categories: CliVER for scientific claim verification, ECE for evidence coverage assessment, and RefLens for citation verification. The claim is falsifiable by a missing named record or a functional mismatch, neither of which appears in the supplied packet; it makes no novelty assertion requiring a prior-art comparison.",
+      "failure_modes": [],
+      "decisive_evidence": [
+        "linked_source_records[0].title: Retrieval augmented scientific claim verification; notes: developed CliVER, an end-to-end scientific Claim VERification system",
+        "linked_source_records[1].title: Evidence Coverage Evaluator: A Comprehensive Framework for Assessing Grounding Quality in Retrieval-Augmented Generation Systems",
+        "linked_source_records[2].title: RefLens: End-to-End Evidence-Grounded Citation Verification with LLM Agents; notes: an end-to-end system that automates citation verification"
+      ]
+    }
+  ]
+}

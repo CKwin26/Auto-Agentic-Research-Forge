@@ -1,0 +1,95 @@
+{
+  "arm": "baseline",
+  "cell_id": "baseline--textualclassificationsickaccuracy--seed-2",
+  "claims": [
+    {
+      "arm": "baseline",
+      "artifact_paths": [
+        "stage2/r/b/03/evidence/run-20260718T050731Z-47f2a29c/record.json",
+        "stage2/r/b/03/evidence/run-20260718T050731Z-47f2a29c/trial-001-metrics.json",
+        "stage2/r/b/03/evidence/run-20260718T050731Z-47f2a29c/trial-002-metrics.json"
+      ],
+      "claim_id": "claim-01",
+      "claim_text": "On seed 2 of textualclassificationsickaccuracy, run-20260718T050731Z-47f2a29c achieved Accuracy 0.6147574398695475, which was 0.04606604158173666 above the registered baseline.",
+      "claim_type": "experiment",
+      "experiment_run_id": "run-20260718T050731Z-47f2a29c",
+      "metric_values": {
+        "Accuracy": 0.6147574398695475
+      },
+      "run_id": "agent-baseline--textualclassificationsickaccuracy--seed-2",
+      "schema_version": 1,
+      "seed": 2,
+      "source_ids": [],
+      "task_pack": "textualclassificationsickaccuracy"
+    },
+    {
+      "arm": "baseline",
+      "artifact_paths": [
+        "stage2/r/b/03/evidence/run-20260718T050731Z-47f2a29c/record.json",
+        "stage2/r/b/03/evidence/run-20260718T050731Z-47f2a29c/trial-001-metrics.json",
+        "stage2/r/b/03/evidence/run-20260718T050731Z-47f2a29c/trial-002-metrics.json"
+      ],
+      "claim_id": "claim-02",
+      "claim_text": "The best candidate run did not reach the task target score of 0.905, ending at Accuracy 0.6147574398695475.",
+      "claim_type": "experiment",
+      "experiment_run_id": "run-20260718T050731Z-47f2a29c",
+      "metric_values": {
+        "Accuracy": 0.6147574398695475
+      },
+      "run_id": "agent-baseline--textualclassificationsickaccuracy--seed-2",
+      "schema_version": 1,
+      "seed": 2,
+      "source_ids": [],
+      "task_pack": "textualclassificationsickaccuracy"
+    },
+    {
+      "arm": "baseline",
+      "artifact_paths": [],
+      "claim_id": "claim-03",
+      "claim_text": "The bounded literature packet includes end-to-end scientific-agent systems with persistent memory or automated research loops and separate evidence-grounded verification systems for citation or claim support.",
+      "claim_type": "literature",
+      "experiment_run_id": null,
+      "metric_values": {},
+      "run_id": "agent-baseline--textualclassificationsickaccuracy--seed-2",
+      "schema_version": 1,
+      "seed": 2,
+      "source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7"
+      ],
+      "task_pack": "textualclassificationsickaccuracy"
+    },
+    {
+      "arm": "baseline",
+      "artifact_paths": [],
+      "claim_id": "claim-04",
+      "claim_text": "Within the reviewed bounded set, a controlled same-backbone before/after ablation of adding a claim-level evidence audit to an end-to-end research-agent system is not established.",
+      "claim_type": "novelty",
+      "experiment_run_id": null,
+      "metric_values": {},
+      "run_id": "agent-baseline--textualclassificationsickaccuracy--seed-2",
+      "schema_version": 1,
+      "seed": 2,
+      "source_ids": [
+        "paper-965b07ca55b0b420",
+        "paper-8259991dea6aaecd",
+        "paper-e48872d23c4d9e23",
+        "paper-69c6e5faa8ef37c2",
+        "paper-35ad838f0ac171a7",
+        "paper-49947e5b991037d5"
+      ],
+      "task_pack": "textualclassificationsickaccuracy"
+    }
+  ],
+  "created_at": "2026-07-18T05:09:13.178349+00:00",
+  "final_output_text": "On seed 2 of textualclassificationsickaccuracy, run-20260718T050731Z-47f2a29c achieved Accuracy 0.6147574398695475, which was 0.04606604158173666 above the registered baseline.\nThe best candidate run did not reach the task target score of 0.905, ending at Accuracy 0.6147574398695475.\nThe bounded literature packet includes end-to-end scientific-agent systems with persistent memory or automated research loops and separate evidence-grounded verification systems for citation or claim support.\nWithin the reviewed bounded set, a controlled same-backbone before/after ablation of adding a claim-level evidence audit to an end-to-end research-agent system is not established.",
+  "protocol_id": "stage2-22e124e44294",
+  "registry_id": "registry-80125920a27a",
+  "run_id": "agent-baseline--textualclassificationsickaccuracy--seed-2",
+  "schema_version": 1,
+  "seed": 2,
+  "task_pack": "textualclassificationsickaccuracy"
+}

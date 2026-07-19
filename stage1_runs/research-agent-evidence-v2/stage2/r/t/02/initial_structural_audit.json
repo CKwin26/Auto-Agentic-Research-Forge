@@ -1,0 +1,45 @@
+{
+  "audited_at": "2026-07-18T06:25:08.235275+00:00",
+  "cell_id": "treatment--textualclassificationsickaccuracy--seed-1",
+  "claim_checks": {
+    "claim-exp-limit": {
+      "artifacts_allowed": true,
+      "artifacts_exist": true,
+      "artifacts_present": true,
+      "metrics_exact": true,
+      "metrics_present": true,
+      "run_id_present": true,
+      "run_isolated": true,
+      "run_resolves": true,
+      "run_valid": true,
+      "source_support_absent": true
+    },
+    "claim-exp-result": {
+      "artifacts_allowed": true,
+      "artifacts_exist": true,
+      "artifacts_present": true,
+      "metrics_exact": true,
+      "metrics_present": true,
+      "run_id_present": true,
+      "run_isolated": true,
+      "run_resolves": true,
+      "run_valid": true,
+      "source_support_absent": true
+    },
+    "claim-lit-context": {
+      "experiment_support_absent": true,
+      "source_ids_present": true,
+      "source_ids_resolve": true
+    },
+    "claim-novelty-gap": {
+      "experiment_support_absent": true,
+      "novelty_sources_bound": true,
+      "source_ids_present": true,
+      "source_ids_resolve": true
+    }
+  },
+  "passed": true,
+  "registry_id": "registry-daeb506cc5d7",
+  "schema_version": 1,
+  "violations": []
+}

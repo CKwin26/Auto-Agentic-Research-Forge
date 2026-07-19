@@ -1,0 +1,12 @@
+{
+  "active_run_id": null,
+  "baseline_run_id": "baseline-matrix-stage2-22e124e44294",
+  "best_run_id": null,
+  "latest_plan_draft": "plan-2026-07-17T165102.797670+0000-58ebcd",
+  "latest_proposal_id": null,
+  "revision": 17,
+  "run_count": 18,
+  "schema_version": 1,
+  "stage": "completed",
+  "updated_at": "2026-07-18T09:34:25.925633+00:00"
+}
