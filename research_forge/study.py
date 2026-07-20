@@ -439,6 +439,37 @@ def _validate_publication_auxiliary_contracts(
     return str(calibration["evaluator"])
 
 
+def _validate_secondary_evaluator_contract(
+    project: Path, contract_path: Path, *, primary_evaluator: str
+) -> str:
+    """Fail closed unless a separately configured robustness evaluator is frozen.
+
+    A calibration set establishes that the protected primary instrument can
+    discriminate on its locked benchmark.  It is not a second instrument.  The
+    second evaluator is deliberately an explicit, hash-bound contract so a
+    manuscript cannot quietly relabel the primary evaluator as a robustness
+    check after outcomes are visible.
+    """
+    if project not in contract_path.parents:
+        raise ValueError("secondary evaluator contract must be stored inside the project")
+    value = read_json(contract_path)
+    evaluator = str(value.get("evaluator", "")).strip()
+    required = {
+        "passed": value.get("passed") is True,
+        "independent": value.get("independent_from_primary") is True,
+        "different_evaluator": bool(evaluator) and evaluator != primary_evaluator,
+        "analysis_plan": isinstance(value.get("analysis_plan"), dict),
+        "config_hash": isinstance(value.get("config_sha256"), str)
+        and len(str(value.get("config_sha256"))) == 64,
+    }
+    failures = [name for name, passed in required.items() if not passed]
+    if failures:
+        raise ValueError(
+            "secondary evaluator contract failed semantic audit: " + ", ".join(failures)
+        )
+    return contract_path.relative_to(project).as_posix()
+
+
 def freeze_stage2_protocol(
     project: Path,
     *,
@@ -451,6 +482,7 @@ def freeze_stage2_protocol(
     task_ids: list[str] | None = None,
     seeds: list[int] | None = None,
     independent_calibration_contract: str | Path | None = None,
+    secondary_evaluator_contract: str | Path | None = None,
 ) -> Stage2Protocol:
     project = project.resolve()
     if intent not in {"pilot", "publication"}:
@@ -532,6 +564,11 @@ def freeze_stage2_protocol(
             if independent_calibration_contract
             else project / "design_revisions" / "independent_calibration_contract.json"
         )
+        secondary_evaluator_path = (
+            Path(secondary_evaluator_contract).resolve()
+            if secondary_evaluator_contract
+            else project / "design_revisions" / "secondary_evaluator_contract.json"
+        )
         preliminary_failures: list[str] = []
         if len(selected_tasks) < publication_target.minimum_tasks:
             preliminary_failures.append(
@@ -544,6 +581,10 @@ def freeze_stage2_protocol(
         if not calibration_path.is_file():
             preliminary_failures.append(
                 "publication protocol requires a frozen independent calibration contract"
+            )
+        if not secondary_evaluator_path.is_file():
+            preliminary_failures.append(
+                "publication protocol requires a frozen secondary evaluator contract"
             )
         if preliminary_failures:
             from .publication_readiness import (
@@ -584,6 +625,9 @@ def freeze_stage2_protocol(
         protected_evaluator = _validate_publication_auxiliary_contracts(
             project, calibration_path
         )
+        secondary_evaluator_binding = _validate_secondary_evaluator_contract(
+            project, secondary_evaluator_path, primary_evaluator=protected_evaluator
+        )
         calibration_binding = calibration_path.relative_to(project).as_posix()
         secondary_metrics = [
             *STUDY_SECONDARY_METRICS,
@@ -593,6 +637,7 @@ def freeze_stage2_protocol(
     else:
         protected_evaluator = "hybrid_structural_plus_arm_blinded_codex"
         calibration_binding = None
+        secondary_evaluator_binding = None
         secondary_metrics = list(STUDY_SECONDARY_METRICS)
     required_metrics = {"unsupported_claim_rate", *secondary_metrics}
     plan, binding = _validate_approved_plan(
@@ -647,6 +692,16 @@ def freeze_stage2_protocol(
             codex_sdk_version=str(codex["codex_sdk_version"]),
             codex_account_type=str(codex["codex_account_type"]),
             codex_plan_type=str(codex["codex_plan_type"]),
+            provider_name=str(codex.get("provider_name") or "openai-managed"),
+            provider_base_url=str(codex.get("provider_base_url") or "managed"),
+            provider_config_hash=str(codex.get("provider_config_hash") or "0" * 64),
+            credential_mode=str(codex.get("codex_account_type") or "unknown"),
+            provider_billing_contract_hash=str(
+                codex.get("provider_billing_contract_hash") or "0" * 64
+            ),
+            provider_billing_group=str(
+                codex.get("provider_billing_group") or "managed-subscription"
+            ),
             controller_run_root=str(controller_run_root),
             plan_id=binding.plan_id,
             plan_hash=binding.plan_hash,
@@ -730,9 +785,40 @@ def freeze_stage2_protocol(
             ),
             pair_execution_concurrency=(2 if intent == "publication" else 1),
             independent_calibration_contract=calibration_binding,
+            secondary_evaluator_contract=secondary_evaluator_binding,
+            evidence_gate_specification=(
+                {
+                    "claim_extraction_prompt_sha256": prompt_hashes["study_claim_verifier.md"],
+                    "evidence_matching_prompt_sha256": prompt_hashes["study_gate_verifier.md"],
+                    "decision_policy": "reject_revise_recheck_once_then_remove",
+                    "allowed_actions": ["retain", "revise", "remove", "abstain"],
+                    "decision_trace_schema": "study_gate_trace.v1",
+                }
+                if intent == "publication"
+                else {}
+            ),
+            construct_analysis_requirements=(
+                [
+                    "claim_retention_deletion",
+                    "semantic_change_distribution",
+                    "informativeness_usefulness",
+                    "per_task_effects",
+                ]
+                if intent == "publication"
+                else []
+            ),
             pair_level_table=(intent == "publication"),
             protected_evaluator=protected_evaluator,
             telemetry_schema=(PUBLICATION_TELEMETRY_METRICS if intent == "publication" else []),
+            telemetry_contract=(
+                {
+                    "wall_clock_definition": "active_attempt_seconds",
+                    "required_fields": ["active_attempt_seconds", "token_count", "model_call_count", "monetary_cost_usd"],
+                    "aggregation": "sum_completed_cell_active_attempt_seconds",
+                }
+                if intent == "publication"
+                else {}
+            ),
             manual_audit=Stage2ManualAuditPlan(
                 total_claims=2 * len(selected_tasks) * 8
             ),
@@ -989,13 +1075,24 @@ def archive_failed_stage2_protocol(project: Path, *, reason: str) -> Path:
     if len(reason.strip()) < 10:
         raise ValueError("a concrete failure reason is required")
     stage2 = project / "stage2"
-    if not stage2.is_dir():
-        raise FileNotFoundError("there is no Stage 2 protocol to archive")
-    raw_protocol = read_json(stage2 / "protocol.json")
+    archive_root = project / "stage2_failed"
+    source = stage2
+    if not source.is_dir():
+        resumable = [
+            path
+            for path in archive_root.glob("*")
+            if path.is_dir()
+            and (path / "protocol.json").is_file()
+            and not (path / "failure_termination.json").exists()
+        ]
+        if len(resumable) != 1:
+            raise FileNotFoundError("there is no Stage 2 protocol to archive")
+        source = resumable[0]
+    raw_protocol = read_json(source / "protocol.json")
     protocol_id = str(raw_protocol.get("protocol_id") or "unknown-protocol")
-    completed = sorted(stage2.glob("r/*/*/complete.json"))
-    invalid = sorted(stage2.glob("r/*/*/invalid.json"))
-    shared_invalid = sorted(stage2.glob("shared/pairs/*/invalid.json"))
+    completed = sorted(source.glob("r/*/*/complete.json"))
+    invalid = sorted(source.glob("r/*/*/invalid.json"))
+    shared_invalid = sorted(source.glob("shared/pairs/*/invalid.json"))
     if not completed and not invalid and not shared_invalid:
         raise ValueError("use empty-protocol supersession when no execution artifact exists")
     state = load_state(project)
@@ -1004,14 +1101,21 @@ def archive_failed_stage2_protocol(project: Path, *, reason: str) -> Path:
         Stage.BASELINE_VERIFIED,
         Stage.EXPERIMENT_DESIGN,
         Stage.EXPERIMENT_RUNNING,
+        Stage.RESULT_REVIEW,
     }:
         raise ValueError("failed protocol archival requires an active Stage 2 state")
-    archive_root = project / "stage2_failed"
     archive_root.mkdir(parents=True, exist_ok=True)
     destination = archive_root / protocol_id
-    if destination.exists():
+    if destination.exists() and source != destination:
         raise FileExistsError(f"failed protocol archive already exists: {destination}")
-    stage2.replace(destination)
+    if source != destination:
+        try:
+            source.replace(destination)
+        except PermissionError:
+            # Windows can reject os.replace for a directory just closed by a worker.
+            # shutil.move preserves the whole artifact tree and is idempotently
+            # finalized below; no outcome files are altered.
+            shutil.move(str(source), str(destination))
     write_json_atomic(
         destination / "failure_termination.json",
         {

@@ -28,6 +28,7 @@ DESIGN_REPAIR_MARKDOWN_FILENAME = "publication_design_repair.md"
 FAILURE_LEDGER_FILENAME = "publication_failure_ledger.jsonl"
 EXPERIMENT_TARGET_FILENAME = "publication_experiment_contract.json"
 EXPERIMENT_GATE_FILENAME = "publication_experiment_gate.json"
+_EXTERNAL_ONLY_BLOCKER_CODES = {"EXTERNAL-PUBLIC-SUPPLEMENT-PENDING"}
 
 
 class ReadinessCriterion(StrictModel):
@@ -226,6 +227,11 @@ class PublicationReadinessReport(StrictModel):
     readiness_score: float = Field(ge=0, le=1)
     readiness_threshold: float = Field(ge=0.50, le=0.95)
     score_threshold_passed: bool
+    automated_hard_gate_passed: bool
+    automated_publication_gate_passed: bool
+    human_gate_pending: bool
+    automated_hard_blockers: list[ReadinessBlocker]
+    external_blockers: list[ReadinessBlocker]
     hard_gate_passed: bool
     publication_submission_ready: bool
     readiness_interpretation: str
@@ -338,6 +344,10 @@ _ROOT_STAGE_MAP: dict[str, tuple[str, str]] = {
     "RC-MATURITY-TARGET-MISMATCH": ("stage_4_synthesis", "before_external_review_submission"),
     "RC-REPORTING-CONTRACT-GAP": ("stage_2_protocol", "before_plan_approval"),
     "RC-TELEMETRY-SCHEMA-GAP": ("stage_2_protocol", "before_execution"),
+    "RC-INTERVENTION-SPECIFICATION-GAP": ("stage_2_protocol", "before_protocol_freeze"),
+    "RC-SECONDARY-EVALUATOR-ROBUSTNESS-GAP": ("stage_2_protocol", "before_protocol_freeze"),
+    "RC-CONSTRUCT-ANALYSIS-GAP": ("stage_2_protocol", "before_protocol_freeze"),
+    "RC-TELEMETRY-SEMANTICS-GAP": ("stage_2_protocol", "before_execution"),
     "RC-LITERATURE-SCOPE-COUPLING": ("stage_1_discovery", "before_manuscript_synthesis"),
 }
 
@@ -398,6 +408,38 @@ _SYSTEM_REPAIR_RULES: dict[str, dict[str, Any]] = {
         "points": ["Stage 1 literature refresh", "study.freeze_stage2_protocol"],
         "tests": ["激活 novelty 修复且缺 refresh artifact 时冻结失败", "有效 refresh artifact 必须绑定来源与生成时间"],
     },
+    "RC-INTERVENTION-SPECIFICATION-GAP": {
+        "stage": "stage_2_protocol",
+        "gap": "Evidence gate 只有名称，没有可复现的决策算法和 trace 合同。",
+        "rule": "正式协议必须 hash 绑定提取、匹配、决策、允许动作和 trace schema。",
+        "enforcement_stage": "stage_2_protocol",
+        "points": ["study_models.Stage2Protocol", "study.freeze_stage2_protocol", "publication_readiness.audit_publication_experiment_design"],
+        "tests": ["缺 evidence_gate_specification 的正式协议必须失败", "完整规格必须进入协议哈希与实验门"],
+    },
+    "RC-SECONDARY-EVALUATOR-ROBUSTNESS-GAP": {
+        "stage": "stage_2_protocol",
+        "gap": "主评估器的校准被误当成第二测量工具，缺少独立稳健性比较。",
+        "rule": "正式协议必须绑定与主评估器不同的第二 evaluator contract 及其分析方案。",
+        "enforcement_stage": "stage_2_protocol",
+        "points": ["study._validate_secondary_evaluator_contract", "study.freeze_stage2_protocol", "publication_readiness.audit_publication_experiment_design"],
+        "tests": ["缺 secondary evaluator contract 必须在冻结前失败", "同名主评估器不得伪装成 secondary evaluator"],
+    },
+    "RC-CONSTRUCT-ANALYSIS-GAP": {
+        "stage": "stage_2_protocol",
+        "gap": "构念保护字段只被记录，未被预注册为必须报告的分析。",
+        "rule": "正式协议必须要求保留删除、语义变化、信息性和逐任务效应的结构化分析。",
+        "enforcement_stage": "stage_2_protocol",
+        "points": ["study_models.Stage2Protocol", "publication_readiness.audit_publication_experiment_design"],
+        "tests": ["缺任一构念分析要求时正式协议必须失败", "四项分析要求完整时门控允许继续"],
+    },
+    "RC-TELEMETRY-SEMANTICS-GAP": {
+        "stage": "stage_2_protocol",
+        "gap": "wall-clock 混入队列或恢复等待，不能解释为 controller 的执行成本。",
+        "rule": "正式协议须冻结 active-attempt 为主 wall-clock，并把队列或端到端时间分开。",
+        "enforcement_stage": "stage_2_protocol",
+        "points": ["study_models.Stage2Protocol", "study_runner cell completion", "publication_readiness.audit_publication_experiment_design"],
+        "tests": ["created-to-complete 口径不得通过正式协议", "active-attempt 口径必须写入冻结 telemetry contract"],
+    },
 }
 
 
@@ -431,6 +473,16 @@ def _dimension_scores(
     if assessment.human_validation_complete and assessment.primary_analysis_interpretable:
         independent = 1.0
         independent_evidence = ["冻结的人审/独立校准已经完成，主分析可解释。"]
+    elif assessment.independent_calibration_passed:
+        # A frozen cross-family public-gold calibration supports the automated
+        # measurement gate. It never upgrades the separate human-submission
+        # gate, which is represented by primary_analysis_interpretable.
+        independent = 0.80
+        independent_evidence = [
+            "冻结跨家族公共金标准校准已通过；"
+            f"macro-F1={assessment.independent_calibration_macro_f1:.4f}，"
+            f"coverage={assessment.independent_calibration_coverage:.4f}。"
+        ]
     elif cross_family_proxy:
         independent = 0.35
         independent_evidence = ["检测到跨家族代理评估，但没有完成金标准校准；代理不能替代独立验证。"]
@@ -1032,6 +1084,40 @@ def audit_publication_experiment_design(
             "publication experiment is missing frozen construct metrics: "
             + ", ".join(missing_constructs)
         )
+    gate_specification = protocol.get("evidence_gate_specification")
+    if not isinstance(gate_specification, dict) or not {
+        "claim_extraction_prompt_sha256",
+        "evidence_matching_prompt_sha256",
+        "decision_policy",
+        "allowed_actions",
+        "decision_trace_schema",
+    }.issubset(gate_specification):
+        violations.append(
+            "publication experiment requires a frozen evidence-gate algorithm specification"
+        )
+    if not protocol.get("secondary_evaluator_contract"):
+        violations.append(
+            "publication experiment requires a frozen independent secondary evaluator contract"
+        )
+    required_construct_analyses = {
+        "claim_retention_deletion",
+        "semantic_change_distribution",
+        "informativeness_usefulness",
+        "per_task_effects",
+    }
+    if not required_construct_analyses.issubset(
+        {str(item) for item in protocol.get("construct_analysis_requirements", [])}
+    ):
+        violations.append(
+            "publication experiment requires frozen construct-preservation analysis requirements"
+        )
+    telemetry_contract = protocol.get("telemetry_contract")
+    if not isinstance(telemetry_contract, dict) or telemetry_contract.get(
+        "wall_clock_definition"
+    ) != "active_attempt_seconds":
+        violations.append(
+            "publication experiment requires active-attempt wall-clock telemetry semantics"
+        )
     if target.require_contextual_novelty_refresh and not novelty_refresh_present:
         violations.append(
             "publication experiment requires design_revisions/novelty_refresh.json before protocol freeze"
@@ -1138,6 +1224,24 @@ def audit_publication_readiness(
                 source=str(source),
             )
         )
+    if not assessment.external_public_repository:
+        blockers.append(
+            ReadinessBlocker(
+                code="EXTERNAL-PUBLIC-SUPPLEMENT-PENDING",
+                severity="critical",
+                origin_stage="stage_4_synthesis",
+                latest_prevention_stage="before_external_submission",
+                reason=(
+                    "A local anonymous supplement package may be hash-bound and auditable, "
+                    "but no externally accessible publication release has been verified."
+                ),
+                required_evidence=(
+                    "An authorized public anonymous release with immutable version identifier, "
+                    "package manifest hash, and independently reachable contents."
+                ),
+                source=str(project_path / "synthesis" / "anonymous_supplement_package.json"),
+            )
+        )
     if selected.venue_type == "conference" and not selected.current_cycle_eligible:
         blockers.append(
             ReadinessBlocker(
@@ -1170,11 +1274,23 @@ def audit_publication_readiness(
         )
     unique_blockers = {item.code: item for item in blockers}
     blockers = sorted(unique_blockers.values(), key=lambda item: (item.severity != "critical", item.code))
-    failure_fingerprint, design_repairs = _system_design_repairs(blockers)
+    # Human validation is an explicit external gate.  Keep it separate from
+    # scientific/design blockers so the system can report an automated pass
+    # without ever emitting a submission-ready claim prematurely.
+    protocol_path = project_path / "stage2" / "protocol.json"
+    protocol = read_json(protocol_path) if protocol_path.is_file() else {}
+    human_gate_pending = bool(protocol.get("manual_audit")) and not (
+        assessment.human_validation_complete and assessment.primary_analysis_interpretable
+    )
+    external_blockers = [item for item in blockers if item.code in _EXTERNAL_ONLY_BLOCKER_CODES]
+    automated_hard_blockers = [item for item in blockers if item.code not in _EXTERNAL_ONLY_BLOCKER_CODES]
+    failure_fingerprint, design_repairs = _system_design_repairs(automated_hard_blockers)
     actions = _actions(dimensions, assessment)
     projected = actions[-1].projected_readiness_after_action if actions else readiness_score
     score_passed = readiness_score >= target.readiness_threshold
-    hard_gate_passed = not blockers
+    automated_hard_gate_passed = not automated_hard_blockers
+    automated_publication_gate_passed = score_passed and automated_hard_gate_passed
+    hard_gate_passed = automated_hard_gate_passed and not external_blockers and not human_gate_pending
     ready = score_passed and hard_gate_passed
     evidence_sources = sorted(
         set(
@@ -1194,10 +1310,16 @@ def audit_publication_readiness(
         readiness_score=readiness_score,
         readiness_threshold=target.readiness_threshold,
         score_threshold_passed=score_passed,
+        automated_hard_gate_passed=automated_hard_gate_passed,
+        automated_publication_gate_passed=automated_publication_gate_passed,
+        human_gate_pending=human_gate_pending,
+        automated_hard_blockers=automated_hard_blockers,
+        external_blockers=external_blockers,
         hard_gate_passed=hard_gate_passed,
         publication_submission_ready=ready,
         readiness_interpretation=(
-            "This score measures controllable internal submission readiness. Passing also requires zero hard scientific blockers. "
+            "This score measures controllable internal readiness. The automated gate requires zero "
+            "automated hard blockers; external release and human-validation gates remain separately fail-closed. "
             "It is not evidence that the venue will accept the paper."
         ),
         acceptance_probability_interpretation=recommendation_report.probability_interpretation,
@@ -1229,6 +1351,7 @@ def render_publication_readiness_markdown(report: PublicationReadinessReport) ->
         f"- 目标：**{report.venue_name}**（`{report.venue_id}`）",
         f"- 内部投稿就绪度：**{report.readiness_score:.1%}** / 门槛 **{report.readiness_threshold:.1%}**",
         f"- 投稿就绪：**{'通过' if report.publication_submission_ready else '阻断'}**",
+        f"- 自动化发表门：**{'通过' if report.automated_publication_gate_passed else '阻断'}**",
         f"- 科学硬门：**{'通过' if report.hard_gate_passed else '失败'}**",
         f"- 当前录用概率估计：**{report.estimated_acceptance_probability.center:.1%}** "
         f"[{report.estimated_acceptance_probability.low:.1%}, {report.estimated_acceptance_probability.high:.1%}]",
@@ -1254,6 +1377,10 @@ def render_publication_readiness_markdown(report: PublicationReadinessReport) ->
             )
     else:
         lines.append("- 无。")
+    if report.external_blockers:
+        lines.extend(["", "## 外部授权阻断（不计入自动化系统缺陷）", ""])
+        for item in report.external_blockers:
+            lines.append(f"- **{item.code}**：{item.reason} 需要：{item.required_evidence}")
     lines.extend(["", "## 失败后的系统设计修复", ""])
     if report.system_design_repairs:
         lines.append(

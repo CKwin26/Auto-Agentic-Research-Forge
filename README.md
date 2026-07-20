@@ -1,229 +1,395 @@
-<p align="center">
-  <img src="docs/assets/research-forge-hero.png" alt="Editorial digital-human illustration of Albert Einstein reviewing evidence for Research Forge" width="100%">
-</p>
+# Research Forge
 
-<h1 align="center">Research Forge</h1>
+Research Forge is a local-first control plane for computational AI-for-science projects. It helps turn a research question or an existing codebase into a **traceable experiment-to-paper workflow**—without treating an LLM as the authority on evidence.
 
-<p align="center"><strong>Give it a project folder. Get an evidence-bound paper—or a precise reason you cannot write one yet.</strong></p>
+Its operating rule is simple: **Codex proposes; deterministic code owns truth, state, metrics, and side effects.** Codex is the default reasoning backend, but it never gets to rewrite protected evaluation, promote an experiment, or declare a paper ready by itself.
 
-<p align="center">
-  Project → Evidence → Verdict → Paper
-</p>
+## What it is for
 
-<p align="center">
-  <img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white">
-  <img alt="132 tests passing" src="https://img.shields.io/badge/tests-132%20passing-2EA043?style=flat-square">
-  <img alt="Codex default backend" src="https://img.shields.io/badge/backend-Codex-111827?style=flat-square">
-  <a href="https://github.com/CKwin26/Auto-Agentic-Research-Forge/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/CKwin26/Auto-Agentic-Research-Forge?style=flat-square&color=1D4ED8"></a>
-</p>
+Research Forge is for ML, AI-agent, data-science, and computational-research projects where you want the entire chain to remain inspectable:
 
-<p align="center">
-  <a href="#-quick-start">Quick start</a> ·
-  <a href="#-what-makes-it-different">Why Research Forge</a> ·
-  <a href="#-four-stage-loop">How it works</a> ·
-  <a href="#-verified-record">Verified record</a> ·
-  <a href="#-documentation">Documentation</a> ·
-  <a href="#中文简介">中文</a>
-</p>
+1. **Discovery** — retrieve, screen, and freeze a source-backed literature and novelty boundary.
+2. **Protocol** — define a baseline, metrics, budget, repetitions, and a protected evaluation contract before experimentation.
+3. **Experimentation** — generate bounded candidate changes, run them in a controlled environment, and preserve valid/invalid evidence and code lineage.
+4. **Synthesis** — produce claim-bound drafts, audits, localization outputs, and publication-readiness decisions from the frozen evidence.
 
-<p align="center"><sub>Editorial digital-human artwork—not a historical photograph or endorsement.</sub></p>
+It also includes RF-Bench for comparing research-agent controllers under fixed tasks, seeds, budgets, and protected evaluators.
 
----
+## What it deliberately does not claim
 
-## ⚡ One folder. One governed paper.
+- It is **not** a one-click paper generator or an autonomous scientist.
+- A completed run is not a peer-reviewed publication, and a readiness score is not a probability of acceptance.
+- The default local runtime is for trusted development. Docker isolation is the unattended experiment boundary; neither replaces a real external benchmark or human scientific judgment.
+- Human review is a first-class gate for source approval and any real publication decision.
 
-```powershell
-# Open the local research workspace
-& .\.venv\Scripts\python.exe main.py web --open
+## Public default workflow
 
-# Or close the four-stage loop from the CLI
-& .\.venv\Scripts\python.exe main.py bundle close-loop "C:\path\to\project" --track auto
+Start with a new idea, or inspect an existing project read-only. In both routes, writing comes after a protocol and evidence are bound.
+
+```text
+idea / existing project
+        │
+        ▼
+source-backed discovery ──► frozen protocol ──► protected experiments ──► evidence-bound draft
+        │                         │                       │                       │
+        └── human approval         └── hard design gates   └── valid/invalid ledger └── audit + readiness gate
 ```
 
-The default UI starts with **I already have a project**. Select a local folder containing code, data, protocols, tests, or reports. Research Forge reads the source project without modifying it and writes every generated artifact to a separate run directory.
+The publication route is intentionally strict. Before a publication-intent experiment runs, it freezes a target venue contract and blocks known scientific failures such as non-isolated counterfactuals, dependent measurement, insufficient evidence breadth, and missing novelty refresh. A `pilot` route exists only as an explicitly labeled internal exception and can never be relabeled as a publication result.
 
-You can switch the same page to **idea to paper** when no project exists yet.
-
-## 🤔 What is Research Forge?
-
-Research Forge is a local-first agentic research platform for two starting points:
-
-| Start with | Research Forge does |
-|---|---|
-| **An existing project** | Finds the strongest paper-worthy boundary already supported by its resources. |
-| **An early idea** | Converges the idea into a testable question before paper writing begins. |
-
-The core rule is simple:
-
-> **The research verdict and the paper-writing verdict are independent.** A polished manuscript cannot turn an unsupported idea into a supported one.
-
-Codex handles bounded reasoning. Deterministic Python owns evidence, hashes, budgets, gates, state transitions, side effects, and final audit decisions.
-
-## 🧠 What makes it different
-
-| Capability | Why it matters |
-|---|---|
-| **Real local resources** | Selected code, data, protocols, tests, and reports define the research boundary. |
-| **Two end-to-end entry points** | Project-to-paper is the default; idea-to-paper uses the same governed workspace. |
-| **Evidence before prose** | The idea verdict, protocol binding, numeric results, literature, and manuscript readiness remain separate. |
-| **Scientist-panel review** | Feynman-, Tukey-, Shannon-, and Popper-inspired personas challenge claims under deterministic veto and abstention rules. |
-| **Fault ownership** | `diagnostic_owner` distinguishes idea failure, evidence gaps, literature gaps, and writer failure. |
-| **Rollback instead of restart** | The failure ledger identifies the earliest preventable stage and reruns only affected downstream work. |
-| **Codex first, API optional** | Local Codex authentication is the default; an explicit API backend is available for server deployments. |
-
-> [!IMPORTANT]
-> Persona review is a same-model supplemental audit. It is not independent human validation.
-
-## 🚀 Quick start
-
-Windows PowerShell:
+## Quick start
 
 ```powershell
-git clone https://github.com/CKwin26/Auto-Agentic-Research-Forge.git
-Set-Location .\Auto-Agentic-Research-Forge
-
-python -m venv .venv
+& "C:\Users\austa\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe" -m venv .venv
 & .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
 & .\.venv\Scripts\python.exe main.py doctor
+
+$py = ".\.venv\Scripts\python.exe"
+& $py main.py init --name "stereo-ablation" --idea "Test whether geometry-aware augmentation improves transparent-object stereo depth"
+& $py main.py literature plan stereo-ablation --focus "Transparent-object stereo depth and strong public baselines"
+& $py main.py literature discover stereo-ablation --rows-per-query 20 --include 12 --from-year 2020
+& $py main.py literature screen stereo-ablation --max-candidates 40 --include 12
+& $py main.py literature synthesize stereo-ablation
+& $py main.py literature audit stereo-ablation
+```
+
+Read the resulting literature review, explicitly approve its exact ID, then create and freeze the experiment contract. The complete command sequence is below in [A complete first loop](#a-complete-first-loop).
+
+## Reproducible reference material
+
+The repository contains reference fixtures and archived, hash-bound records to demonstrate the gates—not as proof that every future project is publication-ready:
+
+- [Four-stage contract](docs/four-stage-closed-loop.md) and [productization contract](docs/productization-contract.md)
+- [Project-bundle workflow](docs/project-bundle-workflow.md) for an existing code or text project
+- [RF-Bench guide](docs/benchmark.md) and [controlled ML environment](docs/controlled-ml-environment.md)
+- [Second independent case-study scaffold](case_studies/sick-lexical-replication-v1/README.md), which is intentionally labeled non-publication-ready until its isolation and literature gates are met
+- [Historical Stage 2 record](docs/stage2-protected-evaluation-2026-07-18.md), which remains pipeline-complete but not publication-ready because human validation was deferred
+
+## Core guarantees
+
+| Guarantee | How it is enforced |
+|---|---|
+| Model output cannot become evidence by itself | Structured outputs are bound to frozen run/source IDs; protected code checks numeric claims. |
+| Experiment state is auditable | Evidence, events, failures, and promotions are append-only and hash-bound. |
+| Candidate execution is bounded | Python owns run budget, timeout, repeats, accepted files, parameter contract, and evaluator boundary. |
+| Known design failures are repaired upstream | Scientific hard-gate failures create a root-cause repair artifact, enforcement rule, and regression test target. |
+| Long prompts do not become hidden state | Prompt envelopes have explicit size and fragment limits; durable state lives in artifacts. |
+| Reviewer diversity is supplementary | Distilled scientific-review personas are isolated, persisted as separate opinions, and aggregated by deterministic veto/abstention rules; they do not replace human validation. |
+
+For the detailed ownership split, installation, backend settings, and operating commands, continue below.
+
+## What is hard-coded vs agentic
+
+| Concern | Owner | Enforcement |
+|---|---|---|
+| Research framing and next-experiment idea | Codex | Read-only ephemeral thread plus strict JSON Schema |
+| Search-query design, relevance judgment, and related-work synthesis | Codex | Bounded records only; exact candidate/source IDs; no network or file writes |
+| Scholarly retrieval and canonical metadata verification | Python | Crossref and Semantic Scholar adapters, raw-response hashes, deduplication, quotas, and hard exclusions |
+| Literature acceptance and novelty gate | Human + Python | Exact review-ID confirmation; approval is bound to review, screening, and source hashes |
+| Stage graph and human gates | Python | Legal transition table |
+| Command, timeout, repeats, total budget | Python | Frozen execution contract |
+| File access | Python | `experiment/` containment, suffix and size allow-list |
+| Experiment process | Python | Per-run copy plus local or Docker runtime; no shell |
+| Secrets | Python | API-key and secret-like environment variables removed from child process |
+| Metrics and comparison | Python | Required numeric finite values and fixed direction/minimum delta |
+| Scientific memory | Python | Append-only evidence ledger; failures and negative results remain |
+| Code lineage | Python | Manual mode requires run-ID confirmation; run-loop auto-promotes only evaluator-verified improvements |
+| Source registry | Python | Explicit verification attestation plus hashes frozen into the contract manifest |
+| Numerical paper claims | Python | Structured claim values must exactly match valid run records |
+| Completion vs publication readiness | Python | Pipeline closure and publication blockers are reported separately |
+| Review root causes and claim ceiling | Python | Measurement dependence, counterfactual isolation, construct coverage, maturity, reporting, and telemetry are checked before routing |
+| Manuscript depth and official PDF finalization | Python | Journal/short-report profiles enforce total and section depth, paragraph/subsection coverage, citations, numeric grounding, references, and duplicate-paragraph limits; compilation occurs in staging and publishes only with a hash-bound manifest |
+| Publication target and 60% readiness contract | Python | Venue-first nine-dimensional score plus hard scientific vetoes; readiness and acceptance probability are stored and reported separately |
+
+In the intended system budget, roughly 65–75% of behavior is deterministic orchestration and validation, 20–25% is model reasoning/prompts, and 5–10% is CLI/configuration. Safety, budgets, metrics, state, and evidence are 100% code-owned.
+
+## Install
+
+PowerShell:
+
+```powershell
+& "C:\Users\austa\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe" -m venv .venv
+& .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+& .\.venv\Scripts\python.exe main.py doctor
+```
+
+The default Codex backend reuses the local ChatGPT/Codex login and explicitly blanks API-key variables in the Codex child process. It does not read `.env.local`. The ignored `.env.local` is used only when the optional API backend is selected.
+
+## Academic web interface
+
+The local interface is one academic work page with a two-option business selector. `I already have a project` is the default mode; the user can switch the same work area to `idea to paper` without navigating to another page:
+
+- **I have an idea** creates a durable idea-to-paper task and starts it at the evidence-bound discovery stage. The UI reports the real next gate instead of treating task creation as scientific validation.
+- **I already have a project** reads a local project folder, converges one paper-worthy contribution, runs the four-stage bundle loop, and separates idea verdict, paper readiness, internal audit, and publication readiness.
+
+```powershell
+Set-Location .\research-forge-ui
+pnpm install
+pnpm build
+Set-Location ..
 & .\.venv\Scripts\python.exe main.py web --open
 ```
 
-For an existing project:
+The server binds to `127.0.0.1:8765` by default and serves the built React interface plus both local APIs. Source-project inspection is read-only; project-bundle runs are written under `bundle_runs\`, while idea intakes are written under `idea_runs\`.
+
+## Model backend
+
+Codex is the default; no environment variable is required:
+
+```powershell
+& .\.venv\Scripts\python.exe main.py doctor
+```
+
+Planning and proposal turns use the Python Codex SDK with a read-only sandbox, denied approval escalation, strict output schema, and ephemeral threads. The beta SDK currently pins a Codex runtime that is compatible with `gpt-5.4`, so Research Forge uses that explicit default instead of inheriting a potentially newer local default. After upgrading the SDK/runtime, override it when desired:
+
+```powershell
+$env:RESEARCH_FORGE_CODEX_MODEL = "gpt-5.6"
+```
+
+The former Agents SDK path remains an explicit fallback. It is never selected automatically after a Codex failure:
+
+```powershell
+& .\.venv\Scripts\python.exe -m pip install -e ".[api]"
+$env:RESEARCH_FORGE_BACKEND = "api"
+$env:AUTORESEARCH_MODEL = "gpt-5.6-terra"
+```
+
+Only this fallback loads `OPENAI_API_KEY` from `.env.local`.
+
+## A complete first loop
 
 ```powershell
 $py = ".\.venv\Scripts\python.exe"
 
-& $py main.py bundle inspect "C:\path\to\project"
-& $py main.py bundle close-loop "C:\path\to\project" `
+& $py main.py init --name "stereo-ablation" --idea "Test whether geometry-aware augmentation improves transparent-object stereo depth"
+
+& $py main.py literature plan stereo-ablation `
+  --focus "Transparent-object stereo depth, geometry-aware augmentation, and strong public baselines"
+
+& $py main.py literature discover stereo-ablation `
+  --rows-per-query 20 `
+  --include 12 `
+  --from-year 2020
+
+& $py main.py literature screen stereo-ablation `
+  --max-candidates 40 `
+  --include 12
+
+& $py main.py literature synthesize stereo-ablation
+& $py main.py literature audit stereo-ablation
+
+# Read literature/review.md, then copy its exact review ID into the approval command.
+& $py main.py literature approve stereo-ablation `
+  --confirm "REVIEW_ID" `
+  --novelty "NOVELTY_ID" `
+  --note "Shortlist and bounded novelty map reviewed by the operator."
+
+& $py main.py plan stereo-ablation `
+  --message "Use the approved novelty map, one public dataset, one GPU, and a 24-hour first-study budget."
+
+& $py main.py literature audit stereo-ablation
+
+& $py main.py configure stereo-ablation `
+  --primary score `
+  --direction maximize `
+  --entrypoint run_experiment.py `
+  --timeout 3600 `
+  --max-runs 30 `
+  --required-repeats 1 `
+  --max-repeats 3
+
+& $py main.py freeze stereo-ablation
+& $py main.py baseline stereo-ablation
+& $py main.py propose stereo-ablation --focus "Choose the smallest high-information ablation."
+& $py main.py run stereo-ablation --proposal latest
+& $py main.py status stereo-ablation
+& $py main.py report stereo-ablation
+```
+
+## Existing project bundle to working paper
+
+Inspect without changing the source project:
+
+```powershell
+$py = ".\.venv\Scripts\python.exe"
+& $py main.py bundle inspect "C:\path\to\existing-project"
+```
+
+Close the four-stage evidence loop for the highest-ranked declared research track or, when none is complete, the automatically derived project-material track:
+
+```powershell
+& $py main.py bundle close-loop "C:\path\to\existing-project" `
   --output-root bundle_runs `
   --track auto
 ```
 
-The source folder remains read-only. The run snapshots only selected, supported resources and excludes credentials, `.env*`, private keys, virtual environments, package caches, build directories, and oversized files.
+The command does not copy `.env*`, credentials, private keys, build directories, virtual environments, or `node_modules`. It produces separate stage manifests, a frozen scope, a protocol/evidence boundary lock, an idea verdict, a claim registry, a working manuscript, a paper-expansion decision, an audit, and a hash-bound completion certificate. A completed working-paper loop is not automatically a usable full paper: derived materials without an exact experiment binding, retrospective evidence, mixed/inconclusive results, insufficient bound numeric evidence, and missing frozen literature remain explicit blockers.
 
-## 🔬 Four-stage loop
+The full-paper writer is a second, separately certified action. It unlocks only after a clean prospective idea verdict, exact protocol-output binding, at least 15 bound numeric results, and a manifest binding at least 15 explicitly verified paper records under `literature/sources/`:
 
-| Stage | Question | Durable result |
-|---|---|---|
-| **01 Discover** | What is the narrowest testable contribution? | Research boundary and resource manifest |
-| **02 Freeze** | What protocol, baseline, metrics, budget, and inputs define the test? | Immutable evidence contract |
-| **03 Validate** | What does the bound evidence actually say? | Independent `idea_verdict.json` |
-| **04 Synthesize** | What manuscript can that evidence support? | Claims, working paper, audit, and next blocker |
-
-```mermaid
----
-config:
-  theme: base
-  themeVariables:
-    background: '#ffffff'
-    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
-    git0: '#1d4ed8'
-    gitBranchLabel0: '#ffffff'
-    lineColor: '#94a3b8'
-  themeCSS: >-
-    .edge, [class*="edge-depth-"] { stroke: #94a3b8 !important; stroke-width: 2px !important; }
-    .mindmap-node rect, .mindmap-node path, .mindmap-node circle, .mindmap-node polygon { fill: #f8fafc !important; stroke: #cbd5e1 !important; stroke-width: 1px !important; }
-    .mindmap-node span { color: #111827 !important; }
-    .section-root rect, .section-root path, .section-root circle, .section-root polygon { fill: #1d4ed8 !important; stroke: #1d4ed8 !important; stroke-width: 2px !important; }
-    .section-root span { color: #ffffff !important; }
----
-mindmap
-  root((Forge))
-    Start
-      Project folder
-      Research idea
-    Local evidence
-      Code and tests
-      Data and metrics
-      Protocols and reports
-    01 Discover
-      Research boundary
-      Testable contribution
-    02 Freeze
-      Protocol and baseline
-      Metrics and input hashes
-    03 Validate
-      Bounded experiments
-      Independent idea verdict
-      Negative results
-    04 Synthesize
-      Evidence bound manuscript
-      Claim and depth audit
-    Scientific control
-      Nuwa scientist panel
-      Diagnostic owner
-      Failure ledger
-      Rollback
-    Runtime
-      Codex default
-      API optional
+```powershell
+& $py main.py bundle prepare-paper "C:\path\to\bundle_runs\RUN_ID"
+& $py main.py bundle expand-paper "C:\path\to\bundle_runs\RUN_ID"
+& $py main.py bundle audit-paper "C:\path\to\bundle_runs\RUN_ID"
 ```
 
-## 📦 What you get
+The writer returns structured prose, while the local renderer owns the bibliography and frozen numeric table. A separate audit checks 10,000-Chinese-character journal depth, citation resolution, numeric preservation, and verbatim conclusion binding. Passing this gate means a usable complete draft, not journal acceptance or publication approval.
+
+The Stage 1 workflow is required for scientific projects. `source add` remains available for manually verified datasets, software, specifications, or supplemental papers, but unapproved records are not shown to the research planner and are not frozen into the scientific evidence set. See [the Stage 1 literature workflow](docs/stage1-literature-workflow.md).
+
+If a terminal or machine stops during a run, `status` retains the active run ID. After confirming that the process is no longer running, close the interrupted attempt explicitly; it is recorded as invalid evidence rather than silently deleted:
+
+```powershell
+& $py main.py recover stereo-ablation --confirm ACTIVE_RUN_ID
+```
+
+If a candidate is valid and improves over the current best by more than `min_delta`, inspect its run directory and promote it explicitly:
+
+```powershell
+& $py main.py promote stereo-ablation RUN_ID --confirm RUN_ID
+& $py main.py synthesize stereo-ablation
+& $py main.py audit-synthesis stereo-ablation
+& $py main.py complete stereo-ablation
+```
+
+The repeated run ID is the human confirmation gate. Promotion copies only changed experiment files and the accepted parameter state. A pre-promotion snapshot remains under `lineage/`.
+
+## Simplified-Chinese manuscript localization
+
+After synthesis, generate a terminology plan and a derived `zh-CN` Markdown manuscript without
+changing `synthesis/manuscript.md`, the claim registry, the synthesis audit, or the completion
+certificate:
+
+```powershell
+& $py main.py terminology prepare stereo-ablation --language zh-CN
+& $py main.py localize stereo-ablation --language zh-CN
+& $py main.py audit-localization stereo-ablation --language zh-CN
+```
+
+Outputs are written under `synthesis/localized/zh-CN/`. The frozen `term-plan.json` records the
+source-manuscript hash, termbase hashes, contextual sense decisions, and provisional model choices.
+`manuscript.md`, `manifest.json`, and `audit.json` preserve block-level lineage and check protected
+numbers, citations, identifiers, Markdown headings, code blocks, and terminology consistency.
+
+Unknown terms do not block localization. They remain `provisional_model_choice` entries and are copied
+to `term-review.yaml`; they are never added to the persistent project termbase automatically. To keep
+an edited batch of approved translations for future runs, mark selected items `approved` and import it:
+
+```powershell
+& $py main.py terminology import stereo-ablation `
+  --language zh-CN `
+  --file "workspaces\stereo-ablation\synthesis\localized\zh-CN\term-review.yaml"
+```
+
+Bundled academic-writing, machine-learning, and AI-agent terminology is versioned with the package.
+Human-approved project entries live in `terminology/project.zh-CN.yaml` and take precedence over the
+bundled packs. A changed English manuscript or termbase invalidates the old plan, and `localize`
+automatically prepares a fresh one before generating the next derived manuscript.
+
+## Docker-isolated automatic loop
+
+Unattended operation uses two separate containers per trial. The candidate container receives only the experiment copy, parameter file, agent-visible `data/`, and one writable output directory. The evaluator container receives the protected evaluator, the candidate submission as a read-only file, and a different writable metrics directory. Neither container has network access; both use a read-only root filesystem, dropped Linux capabilities, `no-new-privileges`, and fixed CPU, memory, PID, timeout, temporary-storage, and accepted-file size limits.
+
+Install and start Docker first, then build and verify the frozen CPU ML environment:
+
+```powershell
+& .\.venv\Scripts\python.exe main.py benchmark build-env
+& .\.venv\Scripts\python.exe main.py benchmark doctor
+```
+
+`rf-airs-cpu:v1` pins the base-image digest plus exact versions and wheel hashes for NumPy, SciPy, pandas, scikit-learn, and all transitive dependencies. Doctor performs real imports and ML smoke tests inside the same isolated boundary used for experiments. The verified package map is recorded in each run and supplied to Codex as a hard capability manifest.
+
+Run the deterministic calibration loop:
+
+```powershell
+$py = ".\.venv\Scripts\python.exe"
+& $py main.py benchmark run-loop rf-quadratic-max `
+  --strategy grid `
+  --runtime docker `
+  --seeds 0,1,2 `
+  --iterations 3
+```
+
+Run the real Codex proposal path on an activated AIRS-lite task pack:
+
+```powershell
+& $py main.py benchmark run-loop "PATH_TO_TASK_PACK" `
+  --strategy codex `
+  --runtime docker `
+  --seeds 0,1,2 `
+  --iterations 10 `
+  --candidate-pool-size 3 `
+  --proposal-attempts-per-iteration 6 `
+  --patience 5
+```
+
+The controller, not Codex, diagnoses the evidence ledger, rejects equivalent target states, fills a three-candidate pool with contract-valid proposals bound to the current canonical-state fingerprint, ranks the pool by information value, executes one candidate, validates metrics, auto-promotes only a valid improvement, and stops on target, iteration budget, invalid-run budget, proposal-space exhaustion, or non-improvement patience. After promotion it recomputes every pending target against the new canonical state: invariant targets are revalidated, while targets that drift are discarded before the pool is refilled. It persists `loop_state.json` and `loop_events.jsonl` before side effects. If the process stops between selection, execution, and promotion, `--resume OUTPUT_DIRECTORY` reconciles or recovers the recorded run instead of silently repeating it.
+
+For development without Docker, pass `--runtime local`. Such reports remain `publishable: false` even when every artifact-integrity check passes.
+
+## Experiment interface
+
+The configured Python entrypoint receives:
 
 ```text
-bundle_runs/<run-id>/
-  stage_1_discovery/       # selected resources and research boundary
-  stage_2_protocol/        # frozen protocol/evidence lock
-  stage_3_experimentation/ # idea_verdict.json and bound results
-  stage_4_synthesis/       # claims, manuscript, expansion plan, audits
-  completion_certificate.json
+--params  <JSON file containing the canonical parameters plus proposal overrides>
+--metrics <path where the experiment must write a JSON object>
 ```
 
-| Signal | Meaning |
-|---|---|
-| `pilot_draft_generated=true` | The four-stage diagnostic loop closed. It does not mean the paper is ready. |
-| `paper_expansion_plan.ready=true` | The idea, protocol-output binding, numeric evidence, and verified literature passed the expansion gate. |
-| `paper_draft_ready=true` | The expanded manuscript passed depth, citation, numeric-preservation, and conclusion-binding audits. |
-| `publication_ready=true` | External novelty review, independent human review, venue formatting, authorship, and submission approval are complete. |
+It may read `AUTORESEARCH_PROJECT_DIR` and `AUTORESEARCH_RUN_DIR`. The metrics file must contain the frozen primary metric and every frozen required metric as finite numbers. Stdout text is never parsed as scientific evidence.
 
-Full-paper expansion requires a clean prospective idea verdict, exact protocol-output binding, at least 15 bound numeric results, and at least 15 frozen verified papers. See the [project-bundle workflow](docs/project-bundle-workflow.md).
+The generated `run_experiment.py` is only a smoke-test fixture. Replace it with your real train/evaluate wrapper before freezing the first real project.
 
-## ✅ Verified record
+## Project artifacts
 
-The first protected closed-loop study is pipeline-complete under frozen protocol `stage2-22e124e44294`:
+```text
+workspaces/<project>/
+  project.json
+  state.json
+  research_contract.json       # immutable after freeze
+  execution_contract.json      # immutable after freeze
+  literature_manifest.json     # immutable source registry digest
+  frozen_manifest.json
+  current_parameters.json
+  experiment/                  # canonical promoted implementation
+  literature/search_plans/     # bounded Codex-generated query strategies
+  literature/discoveries/      # normalized candidates plus hashed raw API responses
+  literature/screening.json    # exact one-decision-per-candidate screening record
+  literature/review.json       # typed related-work and novelty map
+  literature/review.md         # human-readable review surface
+  literature/approval.json     # exact review-ID human gate
+  literature/stage1_manifest.json # hashes the complete approved Stage 1 chain
+  literature/sources/          # verified source metadata selected by Stage 1
+  plans/                       # research contract drafts plus evidence bindings
+  plan_evidence_binding.json   # latest plan -> review hash -> approved source IDs
+  proposals/
+  runs/<run-id>/               # copied code, trials, logs, metrics, record
+  evidence.jsonl               # append-only scientific ledger
+  lineage.jsonl                # append-only promotion ledger
+  events.jsonl                 # state transition ledger
+  report.md
+  synthesis/claims.json        # structured claim-to-run/source bindings
+  synthesis/manuscript.md      # deterministic evidence-bound draft
+  synthesis/audit.json         # integrity and publication-readiness checks
+  completion_certificate.json  # hashes the completed four-stage artifact set
+```
 
-| Evidence | Result |
-|---|---|
-| Literature | 138 normalized candidates → 22 exact screens → 12 verified papers |
-| Experiment | 18 protected evaluations across paired baseline and treatment cells |
-| Unsupported-claim rate | `30.56%` baseline → `8.33%` treatment |
-| Cost | Treatment runtime was `65.90%` higher |
-| Honest boundary | Human validation remains deferred; the paper is not publication-ready |
+## Current boundary
 
-Read the [Stage 1 record](docs/real-stage1-2026-07-17.md), [protected evaluation](docs/stage2-protected-evaluation-2026-07-18.md), and [Stage 4 closure record](docs/stage4-provisional-closed-loop-2026-07-18.md).
+This is a runnable MVP, not yet a universal autonomous scientist. Stage 1 now queries real Crossref and Semantic Scholar metadata, verifies canonical identifiers, records raw responses, performs bounded semantic screening, and creates a source-bound novelty map. It does not treat metadata/abstract review as full-paper review or proof of novelty, and it cannot approve its own shortlist. It deliberately does not let an agent install packages, launch an application-owned shell, change evaluators, or mutate literature records directly. The next safe expansions are full-text acquisition and extraction, dataset adapters, GPU/process monitoring, statistical comparison policies, and bounded prose generation whose claims remain subordinate to the claim registry.
 
-## 📚 Documentation
+The local Windows runtime is **not an OS sandbox**. Use it only for trusted fixtures or development. The Docker runtime is the unattended boundary for tasks with a separate evaluator, but it is still a local benchmark harness rather than AIRS's official leaderboard container protocol. The state store is designed for one local CLI process at a time and must not be run concurrently; it does not yet use a cross-process file lock. Post-run consistency gates reject proposal-journal/file mismatches if an external launcher violates this rule.
 
-| Guide | Use it for |
-|---|---|
-| [Project-bundle workflow](docs/project-bundle-workflow.md) | Turn an existing folder into an evidence-bound working paper |
-| [Four-stage contract](docs/four-stage-closed-loop.md) | Stage ownership, transitions, and rollback rules |
-| [Stage 1 literature workflow](docs/stage1-literature-workflow.md) | Search, verification, novelty mapping, and human approval |
-| [Publication-readiness contract](docs/publication-readiness-contract.md) | Venue targeting and scientific hard gates |
-| [RF-Bench](docs/benchmark.md) | Deterministic and Codex-driven benchmark loops |
-| [Design notes](docs/design-notes.md) | Architecture decisions and borrowed patterns |
+## RF-Bench quick start
 
-Run `python main.py --help` for the complete CLI, including literature, experiment, synthesis, localization, venue, recovery, and benchmark commands.
+```powershell
+$py = ".\.venv\Scripts\python.exe"
+& $py main.py benchmark list
+& $py main.py benchmark run rf-quadratic-max --strategy grid --seed 0 --seed 1 --seed 2 --iterations 3
+& $py main.py benchmark run rf-quadratic-max --strategy codex --seed 0 --iterations 3
+& $py main.py benchmark run-loop rf-quadratic-max --strategy grid --runtime local --seeds 0,1,2 --iterations 3
+```
 
-## 中文简介
+The grid strategy calibrates the harness without an LLM. The Codex strategy exercises the real proposal path. Reports without an enforced container boundary are correctly marked non-publishable even when all local integrity checks pass.
 
-<details>
-<summary><strong>展开中文说明</strong></summary>
-
-Research Forge 默认从一个本地项目文件夹开始：只读分析代码、数据、协议、测试和报告，自动收敛可验证的论文方向，再依次完成发现、冻结、验证和综合四个阶段。
-
-它的核心不是“无论如何都写出一篇论文”，而是先回答两个彼此独立的问题：
-
-1. 这个想法是否被项目证据支持？
-2. 当前证据是否足以生成一篇合格论文？
-
-如果想法成立但论文失败，责任落在证据包装、文献或写作阶段；如果想法本身不成立，则不会用更漂亮的文字掩盖失败。故障账本会定位最早可预防阶段，补证据后只重跑受影响的下游步骤。
-
-人格化科学家面板用于补充审核，不冒充真人或跨模型独立评审。Codex 负责受约束的推理，确定性程序负责证据、门禁、预算、溯源和副作用。
-
-</details>
-
----
-
-Research Forge is a runnable research-engineering MVP—not a universal autonomous scientist. A completed pipeline is not the same as a publishable paper.
+See [docs/design-notes.md](docs/design-notes.md) for the patterns borrowed from other research agents and [docs/prompt.md](docs/prompt.md) for the prompt/control split.

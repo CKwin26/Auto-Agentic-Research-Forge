@@ -70,3 +70,25 @@ def test_finalization_publishes_pdf_and_hash_manifest_only_after_compile(
     assert (tmp_path / f"{source.stem}.finalization.json").is_file()
     assert result["source_sha256"]
     assert result["pdf_sha256"]
+
+
+def test_publication_pdf_requires_release_readiness_before_depth_or_compiler(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "project" / "synthesis" / "publication_manuscript.tex"
+    source.parent.mkdir(parents=True)
+    source.write_text("\\documentclass{article}\\begin{document}x\\end{document}", encoding="utf-8")
+    compiler_called = False
+
+    def unexpected_run(*args: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
+        nonlocal compiler_called
+        compiler_called = True
+        raise AssertionError("compiler must not run when the release order fails")
+
+    monkeypatch.setattr("research_forge.manuscript_compile.subprocess.run", unexpected_run)
+
+    with pytest.raises(ValueError, match="publication release order"):
+        finalize_manuscript_pdf(source, output_dir=tmp_path / "out")
+
+    assert compiler_called is False

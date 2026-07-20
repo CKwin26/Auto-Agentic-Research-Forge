@@ -21,6 +21,8 @@ MANUSCRIPT = ROOT / "output" / "pdf" / "research-agent-evidence-v4-paper-en.tex"
 PROJECT = ROOT / "stage1_runs" / "research-agent-evidence-v2"
 VENUE = "research-integrity-and-peer-review"
 VENUE_REPORT = PROJECT / "synthesis" / "venue_recommendation.json"
+PUBLICATION_PROJECT = ROOT / "stage1_runs" / "research-agent-evidence-publication-v1"
+PUBLICATION_MANUSCRIPT = PUBLICATION_PROJECT / "synthesis" / "publication_manuscript.md"
 
 
 def _target(tmp_path: Path, *, threshold: float = 0.60):
@@ -73,6 +75,30 @@ def test_readiness_threshold_never_changes_acceptance_probability(tmp_path: Path
     assert low.score_threshold_passed is True
     assert low.hard_gate_passed is False
     assert low.publication_submission_ready is False
+
+
+def test_frozen_cross_family_calibration_passes_automated_measurement_only(tmp_path: Path) -> None:
+    target, target_path = create_publication_target(
+        PUBLICATION_MANUSCRIPT,
+        project=PUBLICATION_PROJECT,
+        venue_id=VENUE,
+        contract_path=tmp_path / "publication-target.json",
+    )
+    report = audit_publication_readiness(
+        target,
+        manuscript=PUBLICATION_MANUSCRIPT,
+        project=PUBLICATION_PROJECT,
+        contract_path=target_path,
+    )
+    independent = next(item for item in report.dimensions if item.id == "independent_validation")
+
+    assert independent.score == pytest.approx(0.80)
+    assert independent.status == "meets_target"
+    assert "READINESS-INDEPENDENT-VALIDATION-BELOW-HARD-MINIMUM" not in {
+        item.code for item in report.hard_blockers
+    }
+    assert report.human_gate_pending is True
+    assert report.publication_submission_ready is False
 
 
 def test_frozen_target_requires_explicit_replacement(tmp_path: Path) -> None:
@@ -206,12 +232,29 @@ def test_strict_venue_recommendation_freezes_pre_experiment_hard_gates(tmp_path:
             "tasks": [{"task_id": f"task-{index}"} for index in range(8)],
             "seeds": [0, 1, 2, 3, 4],
             "primary_metric": "unsupported_claim_rate",
-            "secondary_metrics": [
-                "claim_retention",
-                "semantic_change_type",
-                "scientific_informativeness",
-            ],
-        },
+                "secondary_metrics": [
+                    "claim_retention",
+                    "semantic_change_type",
+                    "scientific_informativeness",
+                ],
+                "secondary_evaluator_contract": "design_revisions/secondary_evaluator_contract.json",
+                "evidence_gate_specification": {
+                    "claim_extraction_prompt_sha256": "a" * 64,
+                    "evidence_matching_prompt_sha256": "b" * 64,
+                    "decision_policy": "reject_revise_recheck_once_then_remove",
+                    "allowed_actions": ["retain", "revise", "remove", "abstain"],
+                    "decision_trace_schema": "study_gate_trace.v1",
+                },
+                "construct_analysis_requirements": [
+                    "claim_retention_deletion",
+                    "semantic_change_distribution",
+                    "informativeness_usefulness",
+                    "per_task_effects",
+                ],
+                "telemetry_contract": {
+                    "wall_clock_definition": "active_attempt_seconds",
+                },
+            },
         root_cause_report={"findings": []},
         novelty_refresh_present=True,
     )

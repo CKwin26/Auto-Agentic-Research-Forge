@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "project_id": "tabular-imputation-replication",
+  "title": "Median-imputation replication for tabular classification",
+  "research_type": "machine-learning-replication",
+  "research_question": "Under a fixed train-test split and classifier family, does median imputation improve stability and accuracy relative to complete-case preprocessing?",
+  "evidence_mode": "computational",
+  "publication_intent": "working_paper",
+  "project_inputs": [
+    "data/",
+    "experiment/",
+    "literature/"
+  ]
+}

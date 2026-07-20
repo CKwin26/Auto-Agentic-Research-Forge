@@ -54,7 +54,7 @@
 
 冻结样本：
 
-- `%USERPROFILE%\.research-forge-blind\stage2-22e124e44294\manual-audit\sample.json`
+- `C:\Users\austa\.research-forge-blind\stage2-22e124e44294\manual-audit\sample.json`
 - SHA-256：`0ef6aff20a330b8e247554971f58999c85290726a949005becc8feffbb30ef6e`
 - 48 条 claim；每个 task × arm 分层抽取 8 条。
 - 因预注册的 unsupported 配额 24 条无法满足，样本按停止规则纳入全部 14 条 evaluator-unsupported claim，并以 34 条其他 claim 补足 48 条。

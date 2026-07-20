@@ -142,3 +142,59 @@ def test_independent_content_matched_design_can_clear_publication_gate() -> None
     assert report.publication_submission_ready
     assert report.maximum_claim_tier == "bounded_causal_effect"
     assert not [item for item in report.findings if item.severity.value == "critical"]
+
+
+def test_deferred_human_audit_can_pass_the_automated_publication_gate_only() -> None:
+    """Human pending must not be relabelled as submission ready or block automation."""
+    plan, protocol, _backbone, _analysis = _current_design()
+    plan["method_outline"] = [
+        "Branch both conditions from identical run artifacts.",
+        "Report all nine raw pairs and leave-one-task-out sensitivity.",
+    ]
+    plan["metrics"] = [
+        {"name": "unsupported_claim_rate"},
+        {"name": "semantic_change_type"},
+        {"name": "informativeness"},
+        {"name": "wall_clock_runtime_seconds"},
+        {"name": "model_call_count"},
+        {"name": "token_usage"},
+    ]
+    protocol.update(
+        {
+            "protected_evaluator": "external_evaluator",
+            "treatment_gate": "codex_gate",
+            "counterfactual_source": "shared_run_artifact",
+            "secondary_metrics": [
+                "semantic_change_type",
+                "informativeness",
+                "wall_clock_runtime_seconds",
+                "model_call_count",
+                "token_usage",
+            ],
+            "cells": [
+                {"arm": arm, "task_id": "task", "seed": seed}
+                for seed in (0, 1, 2)
+                for arm in ("baseline", "treatment")
+            ],
+        }
+    )
+    report = analyze_root_causes(
+        project_name="fixture",
+        plan=plan,
+        protocol=protocol,
+        backbone={"model": "codex:gpt-test"},
+        analysis={
+            "analysis_status": "protected_independent_nli_complete_human_audit_pending",
+            "human_validation": "deferred",
+            "primary_analysis_interpretable": False,
+        },
+        target=ReviewTarget.PUBLICATION,
+    )
+
+    assert report.gate_passed
+    assert report.automated_publication_gate_passed
+    assert report.human_gate_pending
+    assert not report.publication_submission_ready
+    assert report.predicted_editorial_outcome == "automated_gate_passed_human_validation_pending"
+    maturity = next(item for item in report.findings if item.code == "RC-MATURITY-TARGET-MISMATCH")
+    assert maturity.severity.value == "medium"

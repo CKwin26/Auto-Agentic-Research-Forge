@@ -98,6 +98,21 @@ def _verify_codex_backbone(backbone: Stage2BackboneManifest) -> None:
         raise ValueError("current openai-codex SDK differs from the frozen Stage 2 version")
     if status.get("codex_account_type") != backbone.codex_account_type:
         raise ValueError("current Codex account type differs from the frozen Stage 2 binding")
+    if status.get("provider_name") != backbone.provider_name:
+        raise ValueError("current Codex provider differs from the frozen Stage 2 binding")
+    if status.get("provider_base_url") != backbone.provider_base_url:
+        raise ValueError("current Codex provider base URL differs from the frozen Stage 2 binding")
+    if status.get("provider_config_hash") != backbone.provider_config_hash:
+        raise ValueError("current Codex provider config differs from the frozen Stage 2 binding")
+    if status.get("codex_account_type") != backbone.credential_mode:
+        raise ValueError("current Codex credential mode differs from the frozen Stage 2 binding")
+    if (
+        status.get("provider_billing_contract_hash")
+        != backbone.provider_billing_contract_hash
+    ):
+        raise ValueError("current provider billing contract differs from the frozen binding")
+    if status.get("provider_billing_group") != backbone.provider_billing_group:
+        raise ValueError("current provider billing group differs from the frozen binding")
 
 
 def _controller_output(backbone: Stage2BackboneManifest, cell: Stage2Cell) -> Path | None:
@@ -291,10 +306,67 @@ def _finalizer_prompt(
     return json.dumps(payload, ensure_ascii=False, indent=2), experiment_packet
 
 
+def _canonical_finalizer_metric_values(
+    claim: object,
+    experiment_packet: list[dict[str, object]] | None,
+    *,
+    normalization_log: list[dict[str, object]] | None = None,
+) -> dict[str, float]:
+    grouped: dict[str, list[float]] = {}
+    for item in getattr(claim, "metric_values"):
+        grouped.setdefault(item.name, []).append(float(item.value))
+    experiment_run_id = getattr(claim, "experiment_run_id")
+    experiments = {
+        str(item.get("run_id")): item for item in (experiment_packet or [])
+    }
+    expected = _verifiable_metric_values(experiments.get(experiment_run_id or ""))
+    resolved: dict[str, float] = {}
+    for name, values in grouped.items():
+        unique: list[float] = []
+        for value in values:
+            if not any(math.isclose(value, prior, rel_tol=1e-12, abs_tol=1e-12) for prior in unique):
+                unique.append(value)
+        if len(unique) == 1:
+            resolved[name] = unique[0]
+            continue
+        expected_value = expected.get(name)
+        matches = (
+            [
+                value
+                for value in unique
+                if math.isclose(value, expected_value, rel_tol=1e-12, abs_tol=1e-12)
+            ]
+            if expected_value is not None
+            else []
+        )
+        if len(matches) != 1:
+            raise ValueError(
+                f"conflicting finalizer metric {name!r} cannot be uniquely resolved "
+                "from the linked protected experiment run"
+            )
+        resolved[name] = matches[0]
+        if normalization_log is not None:
+            normalization_log.append(
+                {
+                    "claim_id": getattr(claim, "claim_id"),
+                    "experiment_run_id": experiment_run_id,
+                    "metric_name": name,
+                    "action": "retain_unique_value_matching_linked_protected_run",
+                    "retained_value": matches[0],
+                    "removed_cross_run_values": [value for value in unique if value != matches[0]],
+                    "claim_text_changed": False,
+                }
+            )
+    return resolved
+
+
 def _registry_from_output(
     protocol: Stage2Protocol,
     cell: Stage2Cell,
     output: object,
+    experiment_packet: list[dict[str, object]] | None = None,
+    *,
+    normalization_log: list[dict[str, object]] | None = None,
 ) -> StudyClaimRegistry:
     run_id = f"agent-{cell.cell_id}"
     draft_claims = getattr(output, "claims")
@@ -309,7 +381,11 @@ def _registry_from_output(
             claim_text=claim.claim_text,
             source_ids=claim.source_ids,
             experiment_run_id=claim.experiment_run_id,
-            metric_values={item.name: item.value for item in claim.metric_values},
+            metric_values=_canonical_finalizer_metric_values(
+                claim,
+                experiment_packet,
+                normalization_log=normalization_log,
+            ),
             artifact_paths=claim.artifact_paths,
         )
         for claim in draft_claims
@@ -406,17 +482,30 @@ def audit_registry_structure(
             experiment = experiments.get(claim.experiment_run_id or "")
             checks["run_id_present"] = bool(claim.experiment_run_id)
             checks["run_resolves"] = experiment is not None
-            checks["run_valid"] = bool(experiment and experiment.get("valid") is True)
+            run_valid = bool(experiment and experiment.get("valid") is True)
+            run_invalid = bool(experiment and experiment.get("valid") is False)
+            checks["run_status_present"] = run_valid or run_invalid
             checks["run_isolated"] = bool(
                 experiment and experiment.get("isolation_verified") is True
             )
-            checks["metrics_present"] = bool(claim.metric_values)
-            expected_metrics = _verifiable_metric_values(experiment)
-            checks["metrics_exact"] = bool(claim.metric_values) and all(
-                name in expected_metrics
-                and math.isclose(value, float(expected_metrics[name]), rel_tol=1e-12, abs_tol=1e-12)
-                for name, value in claim.metric_values.items()
-            )
+            if run_valid:
+                checks["metrics_present"] = bool(claim.metric_values)
+                expected_metrics = _verifiable_metric_values(experiment)
+                checks["metrics_exact"] = bool(claim.metric_values) and all(
+                    name in expected_metrics
+                    and math.isclose(
+                        value,
+                        float(expected_metrics[name]),
+                        rel_tol=1e-12,
+                        abs_tol=1e-12,
+                    )
+                    for name, value in claim.metric_values.items()
+                )
+            else:
+                checks["invalid_status_stated"] = run_invalid and (
+                    "invalid" in claim.claim_text.casefold()
+                )
+                checks["invalid_metrics_absent"] = run_invalid and not claim.metric_values
             allowed_artifacts = set(experiment.get("artifacts", [])) if experiment else set()
             checks["artifacts_present"] = bool(claim.artifact_paths)
             checks["artifacts_allowed"] = bool(claim.artifact_paths) and set(
@@ -444,7 +533,7 @@ def audit_registry_structure(
     }
 
 
-STUDY_ORCHESTRATION_VERSION = "prospective-shared-artifact-pairs-v6"
+STUDY_ORCHESTRATION_VERSION = "prospective-shared-artifact-pairs-v8"
 STUDY_ORCHESTRATION_FILES = ("study_runner.py", "study_models.py")
 
 
@@ -530,6 +619,39 @@ def _normalize_registry_artifacts(
         normalized = claim.model_copy(deep=True)
         if claim.claim_type == StudyClaimType.EXPERIMENT:
             experiment = experiments.get(claim.experiment_run_id or "")
+            # Experiment provenance is carried exclusively by the protected run
+            # identifier and artifact paths.  Source IDs are literature-only;
+            # removing them here prevents a model from treating a run ID as a
+            # citation while preserving the exact empirical evidence binding.
+            if normalized.source_ids:
+                removed_sources = list(normalized.source_ids)
+                normalized.source_ids = []
+                changes.append(
+                    {
+                        "claim_id": claim.claim_id,
+                        "normalization": "remove_experiment_source_ids",
+                        "removed_source_ids": removed_sources,
+                        "claim_text_changed": False,
+                        "metric_values_changed": False,
+                    }
+                )
+            # A valid-run conclusion is only evidence-bearing when it declares
+            # exact protected metrics.  Model-produced status-only claims add no
+            # independent result, cannot satisfy the registry contract, and are
+            # removed deterministically instead of making a formal pair depend
+            # on stochastic finalizer phrasing.  Invalid-run limitation claims
+            # are intentionally retained and audited by their separate rule.
+            if experiment and experiment.get("valid") is True and not claim.metric_values:
+                changes.append(
+                    {
+                        "claim_id": claim.claim_id,
+                        "normalization": "drop_metricless_valid_experiment_claim",
+                        "reason": "valid experiment conclusions require exact protected metrics",
+                        "claim_text_changed": True,
+                        "metric_values_changed": False,
+                    }
+                )
+                continue
             allowed = set(experiment.get("artifacts", [])) if experiment else set()
             kept = [path for path in claim.artifact_paths if path in allowed]
             removed = [path for path in claim.artifact_paths if path not in allowed]
@@ -726,7 +848,18 @@ async def _revise_registry(
         instructions=(stage2 / "prompts" / "study_gate_reviser.md").read_text(encoding="utf-8"),
         cwd=cwd,
     )
-    revised = _registry_from_output(protocol, cell, output)
+    metric_normalizations: list[dict[str, object]] = []
+    revised = _registry_from_output(
+        protocol,
+        cell,
+        output,
+        experiment_packet,
+        normalization_log=metric_normalizations,
+    )
+    write_json_atomic(
+        _cell_dir(stage2, cell) / "revision_metric_normalization.json",
+        {"schema_version": 1, "changes": metric_normalizations},
+    )
     _validate_revision(gate_input, revised, first_pass)
     return revised
 
@@ -860,7 +993,14 @@ async def _ensure_publication_shared_pair(
             ),
             cwd=benchmark_project,
         )
-        raw_registry = _registry_from_output(protocol, baseline_cell, finalizer)
+        metric_normalizations: list[dict[str, object]] = []
+        raw_registry = _registry_from_output(
+            protocol,
+            baseline_cell,
+            finalizer,
+            experiment_packet,
+            normalization_log=metric_normalizations,
+        )
         registry, normalizations = _normalize_registry_artifacts(
             raw_registry, experiment_packet
         )
@@ -872,6 +1012,7 @@ async def _ensure_publication_shared_pair(
                 "source_registry_id": raw_registry.registry_id,
                 "shared_registry_id": registry.registry_id,
                 "changes": normalizations,
+                "metric_changes": metric_normalizations,
                 "claim_text_changed": False,
                 "model_called_again": False,
             },
@@ -1109,7 +1250,18 @@ async def _run_baseline_cell(
             instructions=(stage2 / "prompts" / "study_finalizer.md").read_text(encoding="utf-8"),
             cwd=benchmark_project,
         )
-        registry = _registry_from_output(protocol, cell, finalizer)
+        metric_normalizations: list[dict[str, object]] = []
+        registry = _registry_from_output(
+            protocol,
+            cell,
+            finalizer,
+            experiment_packet,
+            normalization_log=metric_normalizations,
+        )
+        write_json_atomic(
+            cell_dir / "finalizer_metric_normalization.json",
+            {"schema_version": 1, "changes": metric_normalizations},
+        )
         write_json_atomic(cell_dir / "initial_registry.json", registry)
         write_json_atomic(registry_path, registry)
 
@@ -1460,8 +1612,21 @@ async def _run_treatment_cell(
             ),
             cwd=benchmark_project,
         )
+        metric_normalizations: list[dict[str, object]] = []
         initial = _unblind_treatment_registry_artifacts(
-            _registry_from_output(protocol, cell, finalizer), cell, protocol
+            _registry_from_output(
+                protocol,
+                cell,
+                finalizer,
+                experiment_packet,
+                normalization_log=metric_normalizations,
+            ),
+            cell,
+            protocol,
+        )
+        write_json_atomic(
+            cell_dir / "finalizer_metric_normalization.json",
+            {"schema_version": 1, "changes": metric_normalizations},
         )
         write_json_atomic(initial_path, initial)
 

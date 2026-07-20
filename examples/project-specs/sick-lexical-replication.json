@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "project_id": "sick-lexical-replication",
+  "title": "Lexical naive-Bayes replication on SICK textual inference",
+  "research_type": "natural-language-inference-baseline",
+  "research_question": "On the frozen SICK train/test split, does a transparent lexical naive-Bayes classifier outperform the majority-label baseline under the protected accuracy evaluator?",
+  "evidence_mode": "computational",
+  "publication_intent": "working_paper",
+  "project_inputs": [
+    "data/train.jsonl",
+    "data/test.jsonl",
+    "evaluator/evaluate.py"
+  ]
+}

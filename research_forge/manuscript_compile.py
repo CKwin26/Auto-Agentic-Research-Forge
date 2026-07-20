@@ -60,6 +60,31 @@ def _resolve_compiler(source: Path, engine: str, language: str) -> tuple[str, st
     )
 
 
+def _publication_pdf_gate(source: Path, readiness_path: str | Path | None) -> dict[str, object] | None:
+    """Apply the canonical release sequence to publication-matrix PDFs.
+
+    Generic manuscripts retain the standalone depth gate.  The canonical
+    publication source has a stricter project-aware gate so a direct compiler
+    invocation cannot bypass experiment completion and readiness review.
+    """
+    if source.name != "publication_manuscript.tex" or source.parent.name != "synthesis":
+        return None
+    from .publication_synthesis import publication_layout_gate
+
+    project = source.parent.parent
+    readiness = (
+        Path(readiness_path).resolve()
+        if readiness_path is not None
+        else source.parent / "publication_readiness.json"
+    )
+    if not readiness.is_file():
+        raise ValueError(
+            "final PDF blocked by publication release order: a fixed-venue "
+            "publication_readiness.json is required"
+        )
+    return publication_layout_gate(readiness, project=project)
+
+
 def finalize_manuscript_pdf(
     path: str | Path,
     *,
@@ -70,6 +95,7 @@ def finalize_manuscript_pdf(
     passes: int = 2,
     report_path: str | Path | None = None,
     manifest_path: str | Path | None = None,
+    readiness_path: str | Path | None = None,
 ) -> dict[str, object]:
     """Compile a final PDF only after the deterministic manuscript gate passes.
 
@@ -84,6 +110,8 @@ def finalize_manuscript_pdf(
         raise FileNotFoundError(f"manuscript not found: {source}")
     if passes < 1 or passes > 4:
         raise ValueError("compiler passes must be between 1 and 4")
+
+    release_gate = _publication_pdf_gate(source, readiness_path)
 
     destination_dir = (
         Path(output_dir).resolve() if output_dir is not None else source.parent
@@ -185,6 +213,8 @@ def finalize_manuscript_pdf(
         "pdf": str(destination_pdf),
         "pdf_sha256": _sha256(destination_pdf),
     }
+    if release_gate is not None:
+        manifest["publication_release_gate"] = release_gate
     _write_json(finalization_manifest, manifest)
     manifest["manifest"] = str(finalization_manifest)
     manifest["manifest_sha256"] = _sha256(finalization_manifest)

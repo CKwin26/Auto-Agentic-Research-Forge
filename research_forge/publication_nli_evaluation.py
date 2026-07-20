@@ -15,12 +15,11 @@ from .counterfactual_rebranch import (
     _evidence_chunks,
     _semantic_change_proxy,
 )
-from .models import utc_now
-from .storage import read_json, sha256_file, write_json_atomic
+from .models import RunRecord, utc_now
+from .storage import read_json, safe_relative, sha256_file, write_json_atomic
 from .study import audit_stage2_protocol
 from .study_models import StudyClaimRegistry
 from .study_runner import (
-    _cell_experiment_packet,
     _claim_evidence_packets,
     audit_registry_structure,
     audit_stage2_baseline,
@@ -30,7 +29,15 @@ from .study_runner import (
 
 EVALUATOR_ID = "external_evaluator_cross_family_deberta_v3_nli"
 RESULT_DIRNAME = "protected_nli_evaluation"
-IMPLEMENTATION_VERSION = "publication-nli-v1"
+IMPLEMENTATION_VERSION = "publication-nli-v3"
+
+
+def _implementation_contract_path(project: Path, protocol: dict[str, object]) -> Path:
+    """Keep evaluator freezes immutable across successor protocol revisions."""
+    revision = int(protocol.get("protocol_revision", 0))
+    if revision <= 0:
+        raise ValueError("protected NLI protocol is missing a positive revision")
+    return project / "design_revisions" / f"protected_nli_implementation_contract_r{revision}.json"
 
 
 def _stable_hash(value: object) -> str:
@@ -67,6 +74,70 @@ def _verdict_from_scores(
     }
 
 
+def _publication_cell_experiment_packet(
+    project: Path, stage2: Path, cell_dir: Path
+) -> list[dict[str, object]]:
+    """Load only the hash-bound shared evidence assigned to a formal branch.
+
+    Publication branches deliberately do not duplicate evidence.  Resolving the
+    exact shared pair here prevents a branch from selecting an arbitrary sibling
+    artifact while keeping the evidence-location rule inside the frozen evaluator.
+    """
+    binding_path = cell_dir / "shared_artifact_binding.json"
+    if not binding_path.is_file():
+        raise ValueError(f"publication branch is missing shared evidence binding: {cell_dir}")
+    binding = read_json(binding_path)
+    protocol = read_json(stage2 / "protocol.json")
+    if binding.get("protocol_id") != protocol.get("protocol_id"):
+        raise ValueError("publication shared binding belongs to a different protocol")
+    relative_registry = str(binding.get("shared_registry_path", ""))
+    registry_path = safe_relative(project, relative_registry)
+    if registry_path.name != "shared_registry.json" or not registry_path.is_file():
+        raise ValueError(f"publication shared registry is unavailable: {relative_registry}")
+    if sha256_file(registry_path) != binding.get("shared_registry_sha256"):
+        raise ValueError("publication shared registry hash does not match branch binding")
+    pair_dir = registry_path.parent
+    if pair_dir.parent.parent != stage2 / "shared":
+        raise ValueError("publication shared registry path is outside the frozen pair root")
+    pair_manifest_path = pair_dir / "pair_manifest.json"
+    if not pair_manifest_path.is_file():
+        raise ValueError("publication shared pair manifest is missing")
+    pair_manifest = read_json(pair_manifest_path)
+    if pair_manifest.get("pair_key") != binding.get("pair_key"):
+        raise ValueError("publication shared pair key does not match branch binding")
+    evidence_root = pair_dir / "evidence"
+    if not evidence_root.is_dir():
+        raise ValueError("publication shared evidence root is missing")
+
+    packet: list[dict[str, object]] = []
+    for run_dir in sorted(path for path in evidence_root.iterdir() if path.is_dir()):
+        record_path = run_dir / "record.json"
+        if not record_path.is_file():
+            continue
+        record = RunRecord.model_validate(read_json(record_path))
+        artifacts = [record_path.relative_to(project).as_posix()]
+        artifacts.extend(
+            path.relative_to(project).as_posix()
+            for path in sorted(run_dir.glob("trial-*-metrics.json"))
+        )
+        packet.append(
+            {
+                "run_id": record.run_id,
+                "is_baseline": record.is_baseline,
+                "valid": record.valid,
+                "verdict": record.verdict,
+                "aggregate_metrics": record.aggregate_metrics,
+                "metric_stddev": record.metric_stddev,
+                "improvement": record.improvement,
+                "isolation_verified": record.isolation_verified,
+                "artifacts": artifacts,
+            }
+        )
+    if not packet:
+        raise ValueError(f"publication shared evidence packet is empty: {pair_dir}")
+    return packet
+
+
 def _evaluate_registry(
     project: Path,
     stage2: Path,
@@ -77,7 +148,7 @@ def _evaluate_registry(
     entailment_threshold: float,
     contradiction_threshold: float,
 ) -> dict[str, object]:
-    experiments = _cell_experiment_packet(project, cell_dir)
+    experiments = _publication_cell_experiment_packet(project, stage2, cell_dir)
     structural = audit_registry_structure(
         project, stage2, registry, experiments, require_experiment_claim=False
     )
@@ -210,6 +281,119 @@ def _revision_trace(baseline: StudyClaimRegistry, treatment: StudyClaimRegistry)
     ]
 
 
+def _construct_metrics(
+    registry: StudyClaimRegistry,
+    evaluation: dict[str, object],
+    complete: dict[str, object],
+) -> dict[str, object]:
+    claims = list(evaluation["claims"])
+    experiment = [item for item in claims if item["claim_type"] == "experiment"]
+    literature = [item for item in claims if item["claim_type"] == "literature"]
+    bound = [
+        claim
+        for claim in registry.claims
+        if claim.artifact_paths or claim.source_ids or claim.experiment_run_id
+    ]
+    text_metrics = [_claim_text_metrics(claim.claim_text) for claim in registry.claims]
+    return {
+        "experiment_detail_error_rate": (
+            sum(item["verdict"] == "unsupported" for item in experiment) / len(experiment)
+            if experiment
+            else None
+        ),
+        "citation_correctness_proxy": (
+            sum(item["verdict"] == "supported" for item in literature) / len(literature)
+            if literature
+            else None
+        ),
+        "evidence_binding_coverage": len(bound) / len(registry.claims)
+        if registry.claims
+        else 0.0,
+        "verifier_abstention_rate": (
+            int(evaluation["abstain_count"]) / int(evaluation["eligible_claim_count"])
+            if int(evaluation["eligible_claim_count"])
+            else None
+        ),
+        "failure_mode_count": int(evaluation["unsupported_count"])
+        + int(evaluation["abstain_count"]),
+        "informativeness_vector": {
+            "claim_count": len(registry.claims),
+            "word_count": sum(item["word_count"] for item in text_metrics),
+            "numeric_token_count": sum(item["numeric_token_count"] for item in text_metrics),
+            "evidence_bound_claim_count": len(bound),
+        },
+        "task_native_score": float(complete["task_native_score"]),
+        "wall_clock_runtime_seconds": float(complete["wall_clock_seconds"]),
+        "token_count": int(complete["token_count"]),
+        "model_call_count": int(complete["model_call_count"]),
+        "monetary_cost_usd": float(complete["monetary_cost_usd"]),
+        "audit_false_positive_rate": None,
+    }
+
+
+def _arm_metrics(pairs: list[dict[str, object]], arm: str) -> dict[str, object]:
+    rows = [dict(pair[arm]) for pair in pairs]
+    eligible = sum(int(row["eligible_claim_count"]) for row in rows)
+    unsupported = sum(int(row["unsupported_count"]) for row in rows)
+    abstained = sum(int(row["abstain_count"]) for row in rows)
+    constructs = [dict(row["construct_metrics"]) for row in rows]
+    return {
+        "registry_count": len(rows),
+        "claim_count": sum(int(row["claim_count"]) for row in rows),
+        "eligible_claim_count": eligible,
+        "unsupported_count": unsupported,
+        "abstain_count": abstained,
+        "unsupported_claim_rate": unsupported / eligible if eligible else None,
+        "non_entailment_rate": (unsupported + abstained) / eligible if eligible else None,
+        "mean_task_native_score": statistics.fmean(
+            float(item["task_native_score"]) for item in constructs
+        ),
+        "total_wall_clock_runtime_seconds": sum(
+            float(item["wall_clock_runtime_seconds"]) for item in constructs
+        ),
+        "total_token_count": sum(int(item["token_count"]) for item in constructs),
+        "total_model_call_count": sum(int(item["model_call_count"]) for item in constructs),
+        "total_monetary_cost_usd": sum(
+            float(item["monetary_cost_usd"]) for item in constructs
+        ),
+    }
+
+
+def freeze_publication_nli_implementation(project: Path) -> dict[str, object]:
+    project = project.resolve()
+    stage2 = project / "stage2"
+    protocol = read_json(stage2 / "protocol.json")
+    calibration_path = project / str(protocol["independent_calibration_contract"])
+    calibration = read_json(calibration_path)
+    completed = len(list((stage2 / "r").glob("*/*/complete.json")))
+    contract = {
+        "schema_version": 1,
+        "frozen_at": utc_now(),
+        "implementation_version": IMPLEMENTATION_VERSION,
+        "implementation_path": "research_forge/publication_nli_evaluation.py",
+        "implementation_sha256": sha256_file(Path(__file__).resolve()),
+        "protocol_id": protocol["protocol_id"],
+        "protocol_sha256": sha256_file(stage2 / "protocol.json"),
+        "calibration_contract_sha256": sha256_file(calibration_path),
+        "evaluator": EVALUATOR_ID,
+        "entailment_threshold": float(calibration["entailment_threshold"]),
+        "contradiction_threshold": float(calibration["contradiction_threshold"]),
+        "formal_cells_completed_when_implementation_frozen": completed,
+        "treatment_effects_inspected": False,
+        "human_validation_complete": False,
+    }
+    path = _implementation_contract_path(project, protocol)
+    if path.is_file():
+        existing = read_json(path)
+        immutable = {key: value for key, value in existing.items() if key != "frozen_at"}
+        proposed = {key: value for key, value in contract.items() if key != "frozen_at"}
+        if immutable != proposed:
+            raise ValueError("protected NLI implementation contract already exists and drifted")
+        return existing
+    write_json_atomic(path, contract)
+    return contract
+
+
 def run_publication_nli_evaluation(project: Path) -> dict[str, object]:
     project = project.resolve()
     stage2 = project / "stage2"
@@ -228,6 +412,14 @@ def run_publication_nli_evaluation(project: Path) -> dict[str, object]:
         raise ValueError("independent calibration contract is not valid for the protected evaluator")
     if protocol.get("protected_evaluator") != EVALUATOR_ID:
         raise ValueError("protocol evaluator binding drifted")
+    implementation_contract_path = _implementation_contract_path(project, protocol)
+    implementation_contract = read_json(implementation_contract_path)
+    if implementation_contract.get("protocol_id") != protocol["protocol_id"]:
+        raise ValueError("protected NLI implementation belongs to another protocol")
+    if implementation_contract.get("implementation_sha256") != sha256_file(
+        Path(__file__).resolve()
+    ):
+        raise ValueError("protected NLI implementation drifted after freeze")
     model = dict(calibration["model"])
     model_path = Path(str(model["model_path"]))
     tokenizer_path = Path(str(model["tokenizer_path"]))
@@ -243,6 +435,7 @@ def run_publication_nli_evaluation(project: Path) -> dict[str, object]:
         "schema_version": 1,
         "implementation_version": IMPLEMENTATION_VERSION,
         "implementation_sha256": sha256_file(implementation_path),
+        "implementation_contract_sha256": sha256_file(implementation_contract_path),
         "protocol_id": protocol["protocol_id"],
         "protocol_sha256": sha256_file(stage2 / "protocol.json"),
         "calibration_contract_sha256": sha256_file(calibration_path),
@@ -262,9 +455,8 @@ def run_publication_nli_evaluation(project: Path) -> dict[str, object]:
     started = time.perf_counter()
     pairs: list[dict[str, object]] = []
     evaluation_hashes: dict[str, str] = {}
+    blinded_items: list[dict[str, Any]] = []
     for pair_sequence in range(1, 41):
-        arm_results: dict[str, dict[str, object]] = {}
-        registries: dict[str, StudyClaimRegistry] = {}
         for arm, code in (("baseline", "b"), ("treatment", "t")):
             cell_dir = stage2 / "r" / code / f"{pair_sequence:02d}"
             registry_path = cell_dir / "final_registry.json"
@@ -275,10 +467,26 @@ def run_publication_nli_evaluation(project: Path) -> dict[str, object]:
                     "registry_sha256": sha256_file(registry_path),
                 }
             )[:20]
+            blinded_items.append(
+                {
+                    "blind_id": blind_id,
+                    "pair_sequence": pair_sequence,
+                    "arm": arm,
+                    "cell_dir": cell_dir,
+                    "registry_path": registry_path,
+                    "registry": registry,
+                }
+            )
+    if len({str(item["blind_id"]) for item in blinded_items}) != 80:
+        raise ValueError("protected evaluator blind IDs are not unique")
+
+    evaluated: dict[str, dict[str, object]] = {}
+    for item in sorted(blinded_items, key=lambda value: str(value["blind_id"])):
+            registry = item["registry"]
             evaluation = _evaluate_registry(
                 project,
                 stage2,
-                cell_dir,
+                item["cell_dir"],
                 registry,
                 engine,
                 entailment_threshold=manifest["entailment_threshold"],
@@ -288,15 +496,28 @@ def run_publication_nli_evaluation(project: Path) -> dict[str, object]:
                 {
                     "schema_version": 1,
                     "protocol_id": protocol["protocol_id"],
-                    "blind_id": blind_id,
+                    "blind_id": item["blind_id"],
                     "arm_blinded_during_inference": True,
                 }
             )
-            destination = result_root / "evaluations" / blind_id / "evaluation.json"
+            complete = read_json(item["cell_dir"] / "complete.json")
+            evaluation["construct_metrics"] = _construct_metrics(
+                registry, evaluation, complete
+            )
+            destination = result_root / "evaluations" / item["blind_id"] / "evaluation.json"
             write_json_atomic(destination, evaluation)
-            evaluation_hashes[blind_id] = sha256_file(destination)
-            arm_results[arm] = evaluation
-            registries[arm] = registry
+            evaluation_hashes[str(item["blind_id"])] = sha256_file(destination)
+            evaluated[str(item["blind_id"])] = evaluation
+
+    for pair_sequence in range(1, 41):
+        pair_items = [
+            item for item in blinded_items if item["pair_sequence"] == pair_sequence
+        ]
+        arm_items = {str(item["arm"]): item for item in pair_items}
+        arm_results = {
+            arm: evaluated[str(item["blind_id"])] for arm, item in arm_items.items()
+        }
+        registries = {arm: item["registry"] for arm, item in arm_items.items()}
         baseline = registries["baseline"]
         treatment = registries["treatment"]
         changes = _revision_trace(baseline, treatment)
@@ -317,6 +538,21 @@ def run_publication_nli_evaluation(project: Path) -> dict[str, object]:
             "semantic_change_counts": dict(
                 sorted(Counter(str(item["change_type"]) for item in changes).items())
             ),
+            "secondary_metric_effects": {
+                name: float(arm_results["treatment"]["construct_metrics"][name])
+                - float(arm_results["baseline"]["construct_metrics"][name])
+                for name in (
+                    "evidence_binding_coverage",
+                    "verifier_abstention_rate",
+                    "task_native_score",
+                    "wall_clock_runtime_seconds",
+                    "token_count",
+                    "model_call_count",
+                    "monetary_cost_usd",
+                )
+                if arm_results["baseline"]["construct_metrics"][name] is not None
+                and arm_results["treatment"]["construct_metrics"][name] is not None
+            },
         }
         pairs.append(pair)
 
@@ -334,6 +570,9 @@ def run_publication_nli_evaluation(project: Path) -> dict[str, object]:
             pairs, metric=metric, resamples=int(protocol["bootstrap_resamples"])
         ),
         "leave_one_task_out": _leave_one_task_out(pairs, metric),
+        "arm_metrics": {
+            arm: _arm_metrics(pairs, arm) for arm in ("baseline", "treatment")
+        },
         "pair_results": pairs,
         "evaluation_hashes": evaluation_hashes,
         "telemetry": {
@@ -357,11 +596,16 @@ def run_publication_nli_evaluation(project: Path) -> dict[str, object]:
             "created_only_after_all_evaluations": True,
             "mapping": [
                 {
-                    "pair_sequence": pair["pair_sequence"],
-                    "task_id": pair["task_id"],
-                    "seed": pair["seed"],
+                    "blind_id": item["blind_id"],
+                    "pair_sequence": item["pair_sequence"],
+                    "arm": item["arm"],
+                    "cell_id": item["registry"].cell_id,
+                    "task_id": item["registry"].task_pack,
+                    "seed": item["registry"].seed,
+                    "registry_id": item["registry"].registry_id,
+                    "registry_sha256": sha256_file(item["registry_path"]),
                 }
-                for pair in pairs
+                for item in sorted(blinded_items, key=lambda value: str(value["blind_id"]))
             ],
         },
     )

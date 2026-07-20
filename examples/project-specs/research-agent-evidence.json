@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "project_id": "research-agent-evidence",
+  "title": "Evidence-bound research-agent publication study",
+  "research_type": "ai-agent-evaluation",
+  "research_question": "Do protocol-first controls improve the evidence discipline of an autonomous research workflow under a frozen paired design?",
+  "evidence_mode": "computational",
+  "publication_intent": "publication",
+  "project_inputs": [
+    "stage2/protocol.json",
+    "stage2/protected_nli_evaluation/summary.json"
+  ]
+}

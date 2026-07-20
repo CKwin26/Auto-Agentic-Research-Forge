@@ -138,6 +138,9 @@ class ManuscriptAssessment(StrictModel):
     claim_count: int = Field(ge=0)
     human_validation_complete: bool
     primary_analysis_interpretable: bool
+    independent_calibration_passed: bool
+    independent_calibration_macro_f1: float | None = Field(default=None, ge=0, le=1)
+    independent_calibration_coverage: float | None = Field(default=None, ge=0, le=1)
     publication_ready: bool
     external_public_repository: bool
     maximum_claim_tier: str
@@ -403,6 +406,73 @@ def _project_blockers(project: Path | None) -> tuple[list[ScientificBlocker], st
     return blockers, str(report.get("maximum_claim_tier", "unknown")), [str(root_path)]
 
 
+def _project_analysis(project: Path | None) -> tuple[dict[str, Any] | None, str | None]:
+    """Load the newest authoritative analysis without promoting a proxy to human validation."""
+    if project is None:
+        return None, None
+    candidates = (
+        project / "stage2" / "final_analysis.json",
+        project / "synthesis" / "publication_analysis.json",
+        project / "stage2" / "provisional_analysis.json",
+        project / "stage2" / "protected_nli_evaluation" / "summary.json",
+    )
+    for path in candidates:
+        value = _read_optional(path)
+        if value is not None:
+            return value, str(path)
+    return None, None
+
+
+def _project_calibration(
+    project: Path | None,
+    protocol: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, str | None]:
+    if project is None or not protocol:
+        return None, None
+    raw_path = protocol.get("independent_calibration_contract")
+    if not isinstance(raw_path, str) or not raw_path:
+        return None, None
+    relative = Path(raw_path)
+    if relative.is_absolute() or ".." in relative.parts:
+        return None, None
+    path = (project / relative).resolve()
+    if project.resolve() not in path.parents:
+        return None, None
+    value = _read_optional(path)
+    return (value, str(path)) if value is not None else (None, None)
+
+
+def _local_anonymous_supplement_ready(project: Path | None) -> tuple[bool, str | None]:
+    """Return only locally auditable package readiness; never infer public release."""
+    if project is None:
+        return False, None
+    index = project / "synthesis" / "anonymous_supplement_package.json"
+    if not index.is_file():
+        return False, None
+    try:
+        from .publication_supplement import audit_anonymous_supplement
+
+        audit = audit_anonymous_supplement(project)
+    except (OSError, ValueError):
+        return False, None
+    if audit.get("passed") is not True or audit.get("external_release") != "not_public":
+        return False, str(index)
+    return True, str(index)
+
+
+def _calibration_passed(calibration: dict[str, Any] | None) -> tuple[bool, float | None, float | None]:
+    if not calibration or calibration.get("passed") is not True:
+        return False, None, None
+    if calibration.get("status") != "completed_cross_family_public_gold_calibration":
+        return False, None, None
+    try:
+        macro_f1 = float(calibration.get("locked_evaluation_macro_f1"))
+        coverage = float(calibration.get("locked_evaluation_coverage"))
+    except (TypeError, ValueError):
+        return False, None, None
+    return macro_f1 >= 0.70 and coverage >= 0.80, macro_f1, coverage
+
+
 def assess_manuscript(
     manuscript: str | Path,
     *,
@@ -419,19 +489,27 @@ def assess_manuscript(
     evidence_sources = [str(source)]
 
     protocol = _read_optional(project_path / "stage2" / "protocol.json") if project_path else None
-    analysis = _read_optional(project_path / "stage2" / "provisional_analysis.json") if project_path else None
+    analysis, analysis_source = _project_analysis(project_path)
+    calibration, calibration_source = _project_calibration(project_path, protocol)
+    calibration_passed, calibration_macro_f1, calibration_coverage = _calibration_passed(calibration)
+    local_supplement_ready, local_supplement_source = _local_anonymous_supplement_ready(project_path)
     closed = _read_optional(project_path / "stage2" / "closed_loop_status.json") if project_path else None
     certificate = _read_optional(project_path / "completion_certificate.json") if project_path else None
     blockers, claim_tier, blocker_sources = _project_blockers(project_path)
     evidence_sources.extend(blocker_sources)
     for relative, value in (
         ("stage2/protocol.json", protocol),
-        ("stage2/provisional_analysis.json", analysis),
         ("stage2/closed_loop_status.json", closed),
         ("completion_certificate.json", certificate),
     ):
         if value is not None and project_path is not None:
             evidence_sources.append(str(project_path / relative))
+    if analysis_source:
+        evidence_sources.append(analysis_source)
+    if calibration_source:
+        evidence_sources.append(calibration_source)
+    if local_supplement_source:
+        evidence_sources.append(local_supplement_source)
 
     task_count, seed_count = _count_protocol_dimensions(protocol)
     study_evidence = closed.get("study_evidence", {}) if closed else {}
@@ -499,6 +577,10 @@ def assess_manuscript(
         reproducibility += 0.12
     if "sha 256" in corpus or "hash pinned" in corpus or "commit pinned" in corpus:
         reproducibility += 0.08
+    if local_supplement_ready:
+        # A package that independently reconstructs current hashes improves
+        # local reproducibility, but does not become a public-release claim.
+        reproducibility += 0.10
     if external_repo:
         reproducibility += 0.15
 
@@ -529,6 +611,9 @@ def assess_manuscript(
         "claim_count": claim_count,
         "human_validation_complete": human_complete,
         "primary_analysis_interpretable": primary_interpretable,
+        "independent_calibration_passed": calibration_passed,
+        "independent_calibration_macro_f1": calibration_macro_f1,
+        "independent_calibration_coverage": calibration_coverage,
         "publication_ready": publication_ready,
         "external_public_repository": external_repo,
         "maximum_claim_tier": claim_tier,
