@@ -1,82 +1,105 @@
 # Research Forge
 
-Research Forge is a local-first control plane for computational AI-for-science projects. It helps turn a research question or an existing codebase into a **traceable experiment-to-paper workflow**—without treating an LLM as the authority on evidence.
+Research Forge is a personal, local-first AI-for-science loop. Codex is the default reasoning backend. It is built around one rule: **Codex proposes; deterministic code owns truth and side effects**.
 
-Its operating rule is simple: **Codex proposes; deterministic code owns truth, state, metrics, and side effects.** Codex is the default reasoning backend, but it never gets to rewrite protected evaluation, promote an experiment, or declare a paper ready by itself.
+The first release now closes all four macro stages: source-backed discovery, frozen protocol and baseline, bounded automated experimentation, and evidence-bound synthesis. Paper drafting is intentionally downstream of verified evidence rather than the first demo surface. See [the four-stage contract](docs/four-stage-closed-loop.md).
 
-## What it is for
+Research Forge can also ingest an existing project folder or text library read-only. It prefers complete protocol-output-report chains. When none exists, it derives a provisional research boundary from readable project materials, runs all four macro stages, and structurally keeps the idea verdict `unverifiable` until a frozen protocol and bound experiment output are supplied. Every path snapshots the exact resources used, writes `idea_verdict.json` independently of the manuscript, and generates an evidence-gap working paper. See [the project-bundle workflow](docs/project-bundle-workflow.md).
 
-Research Forge is for ML, AI-agent, data-science, and computational-research projects where you want the entire chain to remain inspectable:
+> **Public default update — 2026-07-20.** This repository is now positioned as a reusable research-control system, not as a wrapper around a single paper. The original reference study and its historical records remain below for reproducibility. The default product path now also adds: (1) explicit project specifications and a four-stage pipeline manifest; (2) hard-coded stage/role contracts, bounded prompt envelopes, append-only failure memory, and graceful degradation when an optional reasoning step fails; (3) persisted, independently aggregated scientific-review personas as a supplementary review layer—not a replacement for human validation; and (4) a second, unrelated SICK lexical replication scaffold that exercises the generic contracts without modifying the research core. The second case is deliberately marked non-publication-ready until its independent literature and controlled-environment gates are satisfied. See the [productization contract](docs/productization-contract.md) and [second-case scaffold](case_studies/sick-lexical-replication-v1/README.md).
 
-1. **Discovery** — retrieve, screen, and freeze a source-backed literature and novelty boundary.
-2. **Protocol** — define a baseline, metrics, budget, repetitions, and a protected evaluation contract before experimentation.
-3. **Experimentation** — generate bounded candidate changes, run them in a controlled environment, and preserve valid/invalid evidence and code lineage.
-4. **Synthesis** — produce claim-bound drafts, audits, localization outputs, and publication-readiness decisions from the frozen evidence.
+The first live scientific Stage 1 is complete: six queries produced 138 normalized candidates, 22 received exact semantic-screening decisions, 12 verified papers were approved, and `novelty-02` became a freeze-ready 18-run paired-ablation plan. All 23 Stage 1 checks pass, including exact review approval and plan/review/source hash binding. See [the verified Stage 1 record](docs/real-stage1-2026-07-17.md).
 
-It also includes RF-Bench for comparing research-agent controllers under fixed tasks, seeds, budgets, and protected evaluators.
+The preregistered paired Stage 2 study is now pipeline-complete under frozen protocol `stage2-22e124e44294`: nine no-gate baseline cells, nine gated treatment cells, all 18 protected evaluations, a 13-claim evidence registry, deterministic Markdown and LaTeX manuscripts, a passing synthesis audit, and a hash-bound completion certificate. The protected automated evaluator estimated unsupported-claim rates of `30.56%` for baseline and `8.33%` for treatment, with a 10,000-resample hierarchical bootstrap interval of `[-0.4167, -0.0833]`; treatment runtime was `65.90%` higher. Human validation remains explicitly deferred, so the paper is pipeline-complete but not publication-ready. See [the Stage 2 evaluation record](docs/stage2-protected-evaluation-2026-07-18.md) and [the Stage 4 closure record](docs/stage4-provisional-closed-loop-2026-07-18.md).
 
-## What it deliberately does not claim
-
-- It is **not** a one-click paper generator or an autonomous scientist.
-- A completed run is not a peer-reviewed publication, and a readiness score is not a probability of acceptance.
-- The default local runtime is for trusted development. Docker isolation is the unattended experiment boundary; neither replaces a real external benchmark or human scientific judgment.
-- Human review is a first-class gate for source approval and any real publication decision.
-
-## Public default workflow
-
-Start with a new idea, or inspect an existing project read-only. In both routes, writing comes after a protocol and evidence are bound.
-
-```text
-idea / existing project
-        │
-        ▼
-source-backed discovery ──► frozen protocol ──► protected experiments ──► evidence-bound draft
-        │                         │                       │                       │
-        └── human approval         └── hard design gates   └── valid/invalid ledger └── audit + readiness gate
-```
-
-The publication route is intentionally strict. Before a publication-intent experiment runs, it freezes a target venue contract and blocks known scientific failures such as non-isolated counterfactuals, dependent measurement, insufficient evidence breadth, and missing novelty refresh. A `pilot` route exists only as an explicitly labeled internal exception and can never be relabeled as a publication result.
-
-## Quick start
+The root-cause preflight now separates manuscript symptoms from upstream design failures. It traces review concerns to the metric contract, protocol design, execution telemetry, synthesis contract, or review routing; computes the maximum defensible claim tier; and blocks publication routing when a critical cause remains open. New Stage 2 freezes persist this deterministic analysis before any cell runs. For an existing paired study:
 
 ```powershell
-& "C:\Users\austa\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe" -m venv .venv
-& .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
-& .\.venv\Scripts\python.exe main.py doctor
-
-$py = ".\.venv\Scripts\python.exe"
-& $py main.py init --name "stereo-ablation" --idea "Test whether geometry-aware augmentation improves transparent-object stereo depth"
-& $py main.py literature plan stereo-ablation --focus "Transparent-object stereo depth and strong public baselines"
-& $py main.py literature discover stereo-ablation --rows-per-query 20 --include 12 --from-year 2020
-& $py main.py literature screen stereo-ablation --max-candidates 40 --include 12
-& $py main.py literature synthesize stereo-ablation
-& $py main.py literature audit stereo-ablation
+& .\.venv\Scripts\python.exe main.py --home stage1_runs study root-cause-preflight `
+  research-agent-evidence-v2 --target publication --persist
 ```
 
-Read the resulting literature review, explicitly approve its exact ID, then create and freeze the experiment contract. The complete command sequence is below in [A complete first loop](#a-complete-first-loop).
+A nonzero exit is intentional when the target is blocked. The same evidence may still be routed to `--target developmental_review` without being mislabeled as publication-ready.
 
-## Reproducible reference material
+Research Forge can also route a finished manuscript to a strict publication-venue whitelist. The default registry contains only established peer-reviewed journals and archival full-paper conference tracks verified from official venue pages; workshops, posters, competitions, non-archival tracks, and broad commercial fallback journals are excluded. Journals and conferences are ranked separately, and conference deadlines are treated as eligibility gates rather than paper-quality signals. The project-first command reads `synthesis/manuscript.md`, the manuscript-depth audit, frozen protocol, completion certificate, provisional analysis, and root-cause preflight:
 
-The repository contains reference fixtures and archived, hash-bound records to demonstrate the gates—not as proof that every future project is publication-ready:
+```powershell
+& .\.venv\Scripts\python.exe main.py venue recommend `
+  stereo-ablation `
+  --top 8
+```
 
-- [Four-stage contract](docs/four-stage-closed-loop.md) and [productization contract](docs/productization-contract.md)
-- [Project-bundle workflow](docs/project-bundle-workflow.md) for an existing code or text project
-- [RF-Bench guide](docs/benchmark.md) and [controlled ML environment](docs/controlled-ml-environment.md)
-- [Second independent case-study scaffold](case_studies/sick-lexical-replication-v1/README.md), which is intentionally labeled non-publication-ready until its isolation and literature gates are met
-- [Historical Stage 2 record](docs/stage2-protected-evaluation-2026-07-18.md), which remains pipeline-complete but not publication-ready because human validation was deferred
+The default outputs are `synthesis/venue_recommendation.json` and `synthesis/venue_recommendation.md`. Ranking combines deterministic scope, method, paper-type, project-maturity, and—when available—similar-paper evidence. Live semantic evidence is opt-in because it sends unpublished text outside the machine: `--live-evidence` sends only the title and abstract (never the full manuscript) to OpenAlex, records the response hash, and caches normalized neighbors against the manuscript SHA-256. Set `OPENALEX_API_KEY` for the larger free API allowance. A changed manuscript invalidates the cache.
 
-## Core guarantees
+Accepted-paper metadata exported with `openreview-py` can be supplied through `--openreview-export FILE`; similarity is calculated locally, so no manuscript text is sent to OpenReview. A local checkout of [ccfddl/ccf-deadlines](https://github.com/ccfddl/ccf-deadlines) can be supplied with `--ccf-deadlines PATH` to overlay CCF/CORE ranks and discover the latest cycle. Community deadline data is never treated as final authority: the generated report links the official CFP and requires confirmation there before submission.
 
-| Guarantee | How it is enforced |
-|---|---|
-| Model output cannot become evidence by itself | Structured outputs are bound to frozen run/source IDs; protected code checks numeric claims. |
-| Experiment state is auditable | Evidence, events, failures, and promotions are append-only and hash-bound. |
-| Candidate execution is bounded | Python owns run budget, timeout, repeats, accepted files, parameter contract, and evaluator boundary. |
-| Known design failures are repaired upstream | Scientific hard-gate failures create a root-cause repair artifact, enforcement rule, and regression test target. |
-| Long prompts do not become hidden state | Prompt envelopes have explicit size and fragment limits; durable state lives in artifacts. |
-| Reviewer diversity is supplementary | Distilled scientific-review personas are isolated, persisted as separate opinions, and aggregated by deterministic veto/abstention rules; they do not replace human validation. |
+The human-readable report groups viable results as 冲刺、主投、保守候选, lists the nearest papers that support each match, and keeps unmatched OpenAlex/OpenReview sources in a separate “待官方核验” list instead of silently widening the whitelist. Internal probability fields remain in JSON for backward compatibility and local-history calibration, but uncalibrated estimates neither drive the primary ranking nor appear in the recommendation tables. A venue becomes locally calibrated only after at least five same-venue records are supplied through `--history`. Use `--type journal` or `--type conference` to filter output. The strict registry and its official source URLs, archival evidence, tracks, and checked dates live in `research_forge/resources/venues/ai_research_strict.v2.json`. The older `journal recommend` command remains a journal-only compatibility alias.
 
-For the detailed ownership split, installation, backend settings, and operating commands, continue below.
+Venue routing is now followed by a frozen publication target and a separate submission-readiness hard gate. The default `0.60` means **60% of Research Forge's controllable readiness contract**, not a 60% probability of peer-review acceptance. Acceptance probability remains a separate, explicitly uncalibrated estimate and cannot be changed by choosing a lower readiness threshold.
+
+```powershell
+& .\.venv\Scripts\python.exe main.py venue target `
+  output\pdf\research-agent-evidence-v4-paper-en.tex `
+  --project stage1_runs\research-agent-evidence-v2 `
+  --venue research-integrity-and-peer-review `
+  --threshold 0.60
+
+& .\.venv\Scripts\python.exe main.py venue readiness `
+  stage1_runs\research-agent-evidence-v2
+```
+
+`venue target` freezes the venue, track, official source provenance, nine weighted readiness criteria, hard minima, and the distinction between readiness and acceptance. `venue readiness` re-audits the current manuscript and exits with code `2` unless both conditions hold: the weighted score reaches the frozen threshold and no scientific hard blocker remains. The audit back-propagates failures to the four macro stages: discovery owns venue/novelty/construct fit; protocol owns identification and independent calibration; experimentation owns evidence breadth and reproducibility; synthesis owns reporting and target-format compliance. A high writing score therefore cannot average away a failed causal design or missing independent validation.
+
+Every scientific hard-gate failure also emits `design_revisions/publication_design_repair.json`, a readable repair sheet, and an append-only failure ledger. The repair sheet binds each symptom to its root cause, earliest preventable stage, permanent system-rule change, enforcement point, and regression tests. The next Stage 2 freeze reads this artifact and blocks any repeated same-family measurement loop, non-isolated counterfactual, construct undercoverage, default evidence matrix below 8 tasks × 5 seeds, or missing contextual novelty refresh. Historical frozen protocols and results are never rewritten. If the same failure fingerprint recurs, the system treats it as a failed implementation of the previous repair, not as a request to generate another differently worded suggestion.
+
+The strict venue recommendation can also be frozen *before* the next experiment. This locks the venue, track, recommendation evidence, venue quality bar, quality weights, minimum 8-task × 5-seed matrix, construct metrics, and final 60% readiness retest. Stage 2 is publication-first: `publication` is the default and fails before execution unless the locked venue contract and every scientific design gate pass. `pilot` is only an explicit internal engineering or historical-reproduction exception; it requires a reason, writes a protected non-publication marker, and can never be promoted in place.
+
+```powershell
+& .\.venv\Scripts\python.exe main.py venue freeze-experiment-target `
+  stage1_runs\research-agent-evidence-v2 `
+  --venue research-integrity-and-peer-review
+
+& .\.venv\Scripts\python.exe main.py --home stage1_runs study audit-publication-design `
+  research-agent-evidence-v2
+
+# Normal product path: publication is the default.
+& .\.venv\Scripts\python.exe main.py --home stage1_runs study freeze `
+  research-agent-evidence-v2
+
+# Internal exception only; never a submission artifact.
+& .\.venv\Scripts\python.exe main.py --home stage1_runs study freeze `
+  research-agent-evidence-v2 --intent pilot `
+  --pilot-reason "Reproduce the legacy 3x3 controller fixture for regression testing."
+```
+
+The publication command is expected to stop until the pre-experiment gate passes; it must not fall back to a pilot. Changing the venue or track creates a new contract and requires a new pre-experiment audit; results cannot inherit a passing gate from a different venue. The legacy 3-task × 3-seed protocol is pilot-only because it is structurally below the frozen publication minimum of 8 tasks × 5 seeds.
+
+For the current V4 manuscript, the deterministic result is `50.51%` readiness versus a `60%` target. Reporting integrity (`99%`) and venue scope fit (`87.5%`) pass, while identification, independent calibration, evidence breadth, construct coverage, and novelty positioning remain below hard minima. The scenario projection reaches `81.25%` only if the listed artifacts are genuinely produced and re-audited; it is not credited in advance and does not alter the current estimated acceptance probability (`5.44%`, uncalibrated heuristic center).
+
+Final manuscript routing also has a deterministic anti-compression gate. A working paper may be short, but a file cannot be treated as a journal article until it passes hard-coded total-depth, per-section depth, paragraph, subsection, citation, numeric-grounding, reference-count, and duplicate-paragraph checks. The gate is deliberately separate from claim verification: length cannot make a claim true, and accurate claims cannot by themselves make a complete paper.
+
+```powershell
+& .\.venv\Scripts\python.exe main.py manuscript audit-depth `
+  output\pdf\paper-en.tex --profile journal-article `
+  --report output\pdf\paper-en.depth.json
+```
+
+The command exits with code `2` when the manuscript is too thin. `journal-article` defaults to at least 6,000 English narrative words (or 10,000 Chinese Han characters), with section-level minima; `short-report` is a separate English profile and must be selected explicitly. These are internal Research Forge quality floors, not claims about venue word limits.
+
+Official final PDFs must go through the compile gate rather than calling LaTeX directly:
+
+```powershell
+& .\.venv\Scripts\python.exe main.py manuscript finalize-pdf `
+  output\pdf\paper-en.tex --profile journal-article --passes 2
+```
+
+`finalize-pdf` audits first, compiles in a temporary staging directory, and publishes the PDF only after every compiler pass succeeds. It writes a depth report plus a finalization manifest binding the source, gate report, compiler choice, and PDF by SHA-256. A failed depth audit never invokes the compiler and cannot create a new official final PDF or finalization manifest. This prevents heading-complete but underdeveloped drafts from silently becoming final artifacts; it still does not certify scientific validity.
+
+RF-Bench is now included as the evaluation layer. It separates candidate submissions from protected evaluator metrics, runs fixed seed/budget matrices, audits the complete artifact chain, and reports scientific gain separately from integrity. See [the RF-Bench guide](docs/benchmark.md).
+
+The first real AIRS-lite experiment now has a three-seed, Docker-isolated result on SICK textual entailment: Accuracy improved from `0.5686914` to `0.6763147`, with zero within-run and across-seed variance and all integrity audits passing. See [the experiment record](docs/real-experiment-2026-07-16.md). A subsequent bounded Codex search on SICK semantic similarity improved Spearman correlation from `0.5757186` to `0.7457773`; independent seed 1/2 reconstruction produced a three-seed mean of `0.7457461` with `0.0002041` standard deviation and matching code hashes. See [the SICK Spearman record](docs/real-experiment-sick-spearman-2026-07-17.md). Automatic loops use the verified `rf-airs-cpu:v1` environment; see [the controlled-environment record](docs/controlled-ml-environment.md).
+
+The first frozen controller ablation exposed stale pooled proposals after promotion; see [the historical controller-ablation record](docs/controller-ablation-2026-07-17.md). A follow-up state-safe three-candidate-pool matrix completed the same 12 independently audited cells and 28 candidate runs. All 28 executions used a full pool, 19 stale candidates were blocked before execution, 3 invariant candidates were revalidated, and the full condition had zero invalid runs. The no-candidate-pool condition still had the highest descriptive mean normalized gain (`0.3527` versus full controller `0.2241`) while using 7 rather than 16 proposals, so selection quality—not pool-state correctness—is now the main pool bottleneck. See [the state-safe pool record](docs/state-safe-pool3-ablation-2026-07-17.md).
 
 ## What is hard-coded vs agentic
 
