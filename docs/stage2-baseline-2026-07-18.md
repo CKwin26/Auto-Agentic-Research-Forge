@@ -48,7 +48,7 @@ The retained three-seed scores are:
 
 Each cell used the same frozen Research Forge/Codex backbone, one proposal iteration, a one-candidate state-safe pool, deterministic duplicate checks and failure diagnosis, and two Docker trials per run. Candidate and evaluator containers had no network, a read-only root filesystem, dropped capabilities, `no-new-privileges`, and fixed CPU, memory, PID, temporary-storage, output-size, package, task, prompt, and controller bindings.
 
-The controller output root used the ASCII-only path `%USERPROFILE%\.research-forge-study\565ea1b0ec96-r4`, avoiding the Docker bind-mount Unicode I/O failure documented in abandoned protocol revision 3. Completed cell evidence was copied back into the protected project tree and bound by hashes in each `complete.json`.
+The controller output root was the ASCII-only absolute path `C:\Users\austa\.research-forge-study\565ea1b0ec96-r4`, avoiding the Docker bind-mount Unicode I/O failure documented in abandoned protocol revision 3. Completed cell evidence was copied back into the protected project tree and bound by hashes in each `complete.json`.
 
 The no-gate arm used the shared frozen finalizer and performed no claim rejection, verifier-guided revision, or removal. Structural auditing checked that experiment run IDs resolve to valid isolated runs, metrics exactly match records, artifact paths exist and are permitted, literature source IDs resolve, and novelty claims remain within the approved novelty source set.
 

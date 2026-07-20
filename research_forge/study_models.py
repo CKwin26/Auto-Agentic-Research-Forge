@@ -104,6 +104,16 @@ class Stage2BackboneManifest(StrictModel):
     codex_sdk_version: str = Field(min_length=1, max_length=100)
     codex_account_type: str = Field(min_length=1, max_length=100)
     codex_plan_type: str = Field(min_length=1, max_length=100)
+    provider_name: str = Field(default="openai-managed", min_length=1, max_length=100)
+    provider_base_url: str = Field(default="managed", min_length=1, max_length=500)
+    provider_config_hash: str = Field(default="0" * 64, pattern=r"^[0-9a-f]{64}$")
+    credential_mode: str = Field(default="chatgpt", min_length=1, max_length=100)
+    provider_billing_contract_hash: str = Field(
+        default="0" * 64, pattern=r"^[0-9a-f]{64}$"
+    )
+    provider_billing_group: str = Field(
+        default="managed-subscription", min_length=1, max_length=100
+    )
     controller_run_root: str = Field(min_length=3, max_length=1000)
     plan_id: str
     plan_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
@@ -200,6 +210,10 @@ class Stage2Protocol(StrictModel):
     independent_calibration_contract: str | None = Field(
         default=None, max_length=1000
     )
+    secondary_evaluator_contract: str | None = Field(default=None, max_length=1000)
+    evidence_gate_specification: dict[str, object] = Field(default_factory=dict)
+    construct_analysis_requirements: list[str] = Field(default_factory=list, max_length=20)
+    telemetry_contract: dict[str, object] = Field(default_factory=dict)
     pair_level_table: bool = False
     telemetry_schema: list[str] = Field(default_factory=list, max_length=20)
     bootstrap_resamples: Literal[10_000] = 10_000
@@ -232,6 +246,27 @@ class Stage2Protocol(StrictModel):
                 )
             if not self.independent_calibration_contract:
                 raise ValueError("publication Stage 2 protocols require an independent calibration contract")
+            if not self.secondary_evaluator_contract:
+                raise ValueError("publication Stage 2 protocols require a frozen secondary evaluator contract")
+            required_gate_fields = {
+                "claim_extraction_prompt_sha256",
+                "evidence_matching_prompt_sha256",
+                "decision_policy",
+                "allowed_actions",
+                "decision_trace_schema",
+            }
+            if not required_gate_fields.issubset(self.evidence_gate_specification):
+                raise ValueError("publication Stage 2 protocols require a complete evidence-gate specification")
+            required_construct_analyses = {
+                "claim_retention_deletion",
+                "semantic_change_distribution",
+                "informativeness_usefulness",
+                "per_task_effects",
+            }
+            if not required_construct_analyses.issubset(self.construct_analysis_requirements):
+                raise ValueError("publication Stage 2 protocols require construct-preservation analyses")
+            if self.telemetry_contract.get("wall_clock_definition") != "active_attempt_seconds":
+                raise ValueError("publication Stage 2 protocols require an active-attempt wall-clock definition")
             if not self.pair_level_table:
                 raise ValueError("publication Stage 2 protocols require pair-level reporting")
         if len(self.seeds) != len(set(self.seeds)):
@@ -338,9 +373,10 @@ class StudyFinalizerClaim(StrictModel):
             if not math.isclose(
                 previous.value, item.value, rel_tol=1e-12, abs_tol=1e-12
             ):
-                raise ValueError(
-                    "duplicate finalizer metric names carry conflicting values"
-                )
+                # Preserve conflicts for evidence-bound normalization after the
+                # linked experiment record is available. They must never be
+                # collapsed or resolved from model output alone.
+                ordered.append(item)
         return ordered
 
 

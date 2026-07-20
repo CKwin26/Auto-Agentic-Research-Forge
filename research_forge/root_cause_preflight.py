@@ -46,6 +46,8 @@ class RootCausePreflightReport(StrictModel):
     gate_passed: bool
     execution_allowed: bool
     developmental_review_allowed: bool
+    automated_publication_gate_passed: bool
+    human_gate_pending: bool
     publication_submission_ready: bool
     maximum_claim_tier: str
     predicted_editorial_outcome: str
@@ -104,13 +106,24 @@ def _all_plan_text(plan: dict[str, Any]) -> str:
     return "\n".join(values).lower()
 
 
-def _manual_validation_complete(analysis: dict[str, Any] | None) -> bool:
+def _human_validation_status(analysis: dict[str, Any] | None) -> str:
     if not analysis:
-        return False
-    status = str(analysis.get("human_validation", "")).lower()
+        return "not_started"
+    status = str(analysis.get("human_validation", "")).strip().lower()
+    if status:
+        return status
+    analysis_status = str(analysis.get("analysis_status", "")).strip().lower()
+    if "human_audit_pending" in analysis_status or "manual_audit_pending" in analysis_status:
+        return "deferred"
+    if "human_audit_complete" in analysis_status or "manual_audit_complete" in analysis_status:
+        return "completed"
+    return "not_started"
+
+
+def _manual_validation_complete(analysis: dict[str, Any] | None) -> bool:
     return (
-        status in {"complete", "completed", "validated"}
-        and analysis.get("primary_analysis_interpretable") is True
+        _human_validation_status(analysis) in {"complete", "completed", "validated"}
+        and bool(analysis and analysis.get("primary_analysis_interpretable") is True)
     )
 
 
@@ -289,13 +302,102 @@ def analyze_root_causes(
             )
         )
 
-    if protocol.get("manual_audit") and not human_complete:
-        status = str((analysis or {}).get("human_validation", "not_started"))
+    # These are publication-specific audit contracts.  They intentionally do
+    # not reinterpret a frozen historical result; they prevent a successor
+    # protocol from treating registered-but-unanalysed safeguards as evidence.
+    if target == ReviewTarget.PUBLICATION and protocol.get("study_intent") == "publication":
+        gate_specification = protocol.get("evidence_gate_specification")
+        required_gate_fields = {
+            "claim_extraction_prompt_sha256",
+            "evidence_matching_prompt_sha256",
+            "decision_policy",
+            "allowed_actions",
+            "decision_trace_schema",
+        }
+        if not isinstance(gate_specification, dict) or not required_gate_fields.issubset(gate_specification):
+            findings.append(
+                RootCauseFinding(
+                    code="RC-INTERVENTION-SPECIFICATION-GAP",
+                    name="证据 gate 缺少可复现算法规格",
+                    severity=RootCauseSeverity.CRITICAL,
+                    origin_stage="Stage 2 protocol",
+                    latest_prevention_stage="before protocol freeze",
+                    root_cause="协议只命名 evidence gate，未冻结主张提取、证据匹配、决策动作与 trace schema。",
+                    review_symptoms=["审稿人要求说明 claim extraction、evidence matching、decision rules 与 ablation"],
+                    causal_consequence="读者无法区分原则性证据绑定与保守删改，也无法重现或拆解干预机制。",
+                    permanent_rule="publication 协议必须 hash 绑定 gate 的提示、决策策略、允许动作和结构化 trace schema。",
+                    required_action="在冻结前写入 evidence_gate_specification；把组件消融列为下一轮前瞻性分析要求。",
+                    evidence=[f"evidence_gate_specification_present={isinstance(gate_specification, dict)}"],
+                )
+            )
+        if not protocol.get("secondary_evaluator_contract"):
+            findings.append(
+                RootCauseFinding(
+                    code="RC-SECONDARY-EVALUATOR-ROBUSTNESS-GAP",
+                    name="缺少第二独立评估器稳健性合同",
+                    severity=RootCauseSeverity.HIGH,
+                    origin_stage="Stage 2 measurement design",
+                    latest_prevention_stage="before protocol freeze",
+                    root_cause="跨家族校准证明主评估器可用，但并不构成第二个独立测量工具。",
+                    review_symptoms=["审稿人要求第二 evaluator 或可解释聚合器进行 robustness triangulation"],
+                    causal_consequence="单一仪器的结果可能反映仪器特异偏差，不能作为稳健性结论。",
+                    permanent_rule="publication protocol 必须冻结独立于主评估器的 secondary evaluator contract 和预注册比较方案。",
+                    required_action="在下一轮正式 run 前加入可运行、hash-bound 的第二评估器合同；不得用同一评估器重采样替代。",
+                    evidence=["secondary_evaluator_contract=missing"],
+                )
+            )
+        required_analyses = {
+            "claim_retention_deletion",
+            "semantic_change_distribution",
+            "informativeness_usefulness",
+            "per_task_effects",
+        }
+        declared_analyses = {str(item) for item in protocol.get("construct_analysis_requirements", [])}
+        if not required_analyses.issubset(declared_analyses):
+            findings.append(
+                RootCauseFinding(
+                    code="RC-CONSTRUCT-ANALYSIS-GAP",
+                    name="构念保护字段未升级为必报分析",
+                    severity=RootCauseSeverity.CRITICAL,
+                    origin_stage="Stage 2 analysis plan",
+                    latest_prevention_stage="before protocol freeze",
+                    root_cause="协议记录 retention、semantic change 与 informativeness 字段，却未冻结其分布、按任务异质性和保留分析。",
+                    review_symptoms=["审稿人指出日志字段未分析，无法排除 content dilution 或局部回归"],
+                    causal_consequence="低 unsupported rate 仍可能来自删除、过度限定或信息稀释。",
+                    permanent_rule="所有构念保护字段必须有预注册的 arm-level、per-task 和 pair-level分析产物；缺任一项禁止论文综合。",
+                    required_action="在下一 protocol 冻结 construct_analysis_requirements，并在 synthesis 前由确定性审计验证产物。",
+                    evidence=[f"declared_construct_analyses={sorted(declared_analyses)}"],
+                )
+            )
+        telemetry_contract = protocol.get("telemetry_contract")
+        if not isinstance(telemetry_contract, dict) or telemetry_contract.get("wall_clock_definition") != "active_attempt_seconds":
+            findings.append(
+                RootCauseFinding(
+                    code="RC-TELEMETRY-SEMANTICS-GAP",
+                    name="wall-clock 口径未冻结为活跃执行时间",
+                    severity=RootCauseSeverity.HIGH,
+                    origin_stage="Stage 2 telemetry design",
+                    latest_prevention_stage="before execution",
+                    root_cause="created_at-to-complete 会混入排队、调度和恢复等待，不能作为 arm 间的执行延迟比较。",
+                    review_symptoms=["审稿人指出 baseline 与 treatment wall-clock 数量级异常，要求澄清单位或聚合口径"],
+                    causal_consequence="报告的 latency trade-off 可能是调度伪影，不能解释为 gate 的实际运行成本。",
+                    permanent_rule="publication telemetry 必须以每 cell active_attempt_seconds 为主 wall-clock，并单列队列/等待时间。",
+                    required_action="冻结 telemetry_contract，运行器分别记录 active、queue 和 end-to-end 时间；旧 run 不得回填。",
+                    evidence=[f"telemetry_contract={telemetry_contract!r}"],
+                )
+            )
+
+    human_gate_pending = bool(protocol.get("manual_audit")) and not human_complete
+    if human_gate_pending:
+        status = _human_validation_status(analysis)
         findings.append(
             RootCauseFinding(
                 code="RC-MATURITY-TARGET-MISMATCH",
                 name="研究成熟度与审批目标不匹配",
-                severity=RootCauseSeverity.CRITICAL,
+                # Human validation is a separate external submission gate.  It
+                # remains visible and blocks submission, but cannot turn an
+                # otherwise valid frozen publication study back into a pilot.
+                severity=RootCauseSeverity.MEDIUM,
                 origin_stage="review routing",
                 latest_prevention_stage="before external review submission",
                 root_cause=(
@@ -326,6 +428,19 @@ def analyze_root_causes(
                     f"primary_analysis_interpretable={(analysis or {}).get('primary_analysis_interpretable')}",
                 ],
             )
+        )
+        # Override the legacy routing text above.  The report still records the
+        # deferred human audit, but the permanent rule is now the two-gate
+        # contract rather than a pilot reclassification.
+        findings[-1].permanent_rule = (
+            "When human validation is deferred, preserve HUMAN_GATE_PENDING and "
+            "publication_submission_ready=false. It cannot be relabelled as a completed "
+            "human audit, but it also cannot invalidate a separately passing automated "
+            "publication gate."
+        )
+        findings[-1].required_action = (
+            "Keep automated publication-gate and human-submission-gate status separate; "
+            "do not route an unfinished human gate to submission."
         )
 
     raw_pair_contract = bool(
@@ -424,24 +539,41 @@ def analyze_root_causes(
     else:
         maximum_claim_tier = "bounded_causal_effect"
 
-    publication_ready = not open_critical
+    automated_publication_gate_passed = not open_critical
+    publication_ready = automated_publication_gate_passed and not human_gate_pending
     developmental_allowed = True
     execution_allowed = True
     gate_passed = {
         ReviewTarget.EXECUTION: execution_allowed,
         ReviewTarget.DEVELOPMENTAL_REVIEW: developmental_allowed,
-        ReviewTarget.PUBLICATION: publication_ready,
+        ReviewTarget.PUBLICATION: automated_publication_gate_passed,
     }[target]
     predicted = "reviewable"
-    if target == ReviewTarget.PUBLICATION and not publication_ready:
+    if target == ReviewTarget.PUBLICATION and not automated_publication_gate_passed:
         predicted = "major_revision_or_reject"
-    elif target == ReviewTarget.DEVELOPMENTAL_REVIEW and not publication_ready:
+    elif target == ReviewTarget.PUBLICATION and human_gate_pending:
+        predicted = "automated_gate_passed_human_validation_pending"
+    elif target == ReviewTarget.DEVELOPMENTAL_REVIEW and not automated_publication_gate_passed:
         predicted = "developmental_major_revision_expected"
 
     root_conclusion = (
         "本轮大修的主因不是文字质量，而是测量同源、反事实不隔离，以及尚未完成人工校准时就进入"
         "发表审批语境。稿件修订能改善透明度，但不能补造缺失的实验识别条件。"
     )
+    if not automated_publication_gate_passed:
+        root_conclusion = (
+            "The current publication gate is blocked by unresolved upstream scientific design "
+            "findings. Manuscript editing cannot repair those conditions."
+        )
+    elif human_gate_pending:
+        root_conclusion = (
+            "The automated publication-design gate passed, while the preregistered human "
+            "validation remains pending. The result is not submission ready and must not be "
+            "reported as human-validated."
+        )
+    else:
+        root_conclusion = "The automated and human-validation gates both passed."
+
     prevention_order = [
         item.code
         for item in sorted(
@@ -461,6 +593,8 @@ def analyze_root_causes(
         gate_passed=gate_passed,
         execution_allowed=execution_allowed,
         developmental_review_allowed=developmental_allowed,
+        automated_publication_gate_passed=automated_publication_gate_passed,
+        human_gate_pending=human_gate_pending,
         publication_submission_ready=publication_ready,
         maximum_claim_tier=maximum_claim_tier,
         predicted_editorial_outcome=predicted,
@@ -551,11 +685,17 @@ def analyze_project_root_causes(
     persist: bool = False,
 ) -> RootCausePreflightReport:
     project = project.resolve()
+    analysis_candidates = (
+        project / "stage2" / "final_analysis.json",
+        project / "stage2" / "provisional_analysis.json",
+        project / "stage2" / "protected_nli_evaluation" / "summary.json",
+    )
+    analysis_path = next((path for path in analysis_candidates if path.is_file()), None)
     sources = {
         "plan": project / "research_contract.json",
         "protocol": project / "stage2" / "protocol.json",
         "backbone": project / "stage2" / "backbone_manifest.json",
-        "analysis": project / "stage2" / "provisional_analysis.json",
+        "analysis": analysis_path,
     }
     missing = [name for name in ("plan", "protocol", "backbone") if not sources[name].is_file()]
     if missing:
@@ -565,13 +705,13 @@ def analyze_project_root_causes(
         plan=read_json(sources["plan"]),
         protocol=read_json(sources["protocol"]),
         backbone=read_json(sources["backbone"]),
-        analysis=_load_optional(sources["analysis"]),
+        analysis=_load_optional(analysis_path) if analysis_path else None,
         review_corpus=_review_corpus(project),
         target=target,
         source_paths=[
             path.relative_to(project).as_posix()
             for path in sources.values()
-            if path.is_file()
+            if path is not None and path.is_file()
         ],
     )
     if persist:

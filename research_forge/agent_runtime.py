@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import contextvars
+import hashlib
 import json
 import os
+import tomllib
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, TypeVar
 
@@ -19,6 +22,8 @@ from .models import (
     TermCandidateBatch,
     utc_now,
 )
+from .models import MacroStage
+from .pipeline_contracts import PromptEnvelope, PromptFragment, relevant_failure_memory
 from .study_models import SemanticClaimJudgmentBatch, StudyFinalizerOutput
 
 
@@ -26,12 +31,17 @@ ROOT = Path(__file__).resolve().parents[1]
 T = TypeVar("T", bound=BaseModel)
 SUPPORTED_BACKENDS = {"codex", "api"}
 DEFAULT_CODEX_MODEL = "gpt-5.4"
-CODEX_TRANSIENT_MAX_ATTEMPTS = 3
+CODEX_TRANSIENT_MAX_ATTEMPTS = 8
+CODEX_TURN_TIMEOUT_SECONDS = 20 * 60
+CODEX_TRANSIENT_BACKOFF_SECONDS = (15, 30, 60, 120, 240, 480, 600)
 _TRANSIENT_CODEX_MARKERS = (
     "stream disconnected before completion",
     "error sending request",
     "connection reset",
     "connection closed",
+    "codex process closed stdout",
+    "transportclosederror",
+    "timeouterror",
     "service unavailable",
     "bad gateway",
 )
@@ -71,31 +81,89 @@ def agent_telemetry_summary(path: Path, *, scopes: set[str]) -> dict[str, Any]:
     missing = [item for item in completed if item.get("usage_available") is not True]
     if missing:
         raise ValueError("one or more completed model calls lack token telemetry")
+    input_tokens = sum(int(item["usage"]["input_tokens"]) for item in completed)
+    cached_input_tokens = sum(
+        int(item["usage"]["cached_input_tokens"]) for item in completed
+    )
+    output_tokens = sum(int(item["usage"]["output_tokens"]) for item in completed)
+    provider_urls = {
+        str(item.get("provider_base_url") or "managed") for item in completed
+    }
+    if provider_urls == {"managed"} or not completed:
+        monetary_cost_usd = 0.0
+        standard_cost_usd = 0.0
+        cost_basis = (
+            "Codex ChatGPT subscription marginal API charge; subscription allocation and "
+            "opportunity cost are not estimated"
+        )
+        billing = provider_billing_binding()
+    else:
+        if len(provider_urls) != 1:
+            raise ValueError("completed model calls mix provider billing domains")
+        configured = _configured_billing_contract()
+        if configured is None:
+            raise ValueError("third-party Codex calls require a frozen billing contract")
+        contract_path, contract = configured
+        provider_url = next(iter(provider_urls)).rstrip("/")
+        if provider_url != str(contract["provider_base_url"]).rstrip("/"):
+            raise ValueError("telemetry provider differs from the frozen billing contract")
+        models = {str(item.get("model") or "") for item in completed}
+        if models != {str(contract["model"])}:
+            raise ValueError("telemetry model differs from the frozen billing contract")
+        if cached_input_tokens > input_tokens:
+            raise ValueError("cached input tokens exceed total input tokens")
+        rates = contract["rates_per_million_tokens"]
+        standard = (
+            Decimal(input_tokens - cached_input_tokens)
+            * Decimal(str(rates["noncached_input"]))
+            + Decimal(cached_input_tokens) * Decimal(str(rates["cached_input"]))
+            + Decimal(output_tokens) * Decimal(str(rates["output"]))
+        ) / Decimal(1_000_000)
+        actual = standard * Decimal(str(contract["rate_multiplier"]))
+        standard_cost_usd = float(standard)
+        monetary_cost_usd = float(actual)
+        billing = {
+            "provider_billing_contract_hash": hashlib.sha256(
+                contract_path.read_bytes()
+            ).hexdigest(),
+            "provider_billing_group": str(contract["provider_group"]),
+        }
+        cost_basis = (
+            "Frozen provider token rates and multiplier, verified against an authenticated "
+            "provider usage record before formal execution"
+        )
     return {
         "schema_version": 1,
         "scopes": sorted(scopes),
         "model_call_count": len(completed),
         "token_count": sum(int(item["usage"]["total_tokens"]) for item in completed),
-        "input_token_count": sum(int(item["usage"]["input_tokens"]) for item in completed),
-        "cached_input_token_count": sum(
-            int(item["usage"]["cached_input_tokens"]) for item in completed
-        ),
-        "output_token_count": sum(int(item["usage"]["output_tokens"]) for item in completed),
+        "input_token_count": input_tokens,
+        "cached_input_token_count": cached_input_tokens,
+        "output_token_count": output_tokens,
         "reasoning_output_token_count": sum(
             int(item["usage"]["reasoning_output_tokens"]) for item in completed
         ),
-        "monetary_cost_usd": 0.0,
-        "monetary_cost_basis": (
-            "Codex ChatGPT subscription marginal API charge; subscription allocation and "
-            "opportunity cost are not estimated"
-        ),
+        "standard_cost_usd": standard_cost_usd,
+        "monetary_cost_usd": monetary_cost_usd,
+        "monetary_cost_basis": cost_basis,
+        **billing,
         "event_count": len(events),
     }
 
 
 def _is_transient_codex_error(exc: BaseException) -> bool:
-    message = str(exc).lower()
+    message = f"{type(exc).__name__}: {exc}".lower()
     return any(marker in message for marker in _TRANSIENT_CODEX_MARKERS)
+
+
+def _codex_retry_delay(name: str, prompt: str, attempt: int) -> int:
+    if not 1 <= attempt < CODEX_TRANSIENT_MAX_ATTEMPTS:
+        raise ValueError("retry delay requires a non-final failed attempt")
+    base = CODEX_TRANSIENT_BACKOFF_SECONDS[attempt - 1]
+    digest = hashlib.sha256(
+        f"{name}\0{prompt}\0{attempt}".encode("utf-8")
+    ).digest()
+    return base + (int.from_bytes(digest[:2], "big") % 17)
 
 
 def _instructions(name: str) -> str:
@@ -115,9 +183,117 @@ def backend_name() -> str:
     return backend
 
 
+def _configured_codex_home() -> Path | None:
+    raw = (
+        os.getenv("RESEARCH_FORGE_CODEX_HOME", "").strip()
+        or os.getenv("CODEX_HOME", "").strip()
+    )
+    if not raw:
+        return None
+    home = Path(raw).expanduser().resolve()
+    if not (home / "config.toml").is_file():
+        raise FileNotFoundError(f"Codex provider config is missing: {home / 'config.toml'}")
+    if not (home / "auth.json").is_file():
+        raise FileNotFoundError(f"Codex provider authentication is missing: {home / 'auth.json'}")
+    return home
+
+
+def _configured_billing_contract() -> tuple[Path, dict[str, Any]] | None:
+    raw = os.getenv("RESEARCH_FORGE_PROVIDER_BILLING_CONTRACT", "").strip()
+    if not raw:
+        return None
+    path = Path(raw).expanduser().resolve()
+    if not path.is_file():
+        raise FileNotFoundError(f"provider billing contract is missing: {path}")
+    contract = json.loads(path.read_text(encoding="utf-8"))
+    required = {
+        "provider_name",
+        "provider_base_url",
+        "model",
+        "provider_group",
+        "rates_per_million_tokens",
+        "rate_multiplier",
+    }
+    missing = sorted(required.difference(contract))
+    if missing:
+        raise ValueError(f"provider billing contract is incomplete: {', '.join(missing)}")
+    rates = contract["rates_per_million_tokens"]
+    if not isinstance(rates, dict) or not {
+        "noncached_input",
+        "cached_input",
+        "output",
+    }.issubset(rates):
+        raise ValueError("provider billing contract lacks the frozen token rates")
+    return path, contract
+
+
+def provider_billing_binding() -> dict[str, str]:
+    configured = _configured_billing_contract()
+    if configured is None:
+        return {
+            "provider_billing_contract_hash": "0" * 64,
+            "provider_billing_group": "managed-subscription",
+        }
+    path, contract = configured
+    return {
+        "provider_billing_contract_hash": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "provider_billing_group": str(contract["provider_group"]),
+    }
+
+
+def codex_provider_binding() -> dict[str, str]:
+    home = _configured_codex_home()
+    if home is None:
+        marker = b"openai-managed-codex-default"
+        return {
+            "provider_name": "openai-managed",
+            "provider_base_url": "managed",
+            "provider_config_hash": hashlib.sha256(marker).hexdigest(),
+            "provider_model": os.getenv(
+                "RESEARCH_FORGE_CODEX_MODEL", DEFAULT_CODEX_MODEL
+            ).strip(),
+            "provider_home_source": "managed-default",
+        }
+    config_path = home / "config.toml"
+    config = tomllib.loads(config_path.read_text(encoding="utf-8"))
+    provider_key = str(config.get("model_provider") or "").strip()
+    providers = config.get("model_providers") or {}
+    provider = providers.get(provider_key) if isinstance(providers, dict) else None
+    if not provider_key or not isinstance(provider, dict):
+        raise ValueError("Codex provider config does not define the selected model provider")
+    base_url = str(provider.get("base_url") or "").strip()
+    if not base_url.startswith("https://"):
+        raise ValueError("Codex provider base_url must use HTTPS")
+    provider_model = (
+        os.getenv("RESEARCH_FORGE_CODEX_MODEL", "").strip()
+        or str(config.get("model") or "").strip()
+    )
+    if not provider_model:
+        raise ValueError("Codex provider model is not configured")
+    return {
+        "provider_name": provider_key,
+        "provider_base_url": base_url.rstrip("/"),
+        "provider_config_hash": hashlib.sha256(config_path.read_bytes()).hexdigest(),
+        "provider_model": provider_model,
+        "provider_home_source": "explicit-isolated-home",
+    }
+
+
+def _codex_process_env() -> dict[str, str]:
+    child_env = {"OPENAI_API_KEY": "", "CODEX_API_KEY": ""}
+    home = _configured_codex_home()
+    if home is not None:
+        child_env["CODEX_HOME"] = str(home)
+    return child_env
+
+
+def _configured_codex_model() -> str:
+    return codex_provider_binding()["provider_model"]
+
+
 def model_name() -> str:
     if backend_name() == "codex":
-        return f"codex:{os.getenv('RESEARCH_FORGE_CODEX_MODEL', DEFAULT_CODEX_MODEL)}"
+        return f"codex:{_configured_codex_model()}"
     return f"api:{os.getenv('AUTORESEARCH_MODEL', 'gpt-5.6-terra')}"
 
 
@@ -162,10 +338,11 @@ async def _run_codex_structured(
     from openai_codex import ApprovalMode, AsyncCodex, CodexConfig, Sandbox
 
     working_dir = Path(cwd or ROOT).resolve()
-    model = os.getenv("RESEARCH_FORGE_CODEX_MODEL", DEFAULT_CODEX_MODEL).strip()
+    model = _configured_codex_model()
+    provider = codex_provider_binding()
     config = CodexConfig(
         cwd=str(working_dir),
-        env={"OPENAI_API_KEY": "", "CODEX_API_KEY": ""},
+        env=_codex_process_env(),
         client_name="research_forge",
         client_title="Research Forge",
     )
@@ -182,18 +359,43 @@ async def _run_codex_structured(
                     sandbox=Sandbox.read_only,
                     service_name=name,
                 )
-                result = await thread.run(
-                    prompt,
-                    approval_mode=ApprovalMode.deny_all,
-                    cwd=str(working_dir),
-                    output_schema=_strict_output_schema(output_type),
-                    sandbox=Sandbox.read_only,
+                result = await asyncio.wait_for(
+                    thread.run(
+                        prompt,
+                        approval_mode=ApprovalMode.deny_all,
+                        cwd=str(working_dir),
+                        output_schema=_strict_output_schema(output_type),
+                        sandbox=Sandbox.read_only,
+                    ),
+                    timeout=CODEX_TURN_TIMEOUT_SECONDS,
                 )
             break
-        except RuntimeError as exc:
-            if not _is_transient_codex_error(exc) or attempt == CODEX_TRANSIENT_MAX_ATTEMPTS:
+        except Exception as exc:
+            if not _is_transient_codex_error(exc):
                 raise
-            await asyncio.sleep(0.5 * attempt)
+            exhausted = attempt == CODEX_TRANSIENT_MAX_ATTEMPTS
+            _append_agent_telemetry(
+                {
+                    "schema_version": 1,
+                    "recorded_at": utc_now(),
+                    "scope": _TELEMETRY_SCOPE.get(),
+                    "service_name": name,
+                    "backend": "codex",
+                    "model": model,
+                    "provider_name": provider["provider_name"],
+                    "provider_base_url": provider["provider_base_url"],
+                    "provider_config_hash": provider["provider_config_hash"],
+                    "status": "transport_exhausted" if exhausted else "transport_retry",
+                    "attempt": attempt,
+                    "max_attempts": CODEX_TRANSIENT_MAX_ATTEMPTS,
+                    "error_type": type(exc).__name__,
+                    "error_message": str(exc)[:2000],
+                    "usage_available": False,
+                }
+            )
+            if exhausted:
+                raise
+            await asyncio.sleep(_codex_retry_delay(name, prompt, attempt))
     assert result is not None
     usage = result.usage
     usage_payload = (
@@ -207,6 +409,9 @@ async def _run_codex_structured(
             "service_name": name,
             "backend": "codex",
             "model": model,
+            "provider_name": provider["provider_name"],
+            "provider_base_url": provider["provider_base_url"],
+            "provider_config_hash": provider["provider_config_hash"],
             "status": "completed",
             "usage_available": usage_payload is not None,
             "usage": usage_payload,
@@ -249,16 +454,34 @@ async def _run_structured(
     prompt: str,
     *,
     cwd: str | Path | None,
+    stage: MacroStage,
+    skill_id: str,
 ) -> T:
+    # Every existing agent entry point now receives its untrusted project
+    # material through the same bounded envelope.  This is deliberately done
+    # before backend selection so Codex and API paths have identical limits.
+    prompt_root = Path(cwd or ROOT).resolve()
+    bounded_prompt = PromptEnvelope(
+        stage=stage,
+        skill_id=skill_id,
+        fragments=[
+            PromptFragment(
+                source_id="runtime-request",
+                kind="operator_request",
+                text=prompt,
+            ),
+            *relevant_failure_memory(prompt_root, stage=stage, skill_id=skill_id),
+        ],
+    ).render()
     if backend_name() == "codex":
         return await _run_codex_structured(
             name,
             instructions,
             output_type,
-            prompt,
+            bounded_prompt,
             cwd=cwd,
         )
-    return await _run_api_structured(name, instructions, output_type, prompt)
+    return await _run_api_structured(name, instructions, output_type, bounded_prompt)
 
 
 async def generate_plan(
@@ -272,6 +495,8 @@ async def generate_plan(
         ResearchPlanDraft,
         prompt,
         cwd=cwd,
+        stage=MacroStage.DISCOVERY,
+        skill_id="research-question",
     )
 
 
@@ -286,6 +511,8 @@ async def generate_literature_search_plan(
         LiteratureSearchPlan,
         prompt,
         cwd=cwd,
+        stage=MacroStage.DISCOVERY,
+        skill_id="literature-discovery",
     )
 
 
@@ -300,6 +527,8 @@ async def generate_literature_synthesis(
         LiteratureSynthesis,
         prompt,
         cwd=cwd,
+        stage=MacroStage.DISCOVERY,
+        skill_id="literature-synthesis",
     )
 
 
@@ -318,6 +547,8 @@ async def generate_bundle_paper_draft(
         PaperDraftSections,
         prompt,
         cwd=cwd,
+        stage=MacroStage.SYNTHESIS,
+        skill_id="manuscript-writing",
     )
 
 
@@ -332,6 +563,8 @@ async def screen_literature_candidates(
         LiteratureScreeningOutput,
         prompt,
         cwd=cwd,
+        stage=MacroStage.DISCOVERY,
+        skill_id="literature-screening",
     )
 
 
@@ -346,6 +579,8 @@ async def generate_proposal(
         ExperimentProposal,
         prompt,
         cwd=cwd,
+        stage=MacroStage.EXPERIMENTATION,
+        skill_id="experiment-design",
     )
 
 
@@ -361,6 +596,8 @@ async def generate_study_finalizer(
         StudyFinalizerOutput,
         prompt,
         cwd=cwd,
+        stage=MacroStage.SYNTHESIS,
+        skill_id="study-finalizer",
     )
 
 
@@ -376,6 +613,8 @@ async def judge_study_claims(
         SemanticClaimJudgmentBatch,
         prompt,
         cwd=cwd,
+        stage=MacroStage.SYNTHESIS,
+        skill_id="claim-audit",
     )
 
 
@@ -390,6 +629,8 @@ async def extract_terminology_candidates(
         TermCandidateBatch,
         prompt,
         cwd=cwd,
+        stage=MacroStage.SYNTHESIS,
+        skill_id="terminology-extraction",
     )
 
 
@@ -404,6 +645,8 @@ async def localize_markdown_block(
         LocalizedBlockDraft,
         prompt,
         cwd=cwd,
+        stage=MacroStage.SYNTHESIS,
+        skill_id="manuscript-localization",
     )
 
 
@@ -418,6 +661,8 @@ async def repair_localized_markdown_block(
         LocalizedBlockDraft,
         prompt,
         cwd=cwd,
+        stage=MacroStage.SYNTHESIS,
+        skill_id="manuscript-localization-repair",
     )
 
 
@@ -444,10 +689,12 @@ def backend_status() -> dict[str, Any]:
 
     status["codex_sdk_installed"] = True
     status["codex_sdk_version"] = openai_codex.__version__
+    status.update(codex_provider_binding())
+    status.update(provider_billing_binding())
     try:
         config = CodexConfig(
             cwd=str(ROOT),
-            env={"OPENAI_API_KEY": "", "CODEX_API_KEY": ""},
+            env=_codex_process_env(),
             client_name="research_forge_doctor",
             client_title="Research Forge Doctor",
         )

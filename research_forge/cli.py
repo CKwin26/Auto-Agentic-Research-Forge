@@ -81,6 +81,20 @@ def _parser() -> argparse.ArgumentParser:
     init.add_argument("--idea", required=True)
     init.add_argument("--slug")
 
+    pipeline = sub.add_parser(
+        "pipeline",
+        help="Initialize or inspect the domain-neutral pipeline contract for any project",
+    )
+    pipeline_sub = pipeline.add_subparsers(dest="pipeline_command", required=True)
+    pipeline_initialize = pipeline_sub.add_parser(
+        "initialize",
+        help="Write a stage/skill governance manifest from a project specification",
+    )
+    pipeline_initialize.add_argument("project", help="Target project directory")
+    pipeline_initialize.add_argument("--spec", required=True, help="Path to ProjectSpec JSON")
+    pipeline_inspect = pipeline_sub.add_parser("inspect", help="Print a pipeline governance manifest")
+    pipeline_inspect.add_argument("project", help="Target project directory")
+
     plan = sub.add_parser("plan", help="Draft or revise the research contract with the agent")
     plan.add_argument("project")
     plan.add_argument("--message", required=True)
@@ -413,6 +427,13 @@ def _parser() -> argparse.ArgumentParser:
     manuscript_finalize.add_argument("--passes", type=int, default=2)
     manuscript_finalize.add_argument("--report")
     manuscript_finalize.add_argument("--manifest")
+    manuscript_finalize.add_argument(
+        "--readiness",
+        help=(
+            "Required for a publication_manuscript.tex unless the default "
+            "synthesis/publication_readiness.json exists; enforces the release order"
+        ),
+    )
 
     terminology = sub.add_parser(
         "terminology",
@@ -537,6 +558,10 @@ def _parser() -> argparse.ArgumentParser:
         "--independent-calibration-contract",
         help="Project-local frozen calibration contract required by publication intent",
     )
+    study_freeze.add_argument(
+        "--secondary-evaluator-contract",
+        help="Project-local hash-bound independent robustness evaluator required by publication intent",
+    )
     study_audit = study_sub.add_parser(
         "audit", help="Audit the frozen Stage 2 protocol and completed cells"
     )
@@ -584,6 +609,53 @@ def _parser() -> argparse.ArgumentParser:
         "audit-evaluation", help="Audit the protected 18-registry evaluation"
     )
     study_audit_evaluation.add_argument("project")
+    study_evaluate_publication = study_sub.add_parser(
+        "evaluate-publication",
+        help="Run the protected arm-blinded NLI evaluation of the frozen 8x5 publication matrix",
+    )
+    study_evaluate_publication.add_argument("project")
+    study_audit_publication_pairs = study_sub.add_parser(
+        "audit-publication-pairs",
+        help="Audit shared-artifact, branch-order, telemetry, and hash bindings for all publication pairs",
+    )
+    study_audit_publication_pairs.add_argument("project")
+    study_synthesize_publication = study_sub.add_parser(
+        "synthesize-publication",
+        help="Generate evidence-bound manuscript artifacts from the completed 8x5 publication matrix",
+    )
+    study_synthesize_publication.add_argument("project")
+    study_audit_publication_synthesis = study_sub.add_parser(
+        "audit-publication-synthesis",
+        help="Audit the publication manuscript, claim registry, and human-validation boundary",
+    )
+    study_audit_publication_synthesis.add_argument("project")
+    study_publication_layout_gate = study_sub.add_parser(
+        "publication-layout-gate",
+        help="Require a passing fixed-venue readiness report before LaTeX/PDF layout",
+    )
+    study_publication_layout_gate.add_argument("project")
+    study_publication_layout_gate.add_argument("--readiness", required=True)
+    study_prepare_publication_supplement = study_sub.add_parser(
+        "prepare-publication-supplement",
+        help="Prepare a local anonymous, hash-bound supplement package without publishing it",
+    )
+    study_prepare_publication_supplement.add_argument("project")
+    study_audit_publication_supplement = study_sub.add_parser(
+        "audit-publication-supplement",
+        help="Audit the local anonymous supplement package and its current-source bindings",
+    )
+    study_audit_publication_supplement.add_argument("project")
+    study_prepare_review_package = study_sub.add_parser(
+        "prepare-review-submission-package",
+        help="Assemble a local review package after the automated publication gate; never upload or submit it",
+    )
+    study_prepare_review_package.add_argument("project")
+    study_prepare_review_package.add_argument("--readiness", required=True)
+    study_audit_review_package = study_sub.add_parser(
+        "audit-review-submission-package",
+        help="Audit the local review package, PDF, and anonymous supplement bindings",
+    )
+    study_audit_review_package.add_argument("project")
     study_prepare_manual = study_sub.add_parser(
         "prepare-manual-audit",
         help="Verify and prepare the blinded two-auditor claim sample",
@@ -834,6 +906,20 @@ def main(argv: list[str] | None = None) -> int:
             path = create_project(args.name, args.idea, slug=args.slug, root=args.home)
             print(f"Created: {path}")
             print(f"Next: python main.py --home \"{path.parent}\" plan {path.name} --message \"补充研究边界\"")
+        elif args.command == "pipeline":
+            from .pipeline_contracts import (
+                PIPELINE_MANIFEST_FILENAME,
+                initialize_pipeline_project,
+                load_project_spec,
+            )
+
+            project = Path(args.project).expanduser().resolve()
+            if args.pipeline_command == "initialize":
+                spec = load_project_spec(Path(args.spec).expanduser().resolve())
+                output = initialize_pipeline_project(project, spec)
+                _print_json({"output": str(output), **read_json(output)})
+            elif args.pipeline_command == "inspect":
+                _print_json(read_json(project / PIPELINE_MANIFEST_FILENAME))
         elif args.command == "plan":
             draft_id, draft = asyncio.run(plan_project(_project(args.project, args.home), args.message))
             _print_json({"draft_id": draft_id, **draft.model_dump(mode="json")})
@@ -1109,6 +1195,8 @@ def main(argv: list[str] | None = None) -> int:
                     "markdown": str(markdown_output),
                     "readiness_score": readiness.readiness_score,
                     "readiness_threshold": readiness.readiness_threshold,
+                    "automated_publication_gate_passed": readiness.automated_publication_gate_passed,
+                    "human_gate_pending": readiness.human_gate_pending,
                     "publication_submission_ready": readiness.publication_submission_ready,
                     "hard_blocker_count": len(readiness.hard_blockers),
                     "estimated_acceptance_probability": readiness.estimated_acceptance_probability.model_dump(mode="json"),
@@ -1256,6 +1344,7 @@ def main(argv: list[str] | None = None) -> int:
                         passes=args.passes,
                         report_path=args.report,
                         manifest_path=args.manifest,
+                        readiness_path=args.readiness,
                     )
                 )
         elif args.command == "terminology":
@@ -1352,6 +1441,7 @@ def main(argv: list[str] | None = None) -> int:
                     task_ids=args.tasks,
                     seeds=args.seeds,
                     independent_calibration_contract=args.independent_calibration_contract,
+                    secondary_evaluator_contract=args.secondary_evaluator_contract,
                 )
                 _print_json(protocol.model_dump(mode="json"))
             elif args.study_command == "audit":
@@ -1409,6 +1499,42 @@ def main(argv: list[str] | None = None) -> int:
 
                 audit = audit_stage2_evaluation(project, persist=True)
                 _print_json(audit.model_dump(mode="json"))
+            elif args.study_command == "evaluate-publication":
+                from .publication_nli_evaluation import run_publication_nli_evaluation
+
+                _print_json(run_publication_nli_evaluation(project))
+            elif args.study_command == "audit-publication-pairs":
+                from .publication_pair_audit import audit_publication_pairs
+
+                _print_json(audit_publication_pairs(project, persist=True))
+            elif args.study_command == "synthesize-publication":
+                from .publication_synthesis import synthesize_publication_study
+
+                _print_json(synthesize_publication_study(project))
+            elif args.study_command == "audit-publication-synthesis":
+                from .publication_synthesis import audit_publication_synthesis
+
+                _print_json(audit_publication_synthesis(project, persist=True))
+            elif args.study_command == "publication-layout-gate":
+                from .publication_synthesis import render_publication_layout
+
+                _print_json(render_publication_layout(project, Path(args.readiness)))
+            elif args.study_command == "prepare-publication-supplement":
+                from .publication_supplement import prepare_anonymous_supplement
+
+                _print_json(prepare_anonymous_supplement(project))
+            elif args.study_command == "audit-publication-supplement":
+                from .publication_supplement import audit_anonymous_supplement
+
+                _print_json(audit_anonymous_supplement(project))
+            elif args.study_command == "prepare-review-submission-package":
+                from .publication_package import prepare_review_submission_package
+
+                _print_json(prepare_review_submission_package(project, Path(args.readiness)))
+            elif args.study_command == "audit-review-submission-package":
+                from .publication_package import audit_review_submission_package
+
+                _print_json(audit_review_submission_package(project))
             elif args.study_command == "prepare-manual-audit":
                 from .manual_audit import prepare_manual_audit
 

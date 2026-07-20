@@ -8,7 +8,7 @@
 
 ## 0. 固定范围
 
-- 工作区：当前 Research Forge 仓库根目录
+- 工作区：`C:\Users\austa\Documents\自动研究器`
 - 当前历史项目：`stage1_runs\research-agent-evidence-v2`
 - 产品目标：端到端生成可提交学术论文的 Research Forge 正式版。
 - 研究目标：在不削弱任何科学门槛的前提下，使固定 venue 合同下的确定性 `publication_readiness >= 0.60`，通过该 venue 自身的质量线，并清除全部自动化可解决的 critical/high scientific blockers。
