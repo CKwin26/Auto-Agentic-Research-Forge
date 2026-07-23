@@ -15,7 +15,15 @@ import unicodedata
 
 from .publication_pair_audit import audit_publication_pairs
 from .storage import read_json, safe_relative, sha256_file, write_json_atomic
-from .study import audit_stage2_protocol
+from .study import (
+    audit_stage2_protocol,
+    stage2_audit_allows_completed_historical_read,
+)
+from .paper_pipeline import (
+    GENERIC_JOURNAL_ARTICLE,
+    markdown_heading,
+    normalize_unstructured_abstract,
+)
 
 
 PUBLICATION_RELEASE_ORDER = (
@@ -107,33 +115,112 @@ def _relative(project: Path, path: Path) -> str:
 
 def _paths(project: Path) -> dict[str, Path]:
     stage2 = project / "stage2"
+    protected = stage2 / "protected_nli_evaluation"
     return {
         "protocol": stage2 / "protocol.json",
         "pair_audit": stage2 / "publication_pair_audit.json",
-        "summary": stage2 / "protected_nli_evaluation" / "summary.json",
-        "manifest": stage2 / "protected_nli_evaluation" / "manifest.json",
-        "unblinding": stage2 / "protected_nli_evaluation" / "unblinding.json",
+        "summary": protected / "summary.json",
+        "manifest": protected / "manifest.json",
+        "unblinding": protected / "unblinding.json",
+        "manual_manifest": protected / "manual-audit" / "manifest.json",
+        "sample": protected / "manual-audit" / "sample.json",
+        "manual_result": protected / "manual-audit" / "result.json",
+        "workbook_import_manifest": protected
+        / "manual-audit"
+        / "workbook-import"
+        / "manifest.json",
+        "context_review": protected
+        / "manual-audit"
+        / "context-restored-review"
+        / "result.json",
+        "context_repair_verification": project
+        / "design_revisions"
+        / "publication_context_repair_verification.json",
+        "successor_protocol_plan": project
+        / "design_revisions"
+        / "publication_successor_protocol_plan_v1.json",
+        "final_analysis": protected / "final_analysis.json",
     }
 
 
 def _preflight(project: Path) -> tuple[dict[str, Any], dict[str, Any]]:
     audit = audit_stage2_protocol(project)
-    if not audit.passed:
+    historical_controller_drift_only = stage2_audit_allows_completed_historical_read(audit)
+    if not audit.passed and not historical_controller_drift_only:
         raise ValueError("publication protocol audit failed: " + "; ".join(audit.violations))
     pair = audit_publication_pairs(project, persist=False)
     if not pair["complete"] or not pair["passed"]:
         raise ValueError("publication pair audit is incomplete or failed")
     paths = _paths(project)
-    if not all(path.is_file() for path in paths.values()):
+    protected_inputs = (
+        "protocol",
+        "pair_audit",
+        "summary",
+        "manifest",
+        "unblinding",
+        "manual_manifest",
+    )
+    if not all(paths[name].is_file() for name in protected_inputs):
         raise FileNotFoundError("protected publication evaluation artifacts are incomplete")
-    summary = read_json(paths["summary"])
-    if summary.get("analysis_status") != "protected_independent_nli_complete_human_audit_pending":
+    protected_summary = read_json(paths["summary"])
+    if protected_summary.get("analysis_status") != "protected_independent_nli_complete_human_audit_pending":
         raise ValueError("protected evaluation status is not the expected deferred-human state")
-    if summary.get("primary_analysis_interpretable") is not False:
+    if protected_summary.get("primary_analysis_interpretable") is not False:
         raise ValueError("publication synthesis refuses an interpretable primary-analysis claim")
-    if int(summary.get("pair_count", 0)) != 40:
+    if int(protected_summary.get("pair_count", 0)) != 40:
         raise ValueError("publication synthesis requires all 40 preregistered pairs")
-    return pair, summary
+    if not paths["final_analysis"].is_file():
+        return pair, protected_summary
+    from .publication_manual_audit import audit_publication_manual_audit
+
+    manual_audit = audit_publication_manual_audit(project)
+    if not manual_audit["passed"] or not manual_audit["complete"]:
+        raise ValueError("completed publication human audit failed its integrity audit")
+    final_analysis = read_json(paths["final_analysis"])
+    if final_analysis.get("protocol_id") != protected_summary.get("protocol_id"):
+        raise ValueError("publication final analysis protocol binding mismatch")
+    if final_analysis.get("protected_summary_sha256") != sha256_file(paths["summary"]):
+        raise ValueError("publication final analysis is not bound to the protected summary")
+    if final_analysis.get("manual_audit_result_sha256") != sha256_file(paths["manual_result"]):
+        raise ValueError("publication final analysis is not bound to the human audit")
+    if final_analysis.get("human_validation") != "COMPLETE":
+        raise ValueError("publication final analysis lacks completed human validation")
+    if final_analysis.get("analysis_status") not in {
+        "publication_human_audit_complete_primary_analysis_unlocked",
+        "publication_human_audit_complete_primary_analysis_invalid",
+    }:
+        raise ValueError("publication final analysis has an invalid human-audit state")
+    if paths["workbook_import_manifest"].is_file():
+        workbook_import = read_json(paths["workbook_import_manifest"])
+        if workbook_import.get("protocol_id") != protected_summary.get("protocol_id"):
+            raise ValueError("publication workbook import protocol binding mismatch")
+        if workbook_import.get("source_sample_sha256") != sha256_file(paths["sample"]):
+            raise ValueError("publication workbook import sample binding mismatch")
+        if workbook_import.get("manual_audit_result_sha256") != sha256_file(
+            paths["manual_result"]
+        ):
+            raise ValueError("publication workbook import result binding mismatch")
+    if paths["context_review"].is_file():
+        from .publication_context_review import audit_publication_context_review
+
+        context_audit = audit_publication_context_review(project)
+        if not context_audit["passed"]:
+            raise ValueError("publication context-restored review failed its integrity audit")
+    if paths["context_repair_verification"].is_file():
+        repair = read_json(paths["context_repair_verification"])
+        if repair.get("passed") is not True:
+            raise ValueError("publication context repair verification did not pass")
+        if repair.get("source_context_review_sha256") != sha256_file(
+            paths["context_review"]
+        ):
+            raise ValueError("publication context repair targets another contextual review")
+    if paths["successor_protocol_plan"].is_file():
+        from .publication_context_review import audit_publication_successor_protocol_plan
+
+        successor_audit = audit_publication_successor_protocol_plan(project)
+        if not successor_audit["passed"]:
+            raise ValueError("publication successor protocol plan failed its integrity audit")
+    return pair, final_analysis
 
 
 def _claims(project: Path, summary: dict[str, Any]) -> list[dict[str, Any]]:
@@ -141,13 +228,25 @@ def _claims(project: Path, summary: dict[str, Any]) -> list[dict[str, Any]]:
     baseline = summary["arm_metrics"]["baseline"]
     treatment = summary["arm_metrics"]["treatment"]
     paired = summary["paired_analysis"]
-    evidence = [_relative(project, paths[key]) for key in ("protocol", "pair_audit", "summary", "manifest", "unblinding")]
+    evidence_keys = ["protocol", "pair_audit", "summary", "manifest", "unblinding"]
+    if paths["final_analysis"].is_file():
+        evidence_keys.extend(["manual_manifest", "manual_result", "final_analysis"])
+        if paths["workbook_import_manifest"].is_file():
+            evidence_keys.append("workbook_import_manifest")
+        if paths["context_review"].is_file():
+            evidence_keys.append("context_review")
+        if paths["context_repair_verification"].is_file():
+            evidence_keys.append("context_repair_verification")
+        if paths["successor_protocol_plan"].is_file():
+            evidence_keys.append("successor_protocol_plan")
+    evidence = [_relative(project, paths[key]) for key in evidence_keys]
     hashes = {item: sha256_file(safe_relative(project, item)) for item in evidence}
+    provisional = summary.get("primary_analysis_interpretable") is not True
     return [
         {
             "claim_id": "protected-unsupported-rate-effect",
             "kind": "result",
-            "provisional": True,
+            "provisional": provisional,
             "statement": "In the protected automated evaluator, treatment had a lower unsupported-claim rate than baseline.",
             "metrics": {
                 "baseline_unsupported_claim_rate": float(baseline["unsupported_claim_rate"]),
@@ -162,7 +261,7 @@ def _claims(project: Path, summary: dict[str, Any]) -> list[dict[str, Any]]:
         {
             "claim_id": "task-performance-preservation",
             "kind": "result",
-            "provisional": True,
+            "provisional": provisional,
             "statement": "The mean task-native score was unchanged between the two arms in the protected matrix.",
             "metrics": {
                 "baseline_task_native_score": float(baseline["mean_task_native_score"]),
@@ -204,20 +303,487 @@ def _render_markdown(project: Path, analysis: dict[str, Any], claims: list[dict[
     t = second["metrics"]
     baseline_metrics = analysis["arm_metrics"]["baseline"]
     treatment_metrics = analysis["arm_metrics"]["treatment"]
+    human_complete = analysis.get("human_validation") == "COMPLETE"
+    human_unlocked = human_complete and analysis.get("primary_analysis_interpretable") is True
+    human_invalid = human_complete and not human_unlocked
+    manual_gate = analysis.get("manual_gate", {})
+    human_audit = analysis.get("human_audit", {})
+    agreement_count = int(human_audit.get("agreement_count", 0))
+    audited_claims = int(human_audit.get("audited_claims", 128))
+    agreement_rate = human_audit.get("agreement_rate")
+    agreement_text = (
+        f"{float(agreement_rate):.3f}" if agreement_rate is not None else "not estimable"
+    )
+    kappa = human_audit.get("cohen_kappa")
+    kappa_text = f"{float(kappa):.3f}" if kappa is not None else "not estimable"
+    adjudicated_disagreements = int(human_audit.get("adjudicated_disagreements", 0))
+    rationale_substitutions = human_audit.get("unified_rationale_substitutions")
+    rationale_disclosure_text = ""
+    if isinstance(rationale_substitutions, dict):
+        substituted_1 = int(rationale_substitutions.get("auditor_1", 0))
+        substituted_2 = int(rationale_substitutions.get("auditor_2", 0))
+        rationale_disclosure_text = (
+            f"The source workbooks contained blank rationale cells for {substituted_1} auditor-1 "
+            f"and {substituted_2} auditor-2 judgments. With each auditor's explicit confirmation, "
+            "their own shared rationale was applied to those originally blank cells and marked as "
+            "such in the derived packets; this is disclosed rather than represented as item-specific prose. "
+        )
+    false_positive_rate = manual_gate.get("audit_false_positive_rate")
+    false_positive_text = (
+        f"{float(false_positive_rate):.3f}" if false_positive_rate is not None else "not estimable"
+    )
+    audited_unsupported = int(manual_gate.get("audited_evaluator_unsupported", 0))
+    false_positive_count = int(manual_gate.get("audit_false_positive_count", 0))
+    false_negative_rate = manual_gate.get("audit_false_negative_rate")
+    false_negative_text = (
+        f"{float(false_negative_rate):.3f}" if false_negative_rate is not None else "not estimable"
+    )
+    context_review = analysis.get("context_restored_review", {})
+    context_review_count = int(context_review.get("reviewed_evaluator_unsupported", 0))
+    context_supported_count = int(
+        dict(context_review.get("contextual_verdict_counts", {})).get("supported", 0)
+    )
+    context_review_complete = (
+        human_invalid
+        and context_review_count == audited_unsupported
+        and context_supported_count == context_review_count
+        and context_review.get("contextual_verdict_letters") == "A" * context_review_count
+        and context_review.get("replaces_preregistered_blinded_audit") is False
+        and context_review.get("can_unlock_primary_analysis") is False
+    )
+    repair_verification = analysis.get("context_repair_verification", {})
+    repair_verified = (
+        context_review_complete
+        and repair_verification.get("passed") is True
+        and int(repair_verification.get("replayed_cases", 0)) == context_review_count
+        and int(repair_verification.get("supported_cases", 0)) == context_review_count
+        and repair_verification.get("does_not_recompute_historical_primary_analysis") is True
+    )
+    successor_plan = analysis.get("successor_protocol_plan", {})
+    successor_plan_bound = (
+        repair_verified
+        and bool(successor_plan.get("plan_id"))
+        and successor_plan.get("fresh_outcomes_required") is True
+        and successor_plan.get("predecessor_outcome_reuse_allowed") is False
+        and successor_plan.get("new_two_auditor_blinded_review_required") is True
+    )
+    headline_abstract_text = (
+        "We evaluated whether an evidence-gated revision branch reduces unsupported claims in "
+        "an autonomous research workflow while preserving task performance."
+    )
+    results_opening_text = (
+        f"The pair-integrity audit verified all 40 shared artifacts, 80 branches, frozen branch "
+        f"orders, telemetry records, and hash bindings with no violations. The protected automated "
+        f"evaluator found an unsupported-claim-rate effect of {m['paired_mean_effect']:.3f} "
+        f"(95% bootstrap interval {m['ci_95_low']:.3f} to {m['ci_95_high']:.3f}). Baseline and "
+        f"treatment task-native means were {t['baseline_task_native_score']:.3f} and "
+        f"{t['treatment_task_native_score']:.3f}, respectively. Leave-one-task-out estimates "
+        "remained negative for every omitted task."
+    )
+    discussion_opening_text = (
+        "The evidence gate was associated with fewer unsupported claims under the protected "
+        "automated measurement while preserving task-native performance. The effect is modest "
+        "and its interval includes zero at the upper endpoint."
+    )
+    if human_unlocked:
+        title_text = "Does Evidence-Gated Claim Revision Reduce Unsupported Research Claims?"
+        status_text = (
+            "`AUTOMATED_EVIDENCE_COMPLETE + HUMAN_AUDIT_COMPLETE`. The preregistered "
+            "two-human blinded audit passed its false-positive stopping rule, so "
+            "`primary_analysis_interpretable=true` for the bounded automated endpoint. "
+            "External release and venue-format gates remain open; this manuscript is not submission-ready."
+        )
+        abstract_human_text = (
+            f"The independent human audit covered 128 frozen claims and found "
+            f"{false_positive_count}/{audited_unsupported} false positives among protected "
+            f"unsupported judgments (rate {false_positive_text}), passing the preregistered "
+            "0.15 threshold. The treatment contrast is therefore interpretable for the "
+            "registered automated endpoint, not as proof of scientific truth or acceptance."
+        )
+        audit_results_text = (
+            "### Preregistered human validation\n\n"
+            f"Two independent, arm- and task-blinded auditors completed all 128 frozen claims. "
+            f"They agreed on {agreement_count}/{audited_claims} judgments before adjudication "
+            f"(agreement rate {agreement_text}; Cohen's kappa {kappa_text}); "
+            f"{adjudicated_disagreements} disagreements underwent blinded adjudication. "
+            f"{rationale_disclosure_text}"
+            f"After blinded adjudication, the protected evaluator false-positive rate was "
+            f"{false_positive_text} ({false_positive_count}/{audited_unsupported}) and the "
+            f"false-negative rate on audited non-unsupported claims was {false_negative_text}. "
+            "The false-positive rate met the preregistered maximum of 0.15, unlocking the "
+            "primary automated analysis. Human validation calibrates this endpoint on the "
+            "sampled project claims; it does not validate novelty, study design, or usefulness."
+        )
+        primary_boundary_text = (
+            "The project-specific two-human audit is complete and passed the registered "
+            "instrument-validity threshold. Causal statements remain qualified as effects on "
+            "the protected claim-evidence endpoint because the audit did not test every dimension "
+            "of scientific quality."
+        )
+        future_audit_text = (
+            "The completed independent human audit directly samples the project-specific claim "
+            "distribution and is reported separately from automated and persona review."
+        )
+        conclusion_text = (
+            "The prospective shared-artifact matrix and preregistered human audit completed with "
+            "auditable Docker, telemetry, evidence, and adjudication bindings. The bounded primary "
+            "analysis supports a lower protected unsupported-claim rate without task-performance "
+            "loss. External reproducibility release and venue-format checks remain unfinished, so "
+            "the system must not yet represent the package as submission-ready."
+        )
+    elif human_invalid:
+        title_text = (
+            "Fault Localization in an Evidence-Governed Research Workflow: "
+            "A Prospective Study of Claim Verification and Context Repair"
+            if context_review_complete
+            else "When an Automated Claim-Support Endpoint Fails Human Validation: "
+            "A Prospective Shared-Artifact Study of Evidence-Gated Revision"
+        )
+        status_text = (
+            "`FAULT_LOCALIZATION_COMPLETE + HUMAN_AUDIT_COMPLETE + REPAIR_REPLAY_PASSED`. "
+            "The workflow completed its diagnostic and repair loop. The historical automated "
+            "treatment endpoint remains non-confirmatory under the preregistered stopping rule "
+            "(`primary_analysis_interpretable=false`), so a fresh successor protocol is required "
+            "before making a treatment-effect claim."
+        )
+        abstract_human_text = (
+            f"The independent human audit covered 128 frozen claims and found "
+            f"{false_positive_count}/{audited_unsupported} false positives among protected "
+            f"unsupported judgments (rate {false_positive_text}), exceeding the preregistered "
+            "0.15 threshold. The automated treatment contrast is reported for auditability but "
+            "cannot support the primary conclusion."
+        )
+        audit_results_text = (
+            "### Preregistered human validation\n\n"
+            f"Two independent, arm- and task-blinded auditors completed all 128 frozen claims. "
+            f"They agreed on {agreement_count}/{audited_claims} judgments before adjudication "
+            f"(agreement rate {agreement_text}; Cohen's kappa {kappa_text}); "
+            f"{adjudicated_disagreements} disagreements underwent blinded adjudication. "
+            f"{rationale_disclosure_text}"
+            f"After blinded adjudication, the protected evaluator false-positive rate was "
+            f"{false_positive_text} ({false_positive_count}/{audited_unsupported}) and the "
+            f"false-negative rate on audited non-unsupported claims was {false_negative_text}. "
+            "Because the false-positive rate exceeded 0.15, the preregistered stopping rule "
+            "invalidated interpretation of the primary automated effect."
+        )
+        if context_review_complete:
+            abstract_human_text += (
+                f" A separate post-unblinding diagnostic review restored the frozen task "
+                f"specification and deterministic metric bindings for all {context_review_count} "
+                "automated unsupported judgments; all were then judged supported. This localizes "
+                "the endpoint error to evidence packaging and decision precedence, but it does not "
+                "retroactively validate the treatment effect."
+            )
+            if repair_verified:
+                abstract_human_text += (
+                    f" The successor evidence-packet and deterministic-decision implementation "
+                    f"replayed all {context_review_count}/{context_review_count} diagnosed cases as "
+                    "supported; a fresh prospective rerun is still required."
+                )
+            audit_results_text += (
+                "\n\n### Post-unblinding context-restored diagnostic review\n\n"
+                f"After the preregistered gate had closed and evaluator labels were visible, the "
+                f"project owner reviewed all {context_review_count} protected unsupported judgments "
+                "with the frozen task specification restored. The diagnostic verdict sequence was "
+                f"`{context_review.get('contextual_verdict_letters')}`: all "
+                f"{context_supported_count}/{context_review_count} were supported. Three target-score "
+                "claims recovered their frozen target values and direction; two exact-metric claims "
+                "were supported by deterministic equality between the claim and valid run record. "
+                "This review was unblinded and post hoc. It is append-only, does not replace the "
+                "signed blinded audit, and cannot unlock the preregistered primary analysis."
+            )
+            if repair_verified:
+                audit_results_text += (
+                    "\n\n### Successor implementation repair verification\n\n"
+                    f"A successor evaluator implementation (`{repair_verification.get('successor_evaluator_implementation_version')}`) "
+                    "adds hash-bound task-specification context to claim evidence packets and gives "
+                    "narrow deterministic numerical entailment precedence over NLI. A replay of the "
+                    f"five diagnosed cases returned supported for {context_review_count}/{context_review_count}. "
+                    "This verifies the implementation repair on the historical diagnostic cases; it "
+                    "does not recompute the historical primary analysis or substitute for a fresh "
+                    "prospectively frozen experiment."
+                )
+            if successor_plan_bound:
+                open_items = ", ".join(successor_plan.get("open_prerequisites", [])) or "none"
+                audit_results_text += (
+                    "\n\n### Prospective successor protocol plan\n\n"
+                    f"The frozen successor plan (`{successor_plan['plan_id']}`) binds the repaired "
+                    "evaluator source hashes, the original eight-task by five-seed design, a clean "
+                    "project boundary, fresh protected outcomes, and a new two-auditor blinded review. "
+                    "It forbids reuse of predecessor outcomes and forbids importing the post-unblinding "
+                    f"`AAAAA` labels into the successor audit. Open pre-freeze prerequisites are: {open_items}. "
+                    "The plan is therefore a reproducibility and non-reuse contract, not evidence that "
+                    "the successor experiment has already run."
+                )
+            headline_abstract_text = (
+                "We evaluated an evidence-gated research workflow and tested whether its audit trail "
+                "could expose and localize faults in claim verification."
+            )
+            results_opening_text = (
+                "The execution and provenance chain completed intact, but the preregistered human "
+                "gate invalidated the protected NLI endpoint. A context-restored diagnostic review "
+                f"then judged all {context_supported_count}/{context_review_count} automated "
+                "unsupported cases as supported, tracing the discrepancy to omitted task-specification "
+                "context and failure to prioritize deterministic metric equality."
+            )
+            discussion_opening_text = (
+                "The main systems result is successful fault localization rather than a validated "
+                "treatment benefit. The workflow preserved enough lineage to distinguish claim "
+                "generation, evidence packaging, probabilistic scoring, and human adjudication."
+            )
+        primary_boundary_text = (
+            (
+                "The project-specific two-human audit did not meet the registered instrument-validity "
+                "threshold. The append-only context review localizes why, while the original automated "
+                "contrast remains diagnostic and cannot support the study's primary treatment claim."
+            )
+            if context_review_complete
+            else (
+                "The project-specific two-human audit is complete but failed the registered "
+                "instrument-validity threshold. The automated contrast remains a diagnostic result "
+                "and cannot support the study's primary conclusion."
+            )
+        )
+        future_audit_text = (
+            (
+                "The completed independent audit and context-restored review exposed missing "
+                "task-specification context and an unsafe precedence rule between deterministic "
+                "metric equality and probabilistic NLI. These defects require repair and a new freeze."
+            )
+            if context_review_complete
+            else (
+                "The completed independent human audit exposed insufficient project-specific validity "
+                "of the protected evaluator; further automated scoring cannot repair that failed gate."
+            )
+        )
+        conclusion_text = (
+            (
+                "The prospective matrix, independent audit, append-only diagnostic review, and "
+                "stage-specific provenance jointly closed a fault-localization loop. The original "
+                "treatment effect remains unproven, but the platform successfully traced the invalid "
+                "endpoint to context loss in evidence packaging and probabilistic scoring overriding "
+                "exact metric bindings. "
+                + (
+                    "The successor implementation restored frozen task specifications and deterministic "
+                    "numerical precedence, passed the five-case diagnostic replay, and now requires a "
+                    "new prospective rerun."
+                    if repair_verified
+                    else "Repair requires restoring frozen task specifications and giving deterministic "
+                    "numerical entailment precedence before a new prospective rerun."
+                )
+            )
+            if context_review_complete
+            else (
+                "The prospective matrix completed, but the preregistered human audit invalidated the "
+                "primary automated endpoint. The correct conclusion is a failed validation gate, not "
+                "a reliability benefit. A new prospectively frozen evaluator and study are required "
+                "before the effect can be tested again."
+            )
+        )
+    else:
+        title_text = "Does Evidence-Gated Claim Revision Reduce Unsupported Research Claims?"
+        status_text = (
+            "`AUTOMATED_EVIDENCE_COMPLETE + HUMAN_GATE_PENDING`. This is a prospective 8-task × "
+            "5-seed shared-artifact study. The preregistered two-human blinded audit is deferred; "
+            "therefore `primary_analysis_interpretable=false` and this manuscript is not submission-ready."
+        )
+        abstract_human_text = (
+            "These findings are automated-evaluator estimates, not human validation or an acceptance claim."
+        )
+        audit_results_text = (
+            "### Preregistered human validation\n\n"
+            "The frozen 128-claim, two-auditor sample remains pending. No human labels are inferred "
+            "from automated or persona review, and the primary analysis remains uninterpretable "
+            "until the registered audit and any blinded adjudication are complete."
+        )
+        primary_boundary_text = (
+            "The manuscript reports an automated, bounded result because the two-human blinded "
+            "audit specified in the protocol is deferred. The frozen cross-family calibration "
+            "does not substitute for project-specific human adjudication; every causal statement "
+            "is therefore qualified as an effect on the protected automated endpoint."
+        )
+        future_audit_text = (
+            "The protected evaluator is deliberately cross-family, arm blinded, threshold frozen, "
+            "and calibrated on public labelled material. Those controls reduce circularity but do "
+            "not eliminate the need for the pending independent human audit."
+        )
+        conclusion_text = (
+            "The prospective shared-artifact matrix completed with auditable Docker, telemetry, "
+            "and evidence bindings. Its protected automated analysis suggests a lower unsupported-"
+            "claim rate without task-performance loss. The human-validation gate remains pending, "
+            "so the system must not represent this as publication submission readiness."
+        )
+    if human_complete:
+        abstention_validation_text = (
+            "The completed human audit provides the registered project-specific comparison with "
+            "these automated labels; its false-positive and false-negative rates are reported below."
+        )
+        information_validation_text = (
+            "The completed human audit addresses sampled claim support, while retention, semantic "
+            "change, and informativeness remain separate construct safeguards rather than one score."
+        )
+        next_steps_text = (
+            (
+                "The next confirmatory step is a new prospectively frozen rerun after task-specification "
+                "context is included in every relevant evidence packet and exact numerical entailment "
+                "is decided deterministically before NLI. The current holdout cannot be reused to claim "
+                "a validated treatment benefit."
+            )
+            if context_review_complete
+            else (
+                "The remaining evidentiary steps are an externally accessible reproducibility package, "
+                "independent replication, and the target venue's final format and disclosure checks. "
+                "Human-audit completion removes one gate but does not authorize submission by itself."
+            )
+        )
+        measurement_threat_text = (
+            (
+                "The project-specific audit exposed a construct-validity defect: relevant frozen task "
+                "context was absent from some review packets, and exact numerical matches could be "
+                "overridden by probabilistic NLI. The context-restored review localizes that defect but "
+                "does not estimate a corrected treatment effect."
+            )
+            if context_review_complete
+            else (
+                "The project-specific audit measures agreement with independent human judgments on the "
+                "frozen sample, reducing but not eliminating construct-validity risk. Scientific quality "
+                "also depends on novelty, design, evidence completeness, causal scope, and usefulness."
+            )
+        )
+        distribution_shift_text = (
+            (
+                "Distribution shift and packet construction are jointly implicated. The registered "
+                "error rate exceeded its stopping threshold, so it invalidates rather than bounds the "
+                "current instrument for confirmatory use."
+            )
+            if human_invalid
+            else (
+                "Distribution shift remains relevant because the human audit is a sample rather than a "
+                "complete relabelling of every project claim. Its registered error rates bound the current "
+                "instrument; a changed task distribution or evaluator requires new validation."
+            )
+        )
+        governance_text = (
+            "The workflow changed `primary_analysis_interpretable` only after hash-bound independent "
+            "human packets and blinded adjudication completed. Persona and automated review remain "
+            "separate evidence classes and cannot overwrite that result."
+        )
+        abstract_scope_text = (
+            "The comparison includes the preregistered project-specific human audit. It does not "
+            "claim that sampled claim-support judgments establish the truth of the retained scientific "
+            "statements or increase the likelihood of acceptance at any venue."
+        )
+        introduction_scope_text = (
+            "The present manuscript addresses the automated contrast and the registered human-audit "
+            "gate while preserving run completion and external submission readiness as separate states."
+        )
+        discussion_scope_text = (
+            (
+                "The completed human process invalidated the protected evaluator for confirmatory use. "
+                "The context-restored review then localized the mismatch to evidence packaging and "
+                "decision precedence; neither result establishes a treatment benefit or journal readiness."
+            )
+            if context_review_complete
+            else (
+                "The completed human audit calibrates the protected evaluator on the frozen project sample. "
+                "It does not establish that the gate improves scientific truth, novelty, study design, or "
+                "journal acceptance."
+            )
+        )
+        ethics_text = (
+            "No research participants were enrolled. Two independent human auditors and a blinded "
+            "adjudicator reviewed the frozen claim-evidence sample under the registered protocol; "
+            "their identifiers are stored only as hashes in publication artifacts."
+        )
+    else:
+        abstention_validation_text = (
+            "It is one of the variables that the pending human audit should compare with the automated labels."
+        )
+        information_validation_text = (
+            "Those fields should be inspected together with the pending human audit rather than "
+            "compressed into one headline score."
+        )
+        next_steps_text = (
+            "The next evidentiary steps are an externally accessible reproducibility package and the "
+            "preregistered human audit. Only after automated readiness and that human gate are both "
+            "satisfied may the system consider a package for submission readiness."
+        )
+        measurement_threat_text = (
+            "The protocol reduces construct-validity risk by measuring several traces and withholding "
+            "the human-validation conclusion, but it cannot eliminate the gap."
+        )
+        distribution_shift_text = (
+            "The pending two-human audit is required precisely because it samples the project-specific "
+            "claim distribution rather than transferring benchmark calibration by assumption."
+        )
+        governance_text = (
+            "The workflow refuses to change `primary_analysis_interpretable` or "
+            "`publication_submission_ready` until the preregistered human process has actually occurred."
+        )
+        abstract_scope_text = (
+            "The comparison is deliberately restricted to a protected automated outcome. The experiment "
+            "does not claim that the gate has completed a human review process, established the truth of "
+            "the retained scientific statements, or increased the likelihood of acceptance at any venue."
+        )
+        introduction_scope_text = (
+            "The present manuscript addresses the automated contrast and documents why run completion, "
+            "human validation, and external submission readiness cannot be inferred from it."
+        )
+        discussion_scope_text = (
+            "The result does not establish that the gate improves scientific truth, that human reviewers "
+            "would agree, or that a journal would accept the work."
+        )
+        ethics_text = "No human participants were recruited or represented as reviewers."
     reference_keys = [str(item.get("citation_key") or f"R{index + 1}") for index, item in enumerate(references)]
+    def reference_authors(item: dict[str, Any]) -> str:
+        authors = [str(value) for value in item.get("authors", []) if str(value).strip()]
+        if not authors:
+            return "Unknown author"
+        if len(authors) == 1:
+            return authors[0]
+        if len(authors) == 2:
+            return f"{authors[0]} and {authors[1]}"
+        return f"{authors[0]} et al."
+
     refs = "\n".join(
-        f"- [{key}] {item['authors'][0]} et al. ({item.get('year', 'n.d.')}). {item['title']}. {item['locator']}"
+        f"- [{key}] {reference_authors(item)} ({item.get('year', 'n.d.')}). {item['title']}. {item['locator']}"
         for key, item in zip(reference_keys, references, strict=True)
     )
-    # Related work should support specific statements, not act as a second
-    # bibliography.  Keep representative citations next to the claims they
-    # motivate and reserve the complete reference records for the final section.
-    autonomous_work_citations = " ".join(f"[{key}]" for key in reference_keys[:2])
-    verification_citations = " ".join(f"[{key}]" for key in reference_keys[2:3])
-    calibration_citations = " ".join(
-        f"[{key}]" for key in reference_keys[-3:-1]
+    # Every listed source must be cited where it actually bears on the prose.
+    # Categorise by the verified title rather than by list position because the
+    # frozen and post-freeze contextual manifests are merged at synthesis time.
+    keyed_references = list(zip(reference_keys, references, strict=True))
+    verification_tokens = (
+        "claim verification",
+        "citation verification",
+        "evidence coverage evaluator",
+        "fact or fiction",
     )
-    introduction_detail = """
+    calibration_tokens = ("deberta",)
+    verification_keys = [
+        key
+        for key, item in keyed_references
+        if any(token in str(item["title"]).lower() for token in verification_tokens)
+    ]
+    calibration_keys = [
+        key
+        for key, item in keyed_references
+        if any(token in str(item["title"]).lower() for token in calibration_tokens)
+    ]
+    autonomous_keys = [
+        key
+        for key, item in keyed_references
+        if key not in verification_keys and key not in calibration_keys
+    ]
+    autonomous_work_citations = " ".join(f"[{key}]" for key in autonomous_keys)
+    verification_citations = " ".join(f"[{key}]" for key in verification_keys)
+    calibration_citations = " ".join(f"[{key}]" for key in calibration_keys)
+    automated_review_citations = " ".join(
+        f"[{key}]"
+        for key, item in keyed_references
+        if "the ai scientist:" in str(item["title"]).lower()
+    )
+    introduction_detail = f"""
 
 The unit of intervention in this study is a revision branch, not a research idea, a paper, or a model checkpoint. This distinction matters because a system can appear safer merely by selecting easier prompts or by regenerating a different upstream artifact for each condition. The study therefore asks a constrained question: conditional on the same upstream artifact, does an evidence-gated branch change the automated support status of the claims it emits? The question is narrower than whether an autonomous system discovers true scientific knowledge. It is also narrower than whether a manuscript would receive a positive editorial decision.
 
@@ -225,7 +791,7 @@ The controller was evaluated as a systems component. It inspected claim-like sta
 
 This framing also explains why task-native performance is a co-primary safeguard rather than a decorative auxiliary metric. A controller could lower an unsupported-claim rate by removing most content or by making every remaining claim less specific. The protocol therefore retains claim-retention or deletion, semantic-change type, informativeness or usefulness, and task-native performance fields. These fields do not establish that all surviving claims are correct. They make it possible to detect whether an apparent reliability improvement is accompanied by a visible loss of informative content or task performance.
 
-The manuscript reports an automated, bounded result because the two-human blinded audit specified in the protocol is deferred. This boundary is central to interpretation. The frozen cross-family calibration establishes that the proxy is a measured instrument with a public gold-standard evaluation record. It does not establish that the instrument has been calibrated on the exact distribution of project claims, nor does it substitute for the deferred human adjudication. Every causal statement below is therefore qualified as an effect on the protected automated endpoint.
+{primary_boundary_text}
 
 The practical motivation is nevertheless consequential. End-to-end research agents increasingly produce plans, code, results, prose, and self-evaluations in one connected loop. The convenience of that loop can obscure the provenance of a sentence in the final manuscript. A gate that acts on evidence bindings can be useful only if its own evaluation is separated from the generation path and if its apparent benefit survives a paired comparison. The present study contributes an auditable test of that limited proposition.
 """
@@ -237,17 +803,17 @@ Scientific claim verification provides the second context. Benchmarks such as Sc
 
 The third context is factual-consistency and evidence-grounded generation. Retrieval and verification methods can improve the traceability of a generated assertion, but a lower proxy error rate alone can conceal deletion, over-qualification, or abstention. This is why the protocol records semantic-change and informativeness-related fields in addition to the unsupported-claim endpoint. The design treats those fields as measurement guards. It does not interpret them as a complete theory of scientific usefulness.
 
-Finally, recent end-to-end AI-science demonstrations motivate a stricter distinction between an automated reviewer and an independent scientific evaluator. A system may generate its own experiment and then score the resulting manuscript, but shared incentives can make a self-evaluation difficult to interpret. {calibration_citations} The protected evaluator here is deliberately cross-family, arm blinded, threshold frozen, and calibrated on public labelled material. Those design decisions reduce specific sources of circularity; they do not eliminate the need for a future independent human audit.
+Finally, recent end-to-end AI-science demonstrations motivate a stricter distinction between an automated reviewer and an independent scientific evaluator. The AI Scientist explicitly includes a simulated review stage in the same end-to-end workflow. {automated_review_citations} In the present study, the protected semantic instrument used a DeBERTa-family NLI model rather than the generator/controller family. {calibration_citations} That architectural separation does not by itself establish project-specific validity, which is why the independent human audit remained decisive. {future_audit_text}
 
 All citations in this section serve a contextual role. The experimental corpus, task matrix, controller configuration, evaluator thresholds, and analysis plan were frozen before the formal branches ran. The three post-freeze references are explicitly separated in the contextual manifest and were added only to explain the calibration and workflow setting. They cannot retroactively alter the formal result.
 """
-    methods_detail = """
+    methods_detail = f"""
 
 ### Study design and estimand
 
 The study used a paired, shared-artifact factorial design. Eight task packs were combined with five frozen seeds, producing 40 upstream artifacts. Each upstream artifact was processed once before branching. The baseline and treatment branches then consumed the same frozen artifact. This construction prevents an observed difference from being attributed to the controller when it could instead be caused by two different stochastic upstream generations. The planned analysis unit is the task-seed pair, not an individual sentence and not a model call.
 
-For pair i, the primary effect is the treatment unsupported-claim rate minus the baseline unsupported-claim rate. A negative value favours the evidence-gated branch on the protected automated endpoint. The protocol prespecified a hierarchical bootstrap over the pair structure, 10,000 resamples, and a fixed random seed. The interval is descriptive of uncertainty under that analysis plan. It is not a p value, an acceptance probability, or a substitute for the deferred human audit.
+For pair i, the primary effect is the treatment unsupported-claim rate minus the baseline unsupported-claim rate. A negative value favours the evidence-gated branch on the protected automated endpoint. The protocol prespecified a hierarchical bootstrap over the pair structure, 10,000 resamples, and a fixed random seed. The interval is descriptive of uncertainty under that analysis plan; it is not a p value or an acceptance probability. {primary_boundary_text}
 
 ### Conditions and intervention boundary
 
@@ -259,7 +825,7 @@ The intervention should therefore be interpreted as a controller-level evidence-
 
 The protocol required at least eight heterogeneous task packs and five seeds per task. The completed matrix met that minimum exactly: eight task families, five seeds, 40 pairs, and 80 downstream branches. The task families include classification, question answering, reading comprehension, textual similarity, coreference resolution, and mathematical question answering. Heterogeneity reduces the risk that one prompt template or one narrow output convention dominates the result, but it does not justify extrapolation to all scientific domains or all autonomous-research systems.
 
-Each branch emitted a structured claim registry. Registry entries separated experimental provenance from literature provenance and carried the exact metrics and artifact paths required by the structural auditor. This separation is important because a valid experiment claim should not become supported merely by attaching an unrelated source identifier. Two earlier implementation failures in this boundary were repaired before the final formal revision, and the successor run was generated under the repaired deterministic normalisation rules.
+Each branch emitted a structured claim registry. Registry entries separated experimental provenance from literature provenance and carried the exact metrics and artifact paths required by the structural auditor. This separation is important because a valid experiment claim should not become supported merely by attaching an unrelated source identifier. Two earlier implementation faults in this boundary were repaired before the completed formal matrix. The later task-context and decision-precedence repair was verified only by a five-case historical replay and has not yet been used in a fresh successor matrix.
 
 ### Controlled execution environment
 
@@ -297,7 +863,9 @@ The median paired effect was 0.000000. This difference between the mean and medi
 
 Mean task-native score was {t['baseline_task_native_score']:.6f} in the baseline arm and {t['treatment_task_native_score']:.6f} in the treatment arm, a registered difference of {t['difference']:.6f}. This equality guards against one simple failure mode, namely a controller that improves a reliability proxy by degrading the task result. It does not establish preservation of every useful property of the output, which is why the retention, semantic-change, and informativeness fields remain part of the audit record.
 
-The evaluator abstained on two baseline claims and one treatment claim. Abstention is reported because a lower unsupported rate can be misleading if an evaluator simply refuses more difficult claims. The small difference here is insufficient to establish that abstention played no role in the result. It is one of the variables that a future human audit should compare with the automated labels.
+The evaluator abstained on two baseline claims and one treatment claim. Abstention is reported because a lower unsupported rate can be misleading if an evaluator simply refuses more difficult claims. The small difference here is insufficient to establish that abstention played no role in the result. {abstention_validation_text}
+
+{audit_results_text}
 
 ### Sensitivity across task families
 
@@ -309,21 +877,40 @@ The protected summary records 80 baseline-side model calls and 184 treatment-sid
 
 The recorded treatment wall-clock total was 1,584.420853 seconds, compared with 1.503847 seconds in the baseline summary. The large difference is a telemetry finding that requires operational interpretation, not a reason to discard the primary result. Evidence gating may impose real latency and cost. A future deployment decision would need to weigh those measured costs against the magnitude and reliability of any independently validated claim-quality benefit.
 """
-    discussion_detail = """
+    automated_effect_interpretation_text = (
+        (
+            "The protected NLI contrast is retained as a diagnostic trace, not as the central "
+            "validated finding. The preregistered human gate showed that the endpoint could not "
+            "support a confirmatory treatment interpretation. Because the artifact chain preserved "
+            "claim, packet, task-specification, and adjudication lineage, the post-unblinding review "
+            "could identify two concrete mechanisms: omitted target-score context and probabilistic "
+            "NLI overriding exact metric equality."
+        )
+        if context_review_complete
+        else (
+            "The central finding is a bounded contrast: on the protected NLI endpoint, the evidence-"
+            "gated branch had a lower aggregate unsupported-claim rate than the ungated branch derived "
+            "from the same upstream artifacts. The result is useful because the counterfactual is "
+            "content matched, the branch order was randomized, and the evaluator was arm blinded. "
+            "Those features support a causal interpretation of the intervention on the defined "
+            "automated metric within this experiment."
+        )
+    )
+    discussion_detail = f"""
 
 ### Interpretation of the automated effect
 
-The central finding is a bounded contrast: on the protected NLI endpoint, the evidence-gated branch had a lower aggregate unsupported-claim rate than the ungated branch derived from the same upstream artifacts. The result is useful because the counterfactual is content matched, the branch order was randomized, and the evaluator was arm blinded. Those features support a causal interpretation of the intervention on the defined automated metric within this experiment.
+{automated_effect_interpretation_text}
 
-The result does not establish that the gate improves scientific truth. The endpoint judges a claim-evidence relation through a calibrated NLI instrument, and project-specific human adjudication remains incomplete. The distinction is not merely a disclosure convention. A system can score well on a verification proxy while making errors in novelty, experimental design, scope, or pragmatic usefulness that the proxy does not represent.
+The result does not establish that the gate improves scientific truth. The endpoint judges a claim-evidence relation through a calibrated NLI instrument. {primary_boundary_text} A system can satisfy this support construct while making errors in novelty, experimental design, scope, or pragmatic usefulness that the endpoint does not represent.
 
 ### Information preservation
 
-The unchanged mean task-native score is consistent with the gate not reducing the registered task score in this matrix. It is not enough by itself to establish that treatment outputs preserve all useful information. The protocol's retention or deletion, semantic-change, and informativeness fields exist precisely because claim counts and task-native scores can miss a substantive loss in explanatory detail. Those fields should be inspected together with the future human audit rather than compressed into one headline score.
+The unchanged mean task-native score is consistent with the gate not reducing the registered task score in this matrix. It is not enough by itself to establish that treatment outputs preserve all useful information. The protocol's retention or deletion, semantic-change, and informativeness fields exist precisely because claim counts and task-native scores can miss a substantive loss in explanatory detail. {information_validation_text}
 
 ### Calibration and independence
 
-The cross-family calibration is a meaningful improvement over a same-family self-evaluation loop. Its public-gold evaluation record, frozen thresholds, and arm blinding make the automated measurement chain more auditable. At the same time, calibration on SciFact does not identify all distribution shift between a scientific claim-verification benchmark and claims produced by this controller. The manuscript therefore treats the calibration as evidence for automated measurement readiness, not as completion of the human-validation gate.
+The cross-family calibration is a meaningful improvement over a same-family self-evaluation loop. Its public-gold evaluation record, frozen thresholds, and arm blinding make the automated measurement chain more auditable. At the same time, calibration on SciFact does not identify all distribution shift between a scientific claim-verification benchmark and claims produced by this controller. {future_audit_text}
 
 ### Resource trade-offs
 
@@ -337,19 +924,36 @@ The local artifact chain is strong enough to support an internal audit: protocol
 
 The most general implication is architectural. Deterministic controls should own artifact identity, branch randomisation, metric schemas, hashes, stopping rules, and eligibility checks. Language-model agents should be used for semantic judgments only where deterministic checks cannot decide the issue. This division does not remove model error, but it prevents many classes of provenance, routing, and threshold drift from being hidden inside a free-form agent response.
 """
-    conclusion_detail = """
+    conclusion_detail_text = (
+        (
+            "The study supplies an auditable fault-localization result rather than a validated "
+            "treatment effect. Its paired design, controlled execution, protected evaluation, "
+            "signed human audit, and append-only context review show that the workflow can preserve "
+            "and diagnose a measurement-chain defect without rewriting the original record."
+        )
+        if context_review_complete
+        else (
+            "The study supplies an auditable automated result rather than a completed publication "
+            "claim. Its paired design, controlled execution, protected evaluation, and explicit cost "
+            "telemetry make the current evidence useful for system development and future independent "
+            "review. The final claim remains conditional: in this frozen matrix, the evidence gate is "
+            "associated with a lower protected automated unsupported-claim rate while mean task-native "
+            "score is unchanged."
+        )
+    )
+    conclusion_detail = f"""
 
-The study supplies an auditable automated result rather than a completed publication claim. Its paired design, controlled execution, protected evaluation, and explicit cost telemetry make the current evidence useful for system development and future independent review. The final claim remains conditional: in this frozen matrix, the evidence gate is associated with a lower protected automated unsupported-claim rate while mean task-native score is unchanged.
+{conclusion_detail_text}
 
-The next evidentiary steps are clear. The manuscript requires a fuller evidence-bound report and an externally accessible reproducibility package. The preregistered human audit must remain separate and pending until real independent auditors complete it. Only after both automated readiness requirements and that human gate are satisfied may the system mark a package as submission ready.
+{next_steps_text}
 """
-    abstract_detail = """
+    abstract_detail = f"""
 
-The comparison is deliberately restricted to a protected automated outcome. The experiment does not claim that the gate has completed a human review process, established the truth of the retained scientific statements, or increased the likelihood of acceptance at any venue. The result is useful because the intervention, evaluator, and analysis boundary were frozen before the 40 paired artifacts were completed, and because the reported resource costs make the reliability-performance trade-off inspectable.
+{abstract_scope_text} The result is useful because the intervention, evaluator, and analysis boundary were frozen before the 40 paired artifacts were completed, and because the reported resource costs make the reliability-performance trade-off inspectable.
 """
-    introduction_supplement = """
+    introduction_supplement = f"""
 
-The need for this distinction becomes more pronounced when a workflow is assessed through its own textual products. A polished discussion can make a weak experimental contrast look persuasive, while a terse log can contain a strong identification design. The publication pipeline therefore separates four questions that are often collapsed: whether a run completed, whether the automated measurement supports a bounded treatment contrast, whether independent humans have audited the claims, and whether an externally reviewable submission package exists. The present manuscript addresses the second question and documents why the other three cannot be inferred from it.
+The need for this distinction becomes more pronounced when a workflow is assessed through its own textual products. A polished discussion can make a weak experimental contrast look persuasive, while a terse log can contain a strong identification design. The publication pipeline therefore separates four questions that are often collapsed: whether a run completed, whether the automated measurement supports a bounded treatment contrast, whether independent humans have audited the claims, and whether an externally reviewable submission package exists. {introduction_scope_text}
 
 The study also avoids treating an evaluator score as a reward to optimize after the fact. Evaluator identity, threshold calibration, construct fields, seeds, task packs, and stopping rules were frozen before treatment outcomes were opened. Once the protected outputs existed, the project could inspect them and write a report, but it could not retune those elements and still call the same matrix confirmatory. This temporal boundary is a practical guard against a familiar failure mode in agent systems: using a held-out outcome repeatedly as an informal development signal.
 
@@ -373,7 +977,7 @@ The separation between development and formal evidence is also explicit. Histori
 
 The protected summary distinguishes total claims from eligible claims and abstentions. This distinction is required because a rate without a denominator can hide changes in what was judged. Eligible claims form the denominator for the primary rate. Claims outside the evaluator's supported decision boundary are reported as abstentions rather than forced into either a supported or unsupported label. The manuscript therefore reports total claim counts, eligible claim counts, unsupported counts, and abstention counts for both arms.
 
-The claim registry uses deterministic structure checks before semantic evaluation. Valid experiment claims require an exact metric binding and experimental provenance. Literature and novelty claims use separate source identifiers. This rule was strengthened after earlier failed protocol revisions exposed two concrete implementation faults: a metricless valid-run status statement and an experiment claim carrying an inappropriate literature source identifier. The final successor matrix was run only after those cases were normalized deterministically and protected by regression tests.
+The claim registry uses deterministic structure checks before semantic evaluation. Valid experiment claims require an exact metric binding and experimental provenance. Literature and novelty claims use separate source identifiers. Earlier protocol revisions exposed two concrete implementation faults: a metricless valid-run status statement and an experiment claim carrying an inappropriate literature source identifier. Those cases were normalized deterministically and protected by regression tests before the completed formal matrix. The subsequently diagnosed task-context and decision-precedence repair remains limited to the disclosed five-case replay pending a fresh successor matrix.
 
 ### Statistical reporting conventions
 
@@ -403,13 +1007,13 @@ Treatment made 184 protected model calls versus 80 in baseline. Its total token 
 
 The reported wall-clock totals also make the latency trade-off explicit. The baseline summary records 1.503847 seconds and the treatment summary records 1,584.420853 seconds. The values reflect the logged branch pipeline rather than a general benchmark of model speed. Their magnitude is a reason to retain efficiency as a separate deployment question, not a reason to modify or suppress the primary proxy analysis.
 """
-    discussion_supplement = """
+    discussion_supplement = f"""
 
 ### Threats to measurement validity
 
-The principal threat is construct validity. NLI labels summarize whether an evidence relation meets the frozen instrument's decision rule. Scientific claim quality also depends on study design, completeness of evidence retrieval, novelty, causal scope, and usefulness to a domain expert. A claim can be entailed by an available source and still be misleading in context. The protocol reduces this risk by measuring several traces and by withholding the human-validation conclusion, but it cannot eliminate the gap.
+The principal threat is construct validity. NLI labels summarize whether an evidence relation meets the frozen instrument's decision rule. A claim can be entailed by an available source and still be misleading in context. {measurement_threat_text}
 
-Distribution shift is a second threat. The calibration used a public scientific-claim corpus with human labels and a locked split. The formal task outputs differ in style, granularity, and provenance. Cross-family calibration therefore supports the use of the automated instrument as a bounded proxy, not as a calibrated probability of human agreement in this study. The future two-human audit is required precisely because it samples the project-specific claim distribution.
+Distribution shift is a second threat. The calibration used a public scientific-claim corpus with human labels and a locked split. The formal task outputs differ in style, granularity, and provenance. Cross-family calibration therefore supports the use of the automated instrument as a bounded proxy, not as a calibrated probability of human agreement in this study. {distribution_shift_text}
 
 ### Threats to identification and generalisation
 
@@ -421,7 +1025,7 @@ The eight task families improve breadth relative to a small pilot, but they are 
 
 The study illustrates why a research agent should preserve a machine-auditable distinction between a semantic judgment and a state transition. A language model can propose whether a statement is supported; deterministic code should decide whether the evaluator was frozen, whether the branch shares its upstream artifact, whether the sample size is complete, and whether the required evidence paths exist. This division makes it harder for a fluent narrative to conceal a missing provenance link.
 
-The same distinction applies to review. A scientist persona, a self-review, or a second pass by the same system can expose useful weaknesses, but none of these is a human validation event. The current workflow records their status separately. It refuses to change `primary_analysis_interpretable` or `publication_submission_ready` until the preregistered human process has actually occurred.
+The same distinction applies to review. A scientist persona, a self-review, or a second pass by the same system can expose useful weaknesses, but none of these is a human validation event. {governance_text}
 
 ### Practical next experiments
 
@@ -429,7 +1033,7 @@ A next prospective study could test whether the observed proxy contrast persists
 
 An operational study could separately examine the cost-quality frontier by preregistering latency and token budgets. That work would ask a different question from the present one: not only whether a gate changes a protected proxy rate, but which level of evidence checking is justified for a specified risk and resource setting. No deployment recommendation follows from the current matrix alone.
 """
-    limitations_supplement = """
+    limitations_supplement = f"""
 
 ### Endpoint scope and calibration transfer
 
@@ -447,19 +1051,22 @@ The task packs are benchmark-style workloads rather than a sample of live scient
 
 The project separated the generator/controller family from the NLI evaluator family and blinded arm labels during protected scoring. These steps reduce direct circularity, but they are not an external replication. The same development project designed the intervention, executed the pipeline, and assembled the report. The reproducibility record is currently local and hash-bound rather than an externally accessible anonymous supplement. Until an authorized release makes the frozen code, manifests, and derived outputs independently inspectable, another group cannot verify the complete chain from protocol through result.
 
-Finally, the preregistered two-human blinded audit is deferred. Persona review, an additional model pass, or editorially polished prose cannot satisfy that condition. The system keeps `primary_analysis_interpretable=false` and `publication_submission_ready=false` until genuine independent auditors complete the registered process. The present artifact is therefore suitable for diagnosing the automated pipeline and preparing a human-review package once the automated readiness gate passes; it is not evidence of completed peer review, ethical approval, or permission to submit externally.
+Finally, the registered boundary is decisive: {primary_boundary_text} Persona review, an additional model pass, or editorially polished prose cannot alter the registered human result. The present artifact is not evidence of completed peer review, ethical approval, independent replication, or permission to submit externally.
 """
-    return f"""# Does Evidence-Gated Claim Revision Reduce Unsupported Research Claims?
+    abstract_text, _ = normalize_unstructured_abstract(
+        f"""{headline_abstract_text} Before outcome inspection, we froze an 8-task × 5-seed paired protocol, controlled Docker runtime, shared-artifact randomised branching, cross-family NLI evaluator, calibration contract, and analysis plan. Across 40 paired outputs, the protected automated unsupported-claim rate changed from {m['baseline_unsupported_claim_rate']:.3f} in baseline to {m['treatment_unsupported_claim_rate']:.3f} in treatment; the paired mean difference was {m['paired_mean_effect']:.3f} (95% bootstrap interval {m['ci_95_low']:.3f} to {m['ci_95_high']:.3f}). Mean task-native score was unchanged ({t['baseline_task_native_score']:.3f} in both arms). {abstract_human_text}
+
+{abstract_detail}"""
+    )
+    return f"""# {title_text}
 
 ## Status
 
-`AUTOMATED_EVIDENCE_COMPLETE + HUMAN_GATE_PENDING`. This is a prospective 8-task × 5-seed shared-artifact study. The preregistered two-human blinded audit is deferred; therefore `primary_analysis_interpretable=false` and this manuscript is not submission-ready.
+{status_text}
 
 ## Abstract
 
-We evaluated whether an evidence-gated revision branch reduces unsupported claims in an autonomous research workflow while preserving task performance. Before outcome inspection, we froze an 8-task × 5-seed paired protocol, controlled Docker runtime, shared-artifact randomised branching, cross-family NLI evaluator, calibration contract, and analysis plan. Across 40 paired outputs, treatment reduced the protected automated unsupported-claim rate from {m['baseline_unsupported_claim_rate']:.3f} to {m['treatment_unsupported_claim_rate']:.3f}; the paired mean difference was {m['paired_mean_effect']:.3f} (95% bootstrap interval {m['ci_95_low']:.3f} to {m['ci_95_high']:.3f}). Mean task-native score was unchanged ({t['baseline_task_native_score']:.3f} in both arms). These findings are automated-evaluator estimates, not human validation or an acceptance claim.
-
-{abstract_detail}
+{abstract_text}
 
 ## Introduction
 
@@ -481,25 +1088,25 @@ The protocol bound eight heterogeneous task packs and five seeds per task, yield
 
 ## Results
 
-The pair-integrity audit verified all 40 shared artifacts, 80 branches, frozen branch orders, telemetry records, and hash bindings with no violations. The protected automated evaluator found an unsupported-claim-rate effect of {m['paired_mean_effect']:.3f} (95% bootstrap interval {m['ci_95_low']:.3f} to {m['ci_95_high']:.3f}). Baseline and treatment task-native means were {t['baseline_task_native_score']:.3f} and {t['treatment_task_native_score']:.3f}, respectively. Leave-one-task-out estimates remained negative for every omitted task, but this robustness check does not replace human auditing.
+{results_opening_text} {primary_boundary_text}
 {results_detail}
 {results_supplement}
 
 ## Discussion
 
-The evidence gate was associated with fewer unsupported claims under the protected automated measurement while preserving task-native performance. The effect is modest and its interval includes zero at the upper endpoint. The result supports continued evaluation of the controller; it does not establish that the workflow generates scientifically true claims, that human reviewers would agree, or that a journal would accept the work.
+{discussion_opening_text} {discussion_scope_text}
 {discussion_detail}
 {discussion_supplement}
 
 ## Limitations
 
-The primary limitation is measurement: the endpoint is a calibrated automated NLI proxy, not the deferred two-human blinded audit. The 8-task benchmark matrix provides heterogeneous coverage but does not demonstrate generality beyond these task families. Claim retention and semantic-change fields are deterministic proxies. The same project owns the system and experiment, so external replication is still needed.
+The primary limitation is measurement: the endpoint is a calibrated NLI claim-evidence construct rather than a complete assessment of scientific truth or usefulness. {primary_boundary_text} The 8-task benchmark matrix provides heterogeneous coverage but does not demonstrate generality beyond these task families. Claim retention and semantic-change fields are deterministic proxies. The same project owns the system and experiment, so external replication is still needed.
 
 {limitations_supplement}
 
 ## Conclusion
 
-The prospective shared-artifact matrix completed with auditable Docker, telemetry, and evidence bindings. Its protected automated analysis suggests a lower unsupported-claim rate without a task-performance loss. The human-validation gate remains pending, so the system must not represent this as publication submission readiness.
+{conclusion_text}
 {conclusion_detail}
 
 ## References
@@ -514,7 +1121,7 @@ The protocol, pair audit, protected evaluator manifest, blinded evaluation summa
 
 **Data availability.** All benchmark task packs and generated local evidence paths are recorded in the frozen protocol and audit manifests.
 
-**Ethics.** No human participants were recruited or represented as reviewers.
+**Ethics.** {ethics_text}
 
 **Author contributions.** The project owner directed the study; Research Forge executed the frozen workflow and generated auditable artifacts.
 
@@ -641,8 +1248,8 @@ def synthesize_publication_study(project: Path) -> dict[str, Any]:
         "schema_version": 1,
         "protocol_id": summary["protocol_id"],
         "analysis_status": summary["analysis_status"],
-        "primary_analysis_interpretable": False,
-        "human_validation": "HUMAN_GATE_PENDING",
+        "primary_analysis_interpretable": summary.get("primary_analysis_interpretable") is True,
+        "human_validation": summary.get("human_validation", "HUMAN_GATE_PENDING"),
         "pair_audit_sha256": sha256_file(paths["pair_audit"]),
         "protected_summary_sha256": sha256_file(paths["summary"]),
         "protected_manifest_sha256": sha256_file(paths["manifest"]),
@@ -652,12 +1259,107 @@ def synthesize_publication_study(project: Path) -> dict[str, Any]:
         "paired_analysis": summary["paired_analysis"],
         "leave_one_task_out": summary["leave_one_task_out"],
     }
+    if paths["manual_result"].is_file():
+        manual_result = read_json(paths["manual_result"])
+        analysis["manual_audit_result_sha256"] = sha256_file(paths["manual_result"])
+        analysis["manual_gate"] = summary["manual_gate"]
+        analysis["human_audit"] = {
+            "audited_claims": manual_result["audited_claims"],
+            "agreement_count": manual_result["agreement_count"],
+            "agreement_rate": manual_result["agreement_rate"],
+            "cohen_kappa": manual_result["cohen_kappa"],
+            "adjudicated_disagreements": manual_result["adjudicated_disagreements"],
+            "final_verdict_counts": manual_result["final_verdict_counts"],
+        }
+        if paths["workbook_import_manifest"].is_file():
+            workbook_import = read_json(paths["workbook_import_manifest"])
+            analysis["human_audit"]["workbook_import_manifest_sha256"] = sha256_file(
+                paths["workbook_import_manifest"]
+            )
+            analysis["human_audit"]["unified_rationale_substitutions"] = workbook_import[
+                "unified_rationale_substitutions"
+            ]
+        if paths["context_review"].is_file():
+            context_review = read_json(paths["context_review"])
+            analysis["context_restored_review"] = {
+                "review_sha256": sha256_file(paths["context_review"]),
+                "review_type": context_review["review_type"],
+                "reviewed_evaluator_unsupported": context_review[
+                    "reviewed_evaluator_unsupported"
+                ],
+                "contextual_verdict_letters": context_review[
+                    "contextual_verdict_letters"
+                ],
+                "contextual_verdict_counts": context_review[
+                    "contextual_verdict_counts"
+                ],
+                "replaces_preregistered_blinded_audit": context_review[
+                    "replaces_preregistered_blinded_audit"
+                ],
+                "can_unlock_primary_analysis": context_review[
+                    "can_unlock_primary_analysis"
+                ],
+                "source_manual_audit_result_sha256": context_review[
+                    "source_manual_audit_result_sha256"
+                ],
+            }
+        if paths["context_repair_verification"].is_file():
+            repair = read_json(paths["context_repair_verification"])
+            analysis["context_repair_verification"] = {
+                "verification_sha256": sha256_file(
+                    paths["context_repair_verification"]
+                ),
+                "status": repair["status"],
+                "passed": repair["passed"],
+                "replayed_cases": repair["replayed_cases"],
+                "supported_cases": repair["supported_cases"],
+                "successor_evaluator_implementation_version": repair[
+                    "successor_evaluator_implementation_version"
+                ],
+                "does_not_recompute_historical_primary_analysis": repair[
+                    "does_not_recompute_historical_primary_analysis"
+                ],
+            }
+        if paths["successor_protocol_plan"].is_file():
+            from .publication_context_review import audit_publication_successor_protocol_plan
+
+            successor_plan = read_json(paths["successor_protocol_plan"])
+            successor_audit = audit_publication_successor_protocol_plan(project)
+            analysis["successor_protocol_plan"] = {
+                "plan_sha256": sha256_file(paths["successor_protocol_plan"]),
+                "plan_id": successor_plan["plan_id"],
+                "status": successor_plan["status"],
+                "proposed_project_slug": successor_plan["successor"][
+                    "proposed_project_slug"
+                ],
+                "fresh_outcomes_required": successor_plan["successor"][
+                    "fresh_outcomes_required"
+                ],
+                "predecessor_outcome_reuse_allowed": successor_plan["successor"][
+                    "predecessor_outcome_reuse_allowed"
+                ],
+                "new_two_auditor_blinded_review_required": successor_plan[
+                    "confirmatory_boundary"
+                ]["new_two_auditor_blinded_review_required"],
+                "successor_protocol_ready_to_freeze": successor_audit[
+                    "successor_protocol_ready_to_freeze"
+                ],
+                "open_prerequisites": successor_audit["open_prerequisites"],
+            }
     claims = _claims(project, summary)
     references = _references(project)
     synthesis = project / "synthesis"
     synthesis.mkdir(parents=True, exist_ok=True)
     write_json_atomic(synthesis / "publication_analysis.json", analysis)
-    write_json_atomic(synthesis / "publication_claims.json", {"schema_version": 1, "protocol_id": summary["protocol_id"], "provisional": True, "claims": claims})
+    write_json_atomic(
+        synthesis / "publication_claims.json",
+        {
+            "schema_version": 1,
+            "protocol_id": summary["protocol_id"],
+            "provisional": summary.get("primary_analysis_interpretable") is not True,
+            "claims": claims,
+        },
+    )
     markdown = _render_markdown(project, analysis, claims, references)
     (synthesis / "publication_manuscript.md").write_text(markdown, encoding="utf-8", newline="\n")
     return audit_publication_synthesis(project, persist=True)
@@ -666,19 +1368,108 @@ def synthesize_publication_study(project: Path) -> dict[str, Any]:
 def audit_publication_synthesis(project: Path, *, persist: bool = False) -> dict[str, Any]:
     project = project.resolve()
     pair, summary = _preflight(project)
+    paths = _paths(project)
     synthesis = project / "synthesis"
-    checks: dict[str, bool] = {"pair_audit_complete": bool(pair["complete"]), "human_gate_pending": summary.get("primary_analysis_interpretable") is False}
+    human_complete = summary.get("human_validation") == "COMPLETE"
+    human_unlocked = human_complete and summary.get("primary_analysis_interpretable") is True
+    human_invalid = (
+        human_complete
+        and summary.get("primary_analysis_interpretable") is False
+        and summary.get("analysis_status")
+        == "publication_human_audit_complete_primary_analysis_invalid"
+    )
+    checks: dict[str, bool] = {
+        "pair_audit_complete": bool(pair["complete"]),
+        "human_gate_state_valid": (
+            human_unlocked
+            or human_invalid
+            or (
+                not human_complete
+                and summary.get("primary_analysis_interpretable") is False
+            )
+        ),
+    }
     violations: list[str] = []
     for name in ("publication_analysis.json", "publication_claims.json", "publication_manuscript.md"):
         checks[f"present_{name}"] = (synthesis / name).is_file()
     markdown = (synthesis / "publication_manuscript.md").read_text(encoding="utf-8") if checks["present_publication_manuscript.md"] else ""
-    for section in ("## Abstract", "## Methods", "## Results", "## Limitations", "## Reproducibility", "## Declarations"):
+    for section in (
+        markdown_heading(GENERIC_JOURNAL_ARTICLE.section("abstract")),
+        markdown_heading(GENERIC_JOURNAL_ARTICLE.section("methods")),
+        markdown_heading(GENERIC_JOURNAL_ARTICLE.section("results")),
+        markdown_heading(GENERIC_JOURNAL_ARTICLE.section("limitations")),
+        "## Reproducibility",
+        "## Declarations",
+    ):
         checks[f"section_{section}"] = section in markdown
-    checks["human_boundary_disclosed"] = "HUMAN_GATE_PENDING" in markdown and "not submission-ready" in markdown
+    body, _, reference_section = markdown.partition("## References")
+    listed_reference_keys = set(
+        re.findall(r"(?m)^- \[([A-Za-z][A-Za-z0-9_-]*)\]", reference_section)
+    )
+    body_citation_keys = set(
+        re.findall(r"\[([A-Za-z][A-Za-z0-9_-]*)\]", body)
+    )
+    checks["no_orphan_references"] = bool(listed_reference_keys) and not (
+        listed_reference_keys - body_citation_keys
+    )
+    checks["no_dangling_citations"] = not (
+        body_citation_keys - listed_reference_keys
+    )
+    if human_unlocked:
+        checks["human_boundary_disclosed"] = (
+            "HUMAN_AUDIT_COMPLETE" in markdown
+            and "HUMAN_GATE_PENDING" not in markdown
+            and "not submission-ready" in markdown
+        )
+    elif human_invalid:
+        checks["human_boundary_disclosed"] = (
+            "FAULT_LOCALIZATION_COMPLETE" in markdown
+            and "HUMAN_GATE_PENDING" not in markdown
+            and "primary_analysis_interpretable=false" in markdown
+            and "fresh successor protocol" in markdown
+        )
+    else:
+        checks["human_boundary_disclosed"] = (
+            "HUMAN_GATE_PENDING" in markdown and "not submission-ready" in markdown
+        )
     checks["typeset_source_deferred_until_release_gate"] = True
+    if paths["context_review"].is_file():
+        context_review = read_json(paths["context_review"])
+        checks["context_review_disclosed_as_post_hoc"] = (
+            "Post-unblinding context-restored diagnostic review" in markdown
+            and "does not replace the signed blinded audit" in markdown
+            and "cannot unlock the preregistered primary analysis" in markdown
+            and context_review.get("replaces_preregistered_blinded_audit") is False
+            and context_review.get("can_unlock_primary_analysis") is False
+        )
+    if paths["context_repair_verification"].is_file():
+        repair = read_json(paths["context_repair_verification"])
+        checks["context_repair_replay_disclosed"] = (
+            "Successor implementation repair verification" in markdown
+            and "does not recompute the historical primary analysis" in markdown
+            and "fresh prospectively frozen experiment" in markdown
+            and repair.get("passed") is True
+        )
+    if paths["successor_protocol_plan"].is_file():
+        checks["successor_plan_disclosed_without_execution_claim"] = (
+            "Prospective successor protocol plan" in markdown
+            and "forbids reuse of predecessor outcomes" in markdown
+            and "not evidence that the successor experiment has already run" in markdown
+            and "successor run was generated" not in markdown
+            and "final successor matrix was run" not in markdown
+        )
     if not all(checks.values()):
         violations.append("publication synthesis is missing required evidence, disclosure, or manuscript structure")
-    result = {"schema_version": 1, "protocol_id": summary["protocol_id"], "passed": not violations, "publication_submission_ready": False, "human_validation": "HUMAN_GATE_PENDING", "checks": checks, "violations": violations}
+    result = {
+        "schema_version": 1,
+        "protocol_id": summary["protocol_id"],
+        "passed": not violations,
+        "publication_submission_ready": False,
+        "human_validation": "COMPLETE" if human_complete else "HUMAN_GATE_PENDING",
+        "primary_analysis_interpretable": human_unlocked,
+        "checks": checks,
+        "violations": violations,
+    }
     if persist:
         write_json_atomic(synthesis / "publication_synthesis_audit.json", result)
     return result

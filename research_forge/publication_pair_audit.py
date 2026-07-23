@@ -4,8 +4,12 @@ from pathlib import Path
 
 from .models import utc_now
 from .storage import read_json, sha256_file, write_json_atomic
-from .study import audit_stage2_protocol
-from .study_models import Stage2Protocol, StudyArm
+from .study import (
+    audit_stage2_protocol,
+    load_stage2_protocol_for_audit,
+    stage2_audit_allows_completed_historical_read,
+)
+from .study_models import StudyArm
 from .study_runner import _stable_tree_hash
 
 
@@ -14,9 +18,10 @@ def audit_publication_pairs(project: Path, *, persist: bool = False) -> dict[str
     stage2 = project / "stage2"
     violations: list[str] = []
     protocol_audit = audit_stage2_protocol(project)
-    if not protocol_audit.passed:
+    historical_read = stage2_audit_allows_completed_historical_read(protocol_audit)
+    if not protocol_audit.passed and not historical_read:
         violations.append("frozen Stage 2 protocol failed audit")
-    protocol = Stage2Protocol.model_validate(read_json(stage2 / "protocol.json"))
+    protocol, legacy_protocol_profile = load_stage2_protocol_for_audit(project)
     baseline_cells = [cell for cell in protocol.cells if cell.arm == StudyArm.BASELINE]
     treatments = {
         (cell.task_id, cell.seed): cell
@@ -156,6 +161,9 @@ def audit_publication_pairs(project: Path, *, persist: bool = False) -> dict[str
         "schema_version": 1,
         "audited_at": utc_now(),
         "protocol_id": protocol.protocol_id,
+        "protocol_audit_passed": protocol_audit.passed,
+        "historical_live_controller_drift": historical_read,
+        "legacy_protocol_profile": legacy_protocol_profile,
         "passed": not violations,
         "complete": complete and not violations,
         "shared_complete": shared_complete,

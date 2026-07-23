@@ -61,6 +61,15 @@ def _make_run(root: Path, name: str = "stock-run") -> Path:
         },
     )
     _write_json(
+        run / "stage_4_synthesis" / "paper_expansion_plan.json",
+        {
+            "ready": False,
+            "idea_gate_passed": False,
+            "evidence_gate_passed": False,
+            "literature_gate_passed": False,
+        },
+    )
+    _write_json(
         run / "stage_4_synthesis" / "manuscript_depth.json",
         {
             "passed": False,
@@ -173,6 +182,62 @@ def test_select_folder_endpoint_returns_native_picker_result(
         with urlopen(request) as response:
             payload = json.loads(response.read().decode("utf-8"))
         assert payload == {"path": str(selected), "cancelled": False}
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_remediation_api_persists_selection_and_requires_contract_confirmation(
+    tmp_path: Path,
+) -> None:
+    static = tmp_path / "dist"
+    runs = tmp_path / "runs"
+    static.mkdir()
+    runs.mkdir()
+    run = _make_run(runs)
+    (static / "index.html").write_text("ok", encoding="utf-8")
+    server = create_server("127.0.0.1", 0, runs_root=runs, static_root=static)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        plan_request = Request(
+            f"http://127.0.0.1:{server.server_port}/api/remediation/plan",
+            data=json.dumps({"name": run.name}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(plan_request) as response:
+            plan = json.loads(response.read().decode("utf-8"))
+        assert plan["verdict_status"] == "mixed"
+        assert any(item["action_id"] == "action-independent-evaluation" for item in plan["actions"])
+
+        approve_request = Request(
+            f"http://127.0.0.1:{server.server_port}/api/remediation/approve",
+            data=json.dumps(
+                {
+                    "name": run.name,
+                    "selected_action_ids": ["action-independent-evaluation"],
+                }
+            ).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(approve_request) as response:
+            approved = json.loads(response.read().decode("utf-8"))
+        assert approved["requires_contract_confirmation"] is True
+        assert "task" not in approved
+        assert approved["plan"]["selected_action_ids"] == [
+            "action-independent-evaluation",
+            "action-rescan-and-rejudge",
+        ]
+
+        with urlopen(
+            f"http://127.0.0.1:{server.server_port}/api/remediation?name={run.name}"
+        ) as response:
+            restored = json.loads(response.read().decode("utf-8"))
+        assert restored["plan_id"] == plan["plan_id"]
+        assert restored["contract_confirmation_required"] is True
     finally:
         server.shutdown()
         server.server_close()

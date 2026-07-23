@@ -21,6 +21,7 @@ from .models import (
     SynthesisAudit,
     utc_now,
 )
+from .paper_pipeline import GENERIC_JOURNAL_ARTICLE, markdown_heading
 from .storage import (
     load_state,
     read_json,
@@ -42,15 +43,15 @@ SYNTHESIS_MODE = "provisional_stage2_paired_study"
 _REQUIRED_SECTIONS = (
     "# ",
     "## Status",
-    "## Abstract",
-    "## Introduction",
+    markdown_heading(GENERIC_JOURNAL_ARTICLE.section("abstract")),
+    markdown_heading(GENERIC_JOURNAL_ARTICLE.section("introduction")),
     "## Related Work and Registered Sources",
-    "## Methods",
-    "## Results",
-    "## Discussion",
-    "## Limitations",
-    "## Conclusion",
-    "## References",
+    markdown_heading(GENERIC_JOURNAL_ARTICLE.section("methods")),
+    markdown_heading(GENERIC_JOURNAL_ARTICLE.section("results")),
+    markdown_heading(GENERIC_JOURNAL_ARTICLE.section("discussion")),
+    markdown_heading(GENERIC_JOURNAL_ARTICLE.section("limitations")),
+    markdown_heading(GENERIC_JOURNAL_ARTICLE.section("conclusion")),
+    markdown_heading(GENERIC_JOURNAL_ARTICLE.section("references")),
     "## Reproducibility",
 )
 

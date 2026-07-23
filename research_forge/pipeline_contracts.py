@@ -114,6 +114,10 @@ class ProjectSpec(StrictModel):
     publication_intent: Literal["exploratory", "working_paper", "publication"]
     project_inputs: list[str] = Field(default_factory=list, max_length=100)
     stage_overrides: dict[str, list[str]] = Field(default_factory=dict, max_length=4)
+    publication_adapter_id: str | None = Field(
+        default=None, pattern=r"^[a-z][a-z0-9-]{2,99}$"
+    )
+    publication_adapter_settings: dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def stage_override_keys_are_real(self) -> "ProjectSpec":
@@ -426,10 +430,20 @@ def initialize_pipeline_project(project: Path, spec: ProjectSpec) -> Path:
     """Write a project-local manifest without baking project data into the core."""
 
     project.mkdir(parents=True, exist_ok=True)
+    publication_adapter: dict[str, Any] | None = None
+    if spec.publication_adapter_id:
+        from .publication_adapters import freeze_publication_adapter
+
+        publication_adapter = freeze_publication_adapter(
+            project,
+            spec.publication_adapter_id,
+            settings=spec.publication_adapter_settings,
+        ).model_dump(mode="json")
     manifest = {
         "schema_version": 1,
         "created_at": utc_now(),
         "project_spec": spec.model_dump(mode="json"),
+        "publication_adapter": publication_adapter,
         "stage_skill_map": {
             stage.value: [item.model_dump(mode="json") for item in stage_skill_bindings(spec, stage)]
             for stage in DEFAULT_STAGE_SKILL_MAP

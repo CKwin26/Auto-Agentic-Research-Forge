@@ -7,10 +7,11 @@ import re
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable, Literal
+from typing import Any, Callable, Iterable, Literal
 
 from pydantic import Field, model_validator
 
+from .claim_discovery import ClaimDiscoveryReport, discover_project_claims
 from .manuscript_depth import audit_manuscript_depth
 from .models import StrictModel
 from .storage import read_json, sha256_file, slugify, write_json_atomic
@@ -131,6 +132,7 @@ class BundleInspection(StrictModel):
     excluded_count: int
     candidates: list[NoveltyCandidate]
     recommended_track_id: str | None = None
+    claim_discovery: ClaimDiscoveryReport | None = None
 
 
 class StageResourceUse(StrictModel):
@@ -924,7 +926,9 @@ def discover_derived_material_candidate(
     )
 
 
-def inspect_project_bundle(source_root: str | Path) -> BundleInspection:
+def inspect_project_bundle(
+    source_root: str | Path, *, discover_claims: bool = False
+) -> BundleInspection:
     root = _safe_source_root(source_root)
     resources, excluded = inventory_project_bundle(root)
     candidates = discover_novelty_candidates(root, resources)
@@ -945,12 +949,20 @@ def inspect_project_bundle(source_root: str | Path) -> BundleInspection:
         (candidate.track_id for candidate in candidates if candidate.closure_input_ready),
         candidates[0].track_id if candidates else None,
     )
+    claim_discovery = (
+        discover_project_claims(
+            root, resources, candidates, include_external=True
+        )
+        if discover_claims
+        else None
+    )
     return BundleInspection(
         source_root=str(root),
         resource_count=len(resources),
         excluded_count=excluded,
         candidates=candidates,
         recommended_track_id=recommended,
+        claim_discovery=claim_discovery,
     )
 
 
@@ -1618,14 +1630,36 @@ def close_project_bundle_loop(
     output_root: str | Path,
     name: str | None = None,
     track_id: str = "auto",
+    discover_claims: bool = False,
+    progress: Callable[..., None] | None = None,
 ) -> Path:
+    def report(**detail: Any) -> None:
+        if progress is not None:
+            progress(**detail)
+
     root = _safe_source_root(source_root)
-    inspection = inspect_project_bundle(root)
+    report(
+        stage="discovery",
+        title="正在扫描项目材料和已有实验产物",
+        detail="读取协议、实验输出、报告和实现文件，并排除密钥与环境文件。",
+        reason="先确认哪些材料能够进入证据链，避免把无关文件当成研究依据。",
+        output="可用材料清单与候选研究问题",
+        next="选择证据链最完整的候选选题",
+    )
+    inspection = inspect_project_bundle(root, discover_claims=discover_claims)
     candidate = _selected_candidate(inspection, track_id)
     resources, _ = inventory_project_bundle(root)
     resource_map = {resource.path: resource for resource in resources}
     stage_paths = _stage_path_sets(candidate, resource_map)
     selected_paths = [path for values in stage_paths.values() for path, _ in values]
+    report(
+        stage="discovery",
+        title=f"正在为“{candidate.track_id}”建立证据清单",
+        detail=f"已找到 {len(resources)} 项项目材料，其中 {len(set(selected_paths))} 项进入本次研究闭环。",
+        reason="每个后续结论都必须能追溯到本次选中的材料。",
+        output="四个研究阶段各自使用的资源清单",
+        next="保存只读快照并冻结研究范围",
+    )
     run_dir = _make_run_dir(Path(output_root).resolve(), name or root.name, candidate.track_id)
     _snapshot_resources(root, run_dir, selected_paths, resource_map)
 
@@ -1677,12 +1711,25 @@ def close_project_bundle_loop(
             "candidates": [item.model_dump(mode="json") for item in inspection.candidates],
         },
     )
+    if inspection.claim_discovery is not None:
+        write_json_atomic(
+            run_dir / "stage_1_discovery" / "claim_discovery.json",
+            inspection.claim_discovery,
+        )
     (run_dir / "stage_1_discovery" / "novelty_candidates.md").write_text(
         _render_novelty_portfolio(inspection, candidate.track_id),
         encoding="utf-8",
         newline="\n",
     )
 
+    report(
+        stage="protocol",
+        title="正在冻结实验协议与输出文件的绑定关系",
+        detail=f"核对协议 {candidate.protocol_path} 与实验输出 {candidate.output_path or '未提供'} 的哈希和引用关系。",
+        reason="防止后续写作更换评价口径、数据范围或实验结果。",
+        output="不可被论文阶段改写的协议锁",
+        next="依据冻结口径计算研究判定",
+    )
     protocol_lock = ProtocolLock(
         track_id=candidate.track_id,
         protocol_path=candidate.protocol_path,
@@ -1696,9 +1743,25 @@ def close_project_bundle_loop(
     )
     write_json_atomic(run_dir / "stage_2_protocol" / "protocol_lock.json", protocol_lock)
 
+    report(
+        stage="experimentation",
+        title="正在读取实验输出并计算研究判定",
+        detail="逐项比较冻结协议中的通过条件与实际实验输出，单独生成想法判定。",
+        reason="让证据决定支持、反驳、混合或暂不可验证，而不是让论文措辞决定结论。",
+        output="独立的想法判定与证据门结果",
+        next="只把判定允许的主张交给论文阶段",
+    )
     verdict = _idea_verdict(candidate, protocol, output)
     write_json_atomic(run_dir / "stage_3_experimentation" / "idea_verdict.json", verdict)
 
+    report(
+        stage="synthesis",
+        title="正在把证据允许的主张组织成研究工作稿",
+        detail=f"当前研究判定为 {verdict.status}；正在生成主张清单、论文结构和扩写资格。",
+        reason="论文只能陈述已经被协议和实验结果允许的内容。",
+        output="可追溯的主张清单与研究工作稿",
+        next="审计每条主张、资源快照和论文资格",
+    )
     claims = _render_claims(scope, verdict, resource_map)
     write_json_atomic(run_dir / "stage_4_synthesis" / "claims.json", claims)
     manuscript = _render_manuscript(scope, verdict, stage_manifests)
@@ -1712,10 +1775,18 @@ def close_project_bundle_loop(
 
     prepare_project_bundle_paper(run_dir, persist=True)
 
+    report(
+        stage="synthesis",
+        title="正在逐项审计证据门和论文资格",
+        detail="检查资源快照、协议哈希、实验判定、主张范围和稿件深度是否一致。",
+        reason="即使某个指标很好，只要证据链不完整，也不能升级成可发表结论。",
+        output="研究审计结果与论文扩写资格",
+        next="签发本次研究闭环的完成证书",
+    )
     audit = audit_project_bundle_loop(run_dir, persist=True)
     if not audit.passed:
         raise ValueError("bundle close-loop audit failed: " + "; ".join(audit.violations))
-    artifact_paths = (
+    artifact_paths = [
         "bundle_manifest.json",
         "stage_1_discovery/scope_contract.json",
         "stage_1_discovery/novelty_candidates.md",
@@ -1726,7 +1797,9 @@ def close_project_bundle_loop(
         "stage_4_synthesis/manuscript_depth.json",
         "stage_4_synthesis/paper_expansion_plan.json",
         "stage_4_synthesis/audit.json",
-    )
+    ]
+    if inspection.claim_discovery is not None:
+        artifact_paths.append("stage_1_discovery/claim_discovery.json")
     certificate = BundleCompletionCertificate(
         track_id=candidate.track_id,
         idea_status=verdict.status,
@@ -1738,6 +1811,14 @@ def close_project_bundle_loop(
         artifact_hashes={relative: sha256_file(run_dir / relative) for relative in artifact_paths},
     )
     write_json_atomic(run_dir / "completion_certificate.json", certificate)
+    report(
+        stage="synthesis",
+        title="研究闭环审计完成，正在保存最终结果",
+        detail=f"审计已通过；研究判定为 {verdict.status}，论文扩写资格为 {audit.paper_draft_ready}。",
+        reason="把本次执行结果固定为可复核、不可静默改写的记录。",
+        output="完成证书和全部四阶段研究产物",
+        next="进入研究判定页面",
+    )
     return run_dir
 
 

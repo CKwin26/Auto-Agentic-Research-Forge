@@ -305,6 +305,26 @@ def test_publication_matrix_cli_exposes_synthesis_and_audit() -> None:
     assert audit.study_command == "audit-publication-synthesis"
 
 
+def test_publication_manual_audit_cli_exposes_workbook_import() -> None:
+    args = _parser().parse_args(
+        [
+            "study",
+            "import-publication-manual-audit-workbooks",
+            "future-publication-project",
+            "--auditor-1-xlsx",
+            "auditor-1.xlsx",
+            "--auditor-2-xlsx",
+            "auditor-2.xlsx",
+            "--supplement-xlsx",
+            "supplement.xlsx",
+        ]
+    )
+    assert args.study_command == "import-publication-manual-audit-workbooks"
+    assert args.auditor_1_xlsx == "auditor-1.xlsx"
+    assert args.auditor_2_xlsx == "auditor-2.xlsx"
+    assert args.supplement_xlsx == "supplement.xlsx"
+
+
 def test_publication_layout_gate_rejects_score_only_or_acceptance_estimate(tmp_path: Path) -> None:
     readiness = tmp_path / "readiness.json"
     write_json_atomic(

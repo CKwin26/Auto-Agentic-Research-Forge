@@ -338,6 +338,9 @@ _CRITERIA = [
 
 
 _ROOT_STAGE_MAP: dict[str, tuple[str, str]] = {
+    "RC-PRIMARY-ENDPOINT-INVALID": ("stage_2_protocol", "before_confirmatory_interpretation"),
+    "RC-EVIDENCE-PACKAGING-CONTEXT-LOSS": ("stage_2_protocol", "before_protected_evaluation"),
+    "RC-DETERMINISTIC-METRIC-PRECEDENCE-GAP": ("stage_2_protocol", "before_protected_evaluation"),
     "RC-MEASUREMENT-CIRCULARITY": ("stage_2_protocol", "before_protocol_freeze"),
     "RC-COUNTERFACTUAL-NONISOLATION": ("stage_2_protocol", "before_protocol_freeze"),
     "RC-CONSTRUCT-UNDERCOVERAGE": ("stage_1_discovery", "before_plan_approval"),
@@ -360,6 +363,30 @@ _DESIGN_REPAIR_ALIASES = {
 
 
 _SYSTEM_REPAIR_RULES: dict[str, dict[str, Any]] = {
+    "RC-PRIMARY-ENDPOINT-INVALID": {
+        "stage": "stage_2_protocol",
+        "gap": "预注册人工门否定了当前自动主端点，但历史结果仍需保留用于故障定位。",
+        "rule": "主端点失效后只能新建 successor protocol；不得修改旧标签、阈值或主结论来解锁。",
+        "enforcement_stage": "stage_2_protocol",
+        "points": ["publication_manual_audit.finalize", "publication_synthesis", "study.freeze_stage2_protocol"],
+        "tests": ["primary_analysis_interpretable=false 时投稿门必须关闭", "successor freeze 必须绑定新的 evaluator 实现哈希"],
+    },
+    "RC-EVIDENCE-PACKAGING-CONTEXT-LOSS": {
+        "stage": "stage_2_protocol",
+        "gap": "目标比较声明没有把冻结 task specification 与运行指标放进同一证据包。",
+        "rule": "引用 target、baseline 或 direction 的声明必须绑定冻结任务规范字段及哈希；缺失时确定性 abstain。",
+        "enforcement_stage": "stage_2_protocol",
+        "points": ["study_runner._claim_evidence_packets", "counterfactual_rebranch._evidence_chunks", "publication manual-audit packet"],
+        "tests": ["target 比较证据包必须包含 target_score 与 direction", "任务规范与实验记录必须进入同一 NLI chunk"],
+    },
+    "RC-DETERMINISTIC-METRIC-PRECEDENCE-GAP": {
+        "stage": "stage_2_protocol",
+        "gap": "精确一致的有效运行指标仍可能被概率 NLI 覆盖为 unsupported。",
+        "rule": "规范化纯数值声明和冻结目标比较先走确定性 entailment；NLI 只处理剩余语义关系。",
+        "enforcement_stage": "stage_2_protocol",
+        "points": ["publication_nli_evaluation._deterministic_experiment_support", "publication_nli_evaluation._evaluate_registry"],
+        "tests": ["精确指标相等必须 deterministic supported", "恢复上下文后的五条历史误判必须回放为 AAAAA"],
+    },
     "RC-MEASUREMENT-CIRCULARITY": {
         "stage": "stage_2_protocol",
         "gap": "协议冻结允许生成器、干预器和主评估器同源，却没有独立校准合同。",
@@ -1279,8 +1306,11 @@ def audit_publication_readiness(
     # without ever emitting a submission-ready claim prematurely.
     protocol_path = project_path / "stage2" / "protocol.json"
     protocol = read_json(protocol_path) if protocol_path.is_file() else {}
+    # Human-audit completion and primary-endpoint validity are distinct states.
+    # A completed audit can invalidate the endpoint; that outcome is an
+    # automated scientific blocker, not a still-pending human process.
     human_gate_pending = bool(protocol.get("manual_audit")) and not (
-        assessment.human_validation_complete and assessment.primary_analysis_interpretable
+        assessment.human_validation_complete
     )
     external_blockers = [item for item in blockers if item.code in _EXTERNAL_ONLY_BLOCKER_CODES]
     automated_hard_blockers = [item for item in blockers if item.code not in _EXTERNAL_ONLY_BLOCKER_CODES]

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import random
+import re
 import statistics
 import time
 from collections import Counter
@@ -18,7 +20,7 @@ from .counterfactual_rebranch import (
 from .models import RunRecord, utc_now
 from .storage import read_json, safe_relative, sha256_file, write_json_atomic
 from .study import audit_stage2_protocol
-from .study_models import StudyClaimRegistry
+from .study_models import StudyClaim, StudyClaimRegistry
 from .study_runner import (
     _claim_evidence_packets,
     audit_registry_structure,
@@ -29,7 +31,7 @@ from .study_runner import (
 
 EVALUATOR_ID = "external_evaluator_cross_family_deberta_v3_nli"
 RESULT_DIRNAME = "protected_nli_evaluation"
-IMPLEMENTATION_VERSION = "publication-nli-v3"
+IMPLEMENTATION_VERSION = "publication-nli-v4-context-bound-deterministic-metrics"
 
 
 def _implementation_contract_path(project: Path, protocol: dict[str, object]) -> Path:
@@ -72,6 +74,103 @@ def _verdict_from_scores(
         "max_conditional_contradiction": max_contradiction,
         "max_raw_neutral": raw_neutral,
     }
+
+
+_NUMBER_PATTERN = re.compile(r"(?<![A-Za-z0-9_.])-?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?")
+
+
+def _metric_value_matches(
+    claim: StudyClaim,
+    experiment: dict[str, object],
+) -> tuple[str, float] | None:
+    if len(claim.metric_values) != 1:
+        return None
+    metric, declared = next(iter(claim.metric_values.items()))
+    aggregate = experiment.get("aggregate_metrics")
+    if not isinstance(aggregate, dict) or metric not in aggregate:
+        return None
+    observed = float(aggregate[metric])
+    if not math.isclose(float(declared), observed, rel_tol=1e-12, abs_tol=1e-12):
+        return None
+    return metric, observed
+
+
+def _deterministic_experiment_support(
+    claim: StudyClaim,
+    packet: dict[str, object],
+) -> str | None:
+    """Return a support rationale only for narrowly decidable numeric claims.
+
+    The rule intentionally covers canonical exact-metric statements and
+    canonical comparisons with a hash-bound frozen target.  All other semantic
+    relations remain with the protected NLI evaluator.
+    """
+
+    if claim.claim_type.value != "experiment":
+        return None
+    experiment = packet.get("linked_experiment_evidence")
+    if not isinstance(experiment, dict):
+        return None
+    if experiment.get("valid") is not True or experiment.get("isolation_verified") is not True:
+        return None
+    match = _metric_value_matches(claim, experiment)
+    if match is None:
+        return None
+    metric, observed = match
+    text = " ".join(claim.claim_text.strip().split())
+    lower = text.lower()
+    numbers = [float(item) for item in _NUMBER_PATTERN.findall(text)]
+    metric_present = re.search(rf"\b{re.escape(metric.lower())}\b", lower) is not None
+
+    comparative = bool(
+        re.search(r"\b(?:did not reach|below (?:the )?(?:task )?target)\b", lower)
+    )
+    if comparative:
+        task = packet.get("linked_task_specification")
+        if not isinstance(task, dict):
+            return None
+        if not task.get("task_specification_sha256"):
+            return None
+        raw_target = task.get("target_score")
+        if not isinstance(raw_target, (int, float)):
+            return None
+        target = float(raw_target)
+        direction = str(task.get("direction", "")).lower()
+        target_present = any(
+            math.isclose(value, target, rel_tol=1e-12, abs_tol=1e-12)
+            for value in numbers
+        )
+        relation_holds = (
+            (direction == "maximize" and observed < target)
+            or (direction == "minimize" and observed > target)
+        )
+        if target_present and relation_holds:
+            return (
+                "Deterministic task-context support: the valid isolated run's exact metric and "
+                "the hash-bound frozen target satisfy the stated comparison."
+            )
+        return None
+
+    canonical_exact = bool(
+        re.fullmatch(
+            r"the (?:linked )?(?:(?:valid|verified|evaluated|baseline|candidate) )*run "
+            r"(?:achieved|recorded|obtained|had) (?:an? )?[a-z][a-z0-9 _-]* "
+            r"(?:of|=) -?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?"
+            r"(?: on the(?: .+?)? task)?\.?",
+            text,
+            flags=re.IGNORECASE,
+        )
+    )
+    observed_present = any(
+        math.isclose(value, observed, rel_tol=1e-12, abs_tol=1e-12)
+        for value in numbers
+    )
+    if canonical_exact and metric_present and len(numbers) == 1 and observed_present:
+        return (
+            "Deterministic exact-metric support: claim metric and value equal the valid isolated "
+            "run record."
+        )
+    return None
 
 
 def _publication_cell_experiment_packet(
@@ -175,23 +274,31 @@ def _evaluate_registry(
             decision_source = "novelty_out_of_scope"
             rationale = "Pairwise NLI cannot establish novelty or absence of prior work."
         else:
-            chunks = _evidence_chunks(claim, packets[claim.claim_id])
-            if not chunks:
-                verdict = "abstain"
-                decision_source = "no_compatible_evidence"
-                rationale = "No NLI-compatible linked evidence chunk was available."
+            deterministic_support = _deterministic_experiment_support(
+                claim, packets[claim.claim_id]
+            )
+            if deterministic_support is not None:
+                verdict = "supported"
+                decision_source = "deterministic_numeric_entailment"
+                rationale = deterministic_support
             else:
-                raw_scores = engine.score([(premise, claim.claim_text) for premise in chunks])
-                verdict, probabilities = _verdict_from_scores(
-                    raw_scores,
-                    entailment_threshold=entailment_threshold,
-                    contradiction_threshold=contradiction_threshold,
-                )
-                decision_source = "calibrated_cross_family_nli"
-                rationale = (
-                    f"Conditional E/(E+C) decision across {len(chunks)} linked evidence chunks; "
-                    f"thresholds={entailment_threshold:.2f}/{contradiction_threshold:.2f}."
-                )
+                chunks = _evidence_chunks(claim, packets[claim.claim_id])
+                if not chunks:
+                    verdict = "abstain"
+                    decision_source = "no_compatible_evidence"
+                    rationale = "No NLI-compatible linked evidence chunk was available."
+                else:
+                    raw_scores = engine.score([(premise, claim.claim_text) for premise in chunks])
+                    verdict, probabilities = _verdict_from_scores(
+                        raw_scores,
+                        entailment_threshold=entailment_threshold,
+                        contradiction_threshold=contradiction_threshold,
+                    )
+                    decision_source = "calibrated_cross_family_nli"
+                    rationale = (
+                        f"Conditional E/(E+C) decision across {len(chunks)} linked evidence chunks; "
+                        f"thresholds={entailment_threshold:.2f}/{contradiction_threshold:.2f}."
+                    )
         results.append(
             {
                 "claim_id": claim.claim_id,

@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "adapter": "official-airs-rad-aira-dojo",
+  "purpose": "four-task, one-seed protocol-consistency validation only; no leaderboard submission",
+  "harness": "aira-dojo",
+  "seeds": [0],
+  "tasks": [
+    "TextualClassificationSickAccuracy",
+    "TextualSimilaritySickSpearmanCorrelation",
+    "SentimentAnalysisYelpReviewFullAccuracy",
+    "MathQuestionAnsweringSVAMPAccuracy"
+  ],
+  "cell_count": 4,
+  "required_invariants": [
+    "verbatim official prepare.py",
+    "verbatim official evaluate_prepare.py",
+    "verbatim official evaluate.py",
+    "candidate generation uses configured API backend",
+    "candidate container is network-disabled and sees only agent-data plus agent-log",
+    "agent mount never contains hidden test labels",
+    "source hash remains unchanged from import through scoring",
+    "each result remains not_submitted"
+  ]
+}

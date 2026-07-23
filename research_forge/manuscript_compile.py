@@ -47,10 +47,31 @@ def _local_tectonic(source: Path) -> str | None:
     return None
 
 
+def _installed_miktex(engine: str) -> str | None:
+    """Find a per-user/system MiKTeX install before the app is restarted."""
+
+    executable = f"{engine}.exe"
+    roots: list[Path] = []
+    local_app_data = os.environ.get("LOCALAPPDATA", "").strip()
+    if local_app_data:
+        roots.append(Path(local_app_data) / "Programs" / "MiKTeX" / "miktex" / "bin" / "x64")
+    for variable in ("ProgramFiles", "ProgramFiles(x86)"):
+        value = os.environ.get(variable, "").strip()
+        if value:
+            roots.append(Path(value) / "MiKTeX" / "miktex" / "bin" / "x64")
+    for root in roots:
+        candidate = root / executable
+        if candidate.is_file():
+            return str(candidate.resolve())
+    return None
+
+
 def _resolve_compiler(source: Path, engine: str, language: str) -> tuple[str, str]:
     candidates = [engine] if engine != "auto" else [_preferred_engine(source, language), "tectonic"]
     for candidate in candidates:
         compiler = shutil.which(candidate)
+        if compiler is None and candidate in {"pdflatex", "xelatex"}:
+            compiler = _installed_miktex(candidate)
         if compiler is None and candidate == "tectonic":
             compiler = _local_tectonic(source)
         if compiler is not None:

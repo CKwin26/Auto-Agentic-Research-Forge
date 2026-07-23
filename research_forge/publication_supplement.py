@@ -32,7 +32,8 @@ _WINDOWS_USER_PATH = re.compile(r"[A-Za-z]:\\Users\\[^\\/\s\"']+(?:\\[^\s\"']+)*
 
 def _artifact_map(project: Path) -> dict[str, Path]:
     """Return the minimal evidence and implementation surface for reproduction."""
-    return {
+    manuscript = _manuscript_path(project)
+    files = {
         "evidence/protocol.json": project / "stage2" / "protocol.json",
         "evidence/frozen_manifest.json": project / "stage2" / "frozen_manifest.json",
         "evidence/publication_pair_audit.json": project / "stage2" / "publication_pair_audit.json",
@@ -44,7 +45,7 @@ def _artifact_map(project: Path) -> dict[str, Path]:
         "analysis/publication_claims.json": project / "synthesis" / "publication_claims.json",
         "analysis/publication_synthesis_audit.json": project / "synthesis" / "publication_synthesis_audit.json",
         "analysis/manuscript_depth.json": project / "synthesis" / "publication_manuscript_depth.json",
-        "manuscript/publication_manuscript.md": project / "synthesis" / "publication_manuscript.md",
+        "manuscript/publication_manuscript.md": manuscript,
         "environment/Dockerfile": _SOURCE_ROOT / "docker" / "airs-cpu" / "Dockerfile",
         "environment/requirements.lock": _SOURCE_ROOT / "docker" / "airs-cpu" / "requirements.lock",
         "source/research_forge/publication_nli_evaluation.py": _SOURCE_ROOT / "research_forge" / "publication_nli_evaluation.py",
@@ -60,6 +61,39 @@ def _artifact_map(project: Path) -> dict[str, Path]:
         "prompts/study_finalizer.md": _SOURCE_ROOT / "research_forge" / "prompts" / "study_finalizer.md",
         "prompts/experimenter.md": _SOURCE_ROOT / "research_forge" / "prompts" / "experimenter.md",
     }
+    optional = {
+        "manuscript/publication_manuscript_compact.md": project / "synthesis" / "submission_rirp" / "manuscript_rirp_compact_candidate.md",
+        "analysis/compact_candidate_audit.json": project / "synthesis" / "submission_rirp" / "manuscript_rirp_compact_candidate.audit.json",
+        "analysis/compact_semantic_review.json": project / "synthesis" / "submission_rirp" / "compact_semantic_review.json",
+        "analysis/abstract_format_semantic_review.json": project / "synthesis" / "submission_rirp" / "abstract_format_semantic_review.json",
+        "evidence/manual_audit_manifest.json": project / "stage2" / "protected_nli_evaluation" / "manual-audit" / "manifest.json",
+        "evidence/manual_audit_result.json": project / "stage2" / "protected_nli_evaluation" / "manual-audit" / "result.json",
+        "diagnosis/context_restored_review.json": project / "stage2" / "protected_nli_evaluation" / "manual-audit" / "context-restored-review" / "result.json",
+        "repair/context_repair_verification.json": project / "design_revisions" / "publication_context_repair_verification.json",
+        "repair/failure_ledger.jsonl": project / "design_revisions" / "publication_failure_ledger.jsonl",
+        "repair/successor_protocol_plan.json": project / "design_revisions" / "publication_successor_protocol_plan_v1.json",
+    }
+    files.update({destination: source for destination, source in optional.items() if source.is_file()})
+    return files
+
+
+def _manuscript_path(project: Path) -> Path:
+    """Prefer the integrity-verified revision without breaking older projects."""
+    for name in ("publication_manuscript.rev6.md", "publication_manuscript.rev5.md", "publication_manuscript.rev4.md"):
+        verified = project / "synthesis" / name
+        if verified.is_file():
+            return verified
+    return project / "synthesis" / "publication_manuscript.md"
+
+
+def _human_validation_status(project: Path) -> str:
+    result_path = project / "stage2" / "protected_nli_evaluation" / "manual-audit" / "result.json"
+    if not result_path.is_file():
+        return "HUMAN_GATE_PENDING"
+    result = read_json(result_path)
+    if result.get("human_validation") == "COMPLETE":
+        return "HUMAN_AUDIT_COMPLETE_PRIMARY_ANALYSIS_INVALID" if result.get("primary_analysis_interpretable") is False else "HUMAN_AUDIT_COMPLETE"
+    return "HUMAN_GATE_PENDING"
 
 
 def _require_file_map(files: dict[str, Path]) -> None:
@@ -101,6 +135,13 @@ def _package_bytes(source: Path) -> bytes:
         if source.name == "publication_pair_audit.json" and isinstance(value, dict):
             value.pop("audited_at", None)
         data = (json.dumps(_sanitize_value(value), ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    elif source.suffix.lower() == ".jsonl":
+        sanitized_lines = [
+            json.dumps(_sanitize_value(json.loads(line)), ensure_ascii=False, sort_keys=True)
+            for line in raw.decode("utf-8").splitlines()
+            if line.strip()
+        ]
+        data = ("\n".join(sanitized_lines) + "\n").encode("utf-8")
     else:
         data = _WINDOWS_USER_PATH.sub("<LOCAL_PATH>", raw.decode("utf-8", errors="replace")).encode("utf-8")
     _assert_anonymous_bytes(data, label=source.name)
@@ -113,7 +154,7 @@ def _manifest_payload(
     package_id: str,
 ) -> dict[str, Any]:
     protocol = read_json(project / "stage2" / "protocol.json")
-    manuscript = project / "synthesis" / "publication_manuscript.md"
+    manuscript = _manuscript_path(project)
     records = [
         {
             "path": destination,
@@ -130,7 +171,7 @@ def _manifest_payload(
         "protocol_id": str(protocol.get("protocol_id", "")),
         "study_intent": str(protocol.get("study_intent", "")),
         "manuscript_sha256": sha256_file(manuscript),
-        "human_validation": "HUMAN_GATE_PENDING",
+        "human_validation": _human_validation_status(project),
         "external_release": {
             "publicly_accessible": False,
             "verified": False,
@@ -151,7 +192,7 @@ def prepare_anonymous_supplement(project: str | Path) -> dict[str, Any]:
     files = _artifact_map(project_path)
     _require_file_map(files)
     protocol = read_json(project_path / "stage2" / "protocol.json")
-    manuscript_hash = sha256_file(project_path / "synthesis" / "publication_manuscript.md")
+    manuscript_hash = sha256_file(_manuscript_path(project_path))
     source_fingerprint = hashlib.sha256(
         "\n".join(
             f"{key}:{hashlib.sha256(_package_bytes(source)).hexdigest()}"
@@ -179,11 +220,11 @@ def prepare_anonymous_supplement(project: str | Path) -> dict[str, Any]:
                 "# Anonymous supplement preparation package\n\n"
                 "This local package is hash-bound to a frozen publication protocol and its evidence artifacts. "
                 "It is prepared for a future authorized anonymous release, but is not publicly accessible. "
-                "It does not establish external replication, completed human validation, or submission readiness.\n",
+                "It does not establish external replication, treatment superiority, or submission readiness.\n",
             )
             _write_text(
                 temporary / "PUBLICATION_STATUS.md",
-                "AUTOMATED_EVIDENCE_COMPLETE + HUMAN_GATE_PENDING\n\n"
+                f"AUTOMATED_EVIDENCE_COMPLETE + {_human_validation_status(project_path)}\n\n"
                 "External release is pending explicit authorization. No hosting, upload, repository creation, "
                 "or external submission was performed while preparing this package.\n",
             )

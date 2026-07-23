@@ -39,7 +39,7 @@ def test_codex_is_the_default_backend(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("RESEARCH_FORGE_CODEX_HOME", raising=False)
     monkeypatch.delenv("CODEX_HOME", raising=False)
     assert backend_name() == "codex"
-    assert model_name() == "codex:gpt-5.4"
+    assert model_name() == "codex:gpt-5.6-terra"
 
 
 def test_isolated_codex_provider_binding_is_hash_bound(

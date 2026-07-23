@@ -1,0 +1,3 @@
+Revise the supplied hierarchical outline to resolve every blocking and major panel finding while preserving the submission-genre contract and Evidence–Claim Map.
+
+Do not add claims, sources, data, experiments, or stronger verbs. Do not delete an unfavorable result or limitation. Preserve the distinction between the paper's primary contribution and a failure case used to evaluate it. Keep Results observation-led, limit subsection fragmentation, and move interpretation to Discussion. Figure and table slots must remain bound to frozen claim IDs and exact source paths. Return the complete revised structured outline only.

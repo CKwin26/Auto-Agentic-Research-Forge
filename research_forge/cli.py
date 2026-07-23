@@ -68,12 +68,34 @@ def _selected_seeds(args: argparse.Namespace) -> list[int] | None:
     return values
 
 
+def _task_payload(value: str) -> dict[str, object]:
+    if value.startswith("@"):
+        payload = json.loads(
+            Path(value[1:]).expanduser().resolve().read_text(encoding="utf-8")
+        )
+    else:
+        payload = json.loads(value)
+    if not isinstance(payload, dict):
+        raise ValueError("task payload must be a JSON object")
+    return payload
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="research-forge",
         description="Local-first AI research loop with deterministic scientific gates.",
     )
     parser.add_argument("--home", help="Project workspace root (default: ./workspaces)")
+    parser.add_argument(
+        "--task-root",
+        default=".rfab/orchestration",
+        help="Durable task records shared by orchestration-aware CLI commands",
+    )
+    parser.add_argument(
+        "--workflow-root",
+        default=".rfab/workflow-v2",
+        help="Versioned Project/Study workflow repository",
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     init = sub.add_parser("init", help="Create a research project")
@@ -94,6 +116,54 @@ def _parser() -> argparse.ArgumentParser:
     pipeline_initialize.add_argument("--spec", required=True, help="Path to ProjectSpec JSON")
     pipeline_inspect = pipeline_sub.add_parser("inspect", help="Print a pipeline governance manifest")
     pipeline_inspect.add_argument("project", help="Target project directory")
+
+    task = sub.add_parser(
+        "task", help="Submit, inspect, run, or resume a durable workflow operation"
+    )
+    task_sub = task.add_subparsers(dest="task_command", required=True)
+    task_submit = task_sub.add_parser("submit", help="Persist a task before any side effect")
+    task_submit.add_argument("--operation", required=True)
+    task_submit.add_argument(
+        "--payload", default="{}", help="JSON object or @path/to/payload.json"
+    )
+    task_submit.add_argument("--idempotency-key")
+    task_submit.add_argument("--run", action="store_true")
+    task_inspect = task_sub.add_parser("inspect", help="Inspect one durable task")
+    task_inspect.add_argument("task_id")
+    task_resume = task_sub.add_parser("resume", help="Explicitly resume a safe operation")
+    task_resume.add_argument("task_id")
+    task_cancel = task_sub.add_parser("cancel", help="Cancel a durable task and retain its record")
+    task_cancel.add_argument("task_id")
+    task_list = task_sub.add_parser("list", help="List durable workflow tasks")
+    task_list.add_argument(
+        "--status",
+        choices=[
+            "pending",
+            "running",
+            "retrying",
+            "paused",
+            "waiting_for_user",
+            "succeeded",
+            "failed",
+            "blocked",
+            "cancelled",
+        ],
+    )
+
+    workflow = sub.add_parser(
+        "workflow", help="Manage versioned Projects, Studies, DAG state, and completion records"
+    )
+    workflow_sub = workflow.add_subparsers(dest="workflow_command", required=True)
+    workflow_projects = workflow_sub.add_parser("list-projects")
+    workflow_studies = workflow_sub.add_parser("list-studies")
+    workflow_studies.add_argument("--project-id")
+    workflow_inspect = workflow_sub.add_parser("inspect-study")
+    workflow_inspect.add_argument("study_id")
+    workflow_migrate = workflow_sub.add_parser("migrate-run")
+    workflow_migrate.add_argument("run_dir")
+    workflow_verify = workflow_sub.add_parser("verify-completion")
+    workflow_verify.add_argument("record")
+    workflow_verify.add_argument("--artifact-root")
 
     plan = sub.add_parser("plan", help="Draft or revise the research contract with the agent")
     plan.add_argument("project")
@@ -403,6 +473,18 @@ def _parser() -> argparse.ArgumentParser:
         "--report",
         help="Optional JSON report path; parent directories are created",
     )
+    manuscript_canonicalize = manuscript_sub.add_parser(
+        "canonicalize",
+        help="Convert a reviewed draft into the venue-neutral canonical paper form",
+    )
+    manuscript_canonicalize.add_argument(
+        "path", help="Reviewed English or Chinese Markdown manuscript"
+    )
+    manuscript_canonicalize.add_argument("--output", help="Canonical Markdown output path")
+    manuscript_canonicalize.add_argument("--report", help="Canonicalization JSON report path")
+    manuscript_canonicalize.add_argument(
+        "--language", choices=["en", "zh"], default="en"
+    )
     manuscript_finalize = manuscript_sub.add_parser(
         "finalize-pdf",
         help="Run the depth gate, compile in staging, and publish a hash-bound final PDF",
@@ -434,6 +516,21 @@ def _parser() -> argparse.ArgumentParser:
             "synthesis/publication_readiness.json exists; enforces the release order"
         ),
     )
+
+    diagram = sub.add_parser(
+        "diagram",
+        help="Render editable draw.io research diagrams into publication assets",
+    )
+    diagram_sub = diagram.add_subparsers(dest="diagram_command", required=True)
+    diagram_export = diagram_sub.add_parser(
+        "export", help="Export a .drawio source to PNG, PDF, or SVG"
+    )
+    diagram_export.add_argument("source", help="Editable .drawio source")
+    diagram_export.add_argument("--output", required=True, help="Rendered output path")
+    diagram_export.add_argument(
+        "--format", choices=["png", "pdf", "svg"], help="Defaults to output suffix"
+    )
+    diagram_export.add_argument("--executable", help="Optional draw.io executable path")
 
     terminology = sub.add_parser(
         "terminology",
@@ -483,6 +580,11 @@ def _parser() -> argparse.ArgumentParser:
         help="Inventory a project folder and rank complete novelty/evidence tracks",
     )
     bundle_inspect.add_argument("source", help="Existing project folder to inspect read-only")
+    bundle_inspect.add_argument(
+        "--discover-claims",
+        action="store_true",
+        help="Also retrieve RedFox/scholarly attention signals and match them to project-authored claims",
+    )
     bundle_close = bundle_sub.add_parser(
         "close-loop",
         help="Snapshot one selected track and generate four-stage evidence plus a working paper",
@@ -494,6 +596,11 @@ def _parser() -> argparse.ArgumentParser:
         help="Directory for immutable bundle run artifacts (default: ./bundle_runs)",
     )
     bundle_close.add_argument("--name")
+    bundle_close.add_argument(
+        "--discover-claims",
+        action="store_true",
+        help="Persist the two-channel claim-discovery report in Stage 1",
+    )
     bundle_close.add_argument(
         "--track",
         default="auto",
@@ -619,6 +726,64 @@ def _parser() -> argparse.ArgumentParser:
         help="Audit shared-artifact, branch-order, telemetry, and hash bindings for all publication pairs",
     )
     study_audit_publication_pairs.add_argument("project")
+    study_prepare_publication_manual = study_sub.add_parser(
+        "prepare-publication-manual-audit",
+        help="Create two independent auditor packets for the frozen publication sample",
+    )
+    study_prepare_publication_manual.add_argument("project")
+    study_submit_publication_manual = study_sub.add_parser(
+        "submit-publication-manual-audit",
+        help="Validate and freeze two completed publication auditor packets",
+    )
+    study_submit_publication_manual.add_argument("project")
+    study_submit_publication_manual.add_argument("--auditor-1", required=True)
+    study_submit_publication_manual.add_argument("--auditor-2", required=True)
+    study_finalize_publication_manual = study_sub.add_parser(
+        "finalize-publication-manual-audit",
+        help="Apply blinded adjudication and evaluate the publication human gate",
+    )
+    study_finalize_publication_manual.add_argument("project")
+    study_finalize_publication_manual.add_argument("--adjudication")
+    study_audit_publication_manual = study_sub.add_parser(
+        "audit-publication-manual-audit",
+        help="Audit publication manual-review preparation or completion",
+    )
+    study_audit_publication_manual.add_argument("project")
+    study_import_publication_manual = study_sub.add_parser(
+        "import-publication-manual-audit-workbooks",
+        help="Strictly import two reviewed Excel workbooks plus the signed supplement and close the human gate",
+    )
+    study_import_publication_manual.add_argument("project")
+    study_import_publication_manual.add_argument("--auditor-1-xlsx", required=True)
+    study_import_publication_manual.add_argument("--auditor-2-xlsx", required=True)
+    study_import_publication_manual.add_argument("--supplement-xlsx", required=True)
+    study_context_review = study_sub.add_parser(
+        "record-publication-context-review",
+        help="Append a post-unblinding task-context review without replacing the frozen blinded audit",
+    )
+    study_context_review.add_argument("project")
+    study_context_review.add_argument("--verdicts", required=True, help="A/B/C verdicts in frozen evaluator-unsupported order")
+    study_context_review.add_argument("--reviewer-id", required=True)
+    study_audit_context_review = study_sub.add_parser(
+        "audit-publication-context-review",
+        help="Audit the append-only context-restored diagnostic review",
+    )
+    study_audit_context_review.add_argument("project")
+    study_verify_context_repair = study_sub.add_parser(
+        "verify-publication-context-repair",
+        help="Replay the diagnosed unsupported cases against the successor context-bound evaluator rules",
+    )
+    study_verify_context_repair.add_argument("project")
+    study_prepare_successor = study_sub.add_parser(
+        "prepare-publication-successor-plan",
+        help="Freeze a prospective successor protocol plan without reusing predecessor outcomes",
+    )
+    study_prepare_successor.add_argument("project")
+    study_audit_successor = study_sub.add_parser(
+        "audit-publication-successor-plan",
+        help="Audit repair bindings and non-reuse boundaries in the frozen successor plan",
+    )
+    study_audit_successor.add_argument("project")
     study_synthesize_publication = study_sub.add_parser(
         "synthesize-publication",
         help="Generate evidence-bound manuscript artifacts from the completed 8x5 publication matrix",
@@ -814,6 +979,29 @@ def _parser() -> argparse.ArgumentParser:
         help="Python interpreter containing datasets==3.6.0",
     )
     benchmark_activate.add_argument("--cache-dir", required=True, help="Hugging Face data cache")
+    benchmark_import_official = benchmark_sub.add_parser(
+        "import-airs-official", help="Freeze an unmodified AIRS RAD task for the aira-dojo adapter"
+    )
+    benchmark_import_official.add_argument("source", help="Official AIRS airsbench/tasks/rad task directory")
+    benchmark_import_official.add_argument("--output-root", required=True)
+    benchmark_prepare_official = benchmark_sub.add_parser(
+        "prepare-airs-official", help="Run an official AIRS RAD prepare.py unchanged"
+    )
+    benchmark_prepare_official.add_argument("task_pack")
+    benchmark_prepare_official.add_argument("--global-shared-data-dir", required=True)
+    benchmark_prepare_official.add_argument("--agent-data-mount-dir", required=True)
+    benchmark_prepare_official.add_argument("--agent-log-dir", required=True)
+    benchmark_prepare_official.add_argument("--evaluator-data-mount-dir", required=True)
+    benchmark_prepare_official.add_argument("--python", required=True)
+    benchmark_prepare_official.add_argument("--runtime", choices=("local", "docker"), default="local")
+    benchmark_prepare_official.add_argument("--docker-image")
+    benchmark_evaluate_official = benchmark_sub.add_parser(
+        "evaluate-airs-official", help="Run official AIRS evaluate_prepare.py and evaluate.py unchanged"
+    )
+    benchmark_evaluate_official.add_argument("task_pack")
+    benchmark_evaluate_official.add_argument("--python", required=True)
+    benchmark_evaluate_official.add_argument("--runtime", choices=("local", "docker"), default="local")
+    benchmark_evaluate_official.add_argument("--docker-image")
 
     web = sub.add_parser(
         "web",
@@ -920,6 +1108,88 @@ def main(argv: list[str] | None = None) -> int:
                 _print_json({"output": str(output), **read_json(output)})
             elif args.pipeline_command == "inspect":
                 _print_json(read_json(project / PIPELINE_MANIFEST_FILENAME))
+        elif args.command == "task":
+            from .orchestration import TaskRequest, TaskStatus
+            from .workflow_tasks import create_workflow_orchestrator
+
+            orchestrator = create_workflow_orchestrator(args.task_root)
+            if args.task_command == "submit":
+                record = orchestrator.submit(
+                    TaskRequest(
+                        operation=args.operation,
+                        payload=_task_payload(args.payload),
+                        idempotency_key=args.idempotency_key,
+                    )
+                )
+                if args.run:
+                    record = orchestrator.run_sync(record.task_id)
+                _print_json(record.model_dump(mode="json"))
+                if record.status in {TaskStatus.FAILED, TaskStatus.BLOCKED}:
+                    return 2
+            elif args.task_command == "inspect":
+                _print_json(orchestrator.load(args.task_id).model_dump(mode="json"))
+            elif args.task_command == "resume":
+                record = orchestrator.run_sync(args.task_id, resume=True)
+                _print_json(record.model_dump(mode="json"))
+                if record.status is not TaskStatus.SUCCEEDED:
+                    return 2
+            elif args.task_command == "cancel":
+                _print_json(orchestrator.cancel(args.task_id).model_dump(mode="json"))
+            elif args.task_command == "list":
+                status = TaskStatus(args.status) if args.status else None
+                _print_json(
+                    {
+                        "tasks": [
+                            item.model_dump(mode="json")
+                            for item in orchestrator.list(status=status)
+                        ]
+                    }
+                )
+        elif args.command == "workflow":
+            from .workflow_domain import WorkflowRepository, verify_completion_record
+
+            repository = WorkflowRepository(args.workflow_root)
+            if args.workflow_command == "list-projects":
+                _print_json(
+                    {
+                        "projects": [
+                            item.model_dump(mode="json")
+                            for item in repository.list_projects()
+                        ]
+                    }
+                )
+            elif args.workflow_command == "list-studies":
+                _print_json(
+                    {
+                        "studies": [
+                            item.model_dump(mode="json")
+                            for item in repository.list_studies(args.project_id)
+                        ]
+                    }
+                )
+            elif args.workflow_command == "inspect-study":
+                _print_json(repository.snapshot(args.study_id))
+            elif args.workflow_command == "migrate-run":
+                from .workflow_migration import migrate_bundle_run
+
+                _print_json(
+                    migrate_bundle_run(
+                        Path(args.run_dir).expanduser().resolve(),
+                        repository_root=repository.root,
+                    )
+                )
+            elif args.workflow_command == "verify-completion":
+                result = verify_completion_record(
+                    Path(args.record).expanduser().resolve(),
+                    artifact_root=(
+                        Path(args.artifact_root).expanduser().resolve()
+                        if args.artifact_root
+                        else None
+                    ),
+                )
+                _print_json(result)
+                if not result["passed"]:
+                    return 2
         elif args.command == "plan":
             draft_id, draft = asyncio.run(plan_project(_project(args.project, args.home), args.message))
             _print_json({"draft_id": draft_id, **draft.model_dump(mode="json")})
@@ -1331,6 +1601,18 @@ def main(argv: list[str] | None = None) -> int:
                 _print_json(audit.as_dict())
                 if not audit.passed:
                     return 2
+            elif args.manuscript_command == "canonicalize":
+                from .manuscript_canonicalization import canonicalize_reviewed_manuscript
+
+                report = canonicalize_reviewed_manuscript(
+                    args.path,
+                    output=args.output,
+                    report_path=args.report,
+                    language=args.language,
+                )
+                _print_json(report.model_dump(mode="json"))
+                if not report.passed:
+                    return 2
             elif args.manuscript_command == "finalize-pdf":
                 from .manuscript_compile import finalize_manuscript_pdf
 
@@ -1347,6 +1629,24 @@ def main(argv: list[str] | None = None) -> int:
                         readiness_path=args.readiness,
                     )
                 )
+        elif args.command == "diagram":
+            from .drawio_backend import export_drawio, find_drawio
+
+            output = export_drawio(
+                args.source,
+                args.output,
+                format=args.format,
+                executable=args.executable,
+            )
+            _print_json(
+                {
+                    "source": str(Path(args.source).resolve()),
+                    "output": str(output),
+                    "drawio": str(Path(args.executable).resolve())
+                    if args.executable
+                    else str(find_drawio()),
+                }
+            )
         elif args.command == "terminology":
             from .terminology import import_terminology_review, prepare_terminology
 
@@ -1387,25 +1687,39 @@ def main(argv: list[str] | None = None) -> int:
             certificate = complete_project(_project(args.project, args.home))
             _print_json(certificate.model_dump(mode="json"))
         elif args.command == "bundle":
-            from .project_bundle import (
-                close_project_bundle_loop,
-                inspect_project_bundle,
-                verify_project_bundle_completion,
-            )
+            from .orchestration import TaskRequest
+            from .workflow_tasks import create_workflow_orchestrator
+
+            orchestrator = create_workflow_orchestrator(args.task_root)
 
             if args.bundle_command == "inspect":
-                inspection = inspect_project_bundle(args.source)
-                _print_json(inspection.model_dump(mode="json"))
-            elif args.bundle_command == "close-loop":
-                run_dir = close_project_bundle_loop(
-                    args.source,
-                    output_root=args.output_root,
-                    name=args.name,
-                    track_id=args.track,
+                record = orchestrator.execute_sync(
+                    TaskRequest(
+                        operation="bundle.inspect",
+                        payload={
+                            "source": args.source,
+                            "discover_claims": args.discover_claims,
+                        },
+                    )
                 )
-                verification = verify_project_bundle_completion(run_dir)
-                _print_json({"run_dir": str(run_dir), "verification": verification})
+                _print_json({**(record.result or {}), "_task": record.model_dump(mode="json")})
+            elif args.bundle_command == "close-loop":
+                record = orchestrator.execute_sync(
+                    TaskRequest(
+                        operation="bundle.close",
+                        payload={
+                            "source": args.source,
+                            "output_root": args.output_root,
+                            "name": args.name or "",
+                            "track_id": args.track,
+                            "discover_claims": args.discover_claims,
+                        },
+                    )
+                )
+                _print_json({**(record.result or {}), "_task": record.model_dump(mode="json")})
             elif args.bundle_command == "audit":
+                from .project_bundle import verify_project_bundle_completion
+
                 _print_json(verify_project_bundle_completion(args.run))
             elif args.bundle_command == "prepare-paper":
                 from .paper_expansion import prepare_project_bundle_paper
@@ -1413,10 +1727,18 @@ def main(argv: list[str] | None = None) -> int:
                 plan = prepare_project_bundle_paper(args.run, persist=True)
                 _print_json(plan.model_dump(mode="json"))
             elif args.bundle_command == "expand-paper":
-                from .paper_expansion import expand_project_bundle_paper
-
-                audit = asyncio.run(expand_project_bundle_paper(args.run))
-                _print_json(audit.model_dump(mode="json"))
+                record = orchestrator.execute_sync(
+                    TaskRequest(
+                        operation="bundle.expand-paper",
+                        payload={"run_dir": args.run},
+                    )
+                )
+                _print_json(
+                    {
+                        **((record.result or {}).get("audit") or {}),
+                        "_task": record.model_dump(mode="json"),
+                    }
+                )
             else:
                 from .paper_expansion import verify_project_bundle_paper
 
@@ -1499,42 +1821,75 @@ def main(argv: list[str] | None = None) -> int:
 
                 audit = audit_stage2_evaluation(project, persist=True)
                 _print_json(audit.model_dump(mode="json"))
-            elif args.study_command == "evaluate-publication":
-                from .publication_nli_evaluation import run_publication_nli_evaluation
+            elif args.study_command in {
+                "evaluate-publication",
+                "audit-publication-pairs",
+                "prepare-publication-manual-audit",
+                "submit-publication-manual-audit",
+                "finalize-publication-manual-audit",
+                "audit-publication-manual-audit",
+                "import-publication-manual-audit-workbooks",
+                "record-publication-context-review",
+                "audit-publication-context-review",
+                "verify-publication-context-repair",
+                "prepare-publication-successor-plan",
+                "audit-publication-successor-plan",
+                "synthesize-publication",
+                "audit-publication-synthesis",
+                "publication-layout-gate",
+                "prepare-publication-supplement",
+                "audit-publication-supplement",
+                "prepare-review-submission-package",
+                "audit-review-submission-package",
+            }:
+                from .publication_adapters import execute_publication_action
 
-                _print_json(run_publication_nli_evaluation(project))
-            elif args.study_command == "audit-publication-pairs":
-                from .publication_pair_audit import audit_publication_pairs
-
-                _print_json(audit_publication_pairs(project, persist=True))
-            elif args.study_command == "synthesize-publication":
-                from .publication_synthesis import synthesize_publication_study
-
-                _print_json(synthesize_publication_study(project))
-            elif args.study_command == "audit-publication-synthesis":
-                from .publication_synthesis import audit_publication_synthesis
-
-                _print_json(audit_publication_synthesis(project, persist=True))
-            elif args.study_command == "publication-layout-gate":
-                from .publication_synthesis import render_publication_layout
-
-                _print_json(render_publication_layout(project, Path(args.readiness)))
-            elif args.study_command == "prepare-publication-supplement":
-                from .publication_supplement import prepare_anonymous_supplement
-
-                _print_json(prepare_anonymous_supplement(project))
-            elif args.study_command == "audit-publication-supplement":
-                from .publication_supplement import audit_anonymous_supplement
-
-                _print_json(audit_anonymous_supplement(project))
-            elif args.study_command == "prepare-review-submission-package":
-                from .publication_package import prepare_review_submission_package
-
-                _print_json(prepare_review_submission_package(project, Path(args.readiness)))
-            elif args.study_command == "audit-review-submission-package":
-                from .publication_package import audit_review_submission_package
-
-                _print_json(audit_review_submission_package(project))
+                action_map = {
+                    "evaluate-publication": "evaluate",
+                    "audit-publication-pairs": "audit-pairs",
+                    "prepare-publication-manual-audit": "manual-prepare",
+                    "submit-publication-manual-audit": "manual-submit",
+                    "finalize-publication-manual-audit": "manual-finalize",
+                    "audit-publication-manual-audit": "manual-audit",
+                    "import-publication-manual-audit-workbooks": "manual-import-workbooks",
+                    "record-publication-context-review": "context-record",
+                    "audit-publication-context-review": "context-audit",
+                    "verify-publication-context-repair": "context-verify-repair",
+                    "prepare-publication-successor-plan": "successor-prepare",
+                    "audit-publication-successor-plan": "successor-audit",
+                    "synthesize-publication": "synthesize",
+                    "audit-publication-synthesis": "audit-synthesis",
+                    "publication-layout-gate": "render-layout",
+                    "prepare-publication-supplement": "supplement-prepare",
+                    "audit-publication-supplement": "supplement-audit",
+                    "prepare-review-submission-package": "review-package-prepare",
+                    "audit-review-submission-package": "review-package-audit",
+                }
+                parameters: dict[str, object] = {}
+                if args.study_command == "submit-publication-manual-audit":
+                    parameters = {"auditor_1": args.auditor_1, "auditor_2": args.auditor_2}
+                elif args.study_command == "finalize-publication-manual-audit":
+                    parameters = {"adjudication": args.adjudication}
+                elif args.study_command == "import-publication-manual-audit-workbooks":
+                    parameters = {
+                        "auditor_1_xlsx": args.auditor_1_xlsx,
+                        "auditor_2_xlsx": args.auditor_2_xlsx,
+                        "supplement_xlsx": args.supplement_xlsx,
+                    }
+                elif args.study_command == "record-publication-context-review":
+                    parameters = {"verdicts": args.verdicts, "reviewer_id": args.reviewer_id}
+                elif args.study_command in {
+                    "publication-layout-gate",
+                    "prepare-review-submission-package",
+                }:
+                    parameters = {"readiness": args.readiness}
+                action = action_map[args.study_command]
+                result = execute_publication_action(
+                    project, action, parameters=parameters
+                )
+                _print_json(result)
+                if action == "successor-audit" and not result.get("passed"):
+                    return 2
             elif args.study_command == "prepare-manual-audit":
                 from .manual_audit import prepare_manual_audit
 
@@ -1721,16 +2076,41 @@ def main(argv: list[str] | None = None) -> int:
                     cache_dir=args.cache_dir,
                 )
                 _print_json(activated.model_dump(mode="json"))
+            elif args.benchmark_command == "import-airs-official":
+                from .official_airs import import_official_airs_task
+
+                _print_json({"imported": str(import_official_airs_task(args.source, args.output_root))})
+            elif args.benchmark_command == "prepare-airs-official":
+                from .official_airs import prepare_official_airs_task
+
+                _print_json(prepare_official_airs_task(
+                    args.task_pack,
+                    global_shared_data_dir=args.global_shared_data_dir,
+                    agent_data_mount_dir=args.agent_data_mount_dir,
+                    agent_log_dir=args.agent_log_dir,
+                    evaluator_data_mount_dir=args.evaluator_data_mount_dir,
+                    python=args.python,
+                    execution=args.runtime,
+                    docker_image=args.docker_image,
+                ))
+            elif args.benchmark_command == "evaluate-airs-official":
+                from .official_airs import evaluate_official_airs_submission
+
+                _print_json(evaluate_official_airs_submission(
+                    args.task_pack, python=args.python, execution=args.runtime, docker_image=args.docker_image
+                ))
         elif args.command == "web":
             from .web_app import run_web_app
 
             run_web_app(args.host, args.port, open_browser=args.open)
         elif args.command == "doctor":
             from .agent_runtime import backend_status
+            from .drawio_backend import find_drawio
 
             status = {
                 "python": sys.version.split()[0],
                 "python_executable": sys.executable,
+                "drawio_executable": str(find_drawio()) if find_drawio() else None,
                 **backend_status(),
             }
             if status["backend"] == "api":

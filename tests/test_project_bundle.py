@@ -13,6 +13,11 @@ from research_forge.paper_expansion import (
     prepare_project_bundle_paper,
     verify_project_bundle_paper,
 )
+from research_forge.paper_authoring import (
+    HierarchicalPaperOutline,
+    OutlineNode,
+    RoleReview,
+)
 from research_forge.project_bundle import (
     audit_project_bundle_loop,
     close_project_bundle_loop,
@@ -328,6 +333,44 @@ def _full_draft(verdict: dict[str, object], source_ids: list[str]) -> PaperDraft
     )
 
 
+def _full_outline(source_ids: list[str]) -> HierarchicalPaperOutline:
+    section_keys = [
+        "abstract",
+        "introduction",
+        "related_work",
+        "methods",
+        "results",
+        "discussion",
+        "limitations",
+        "conclusion",
+        "data_availability",
+        "ethics_statement",
+        "author_contributions",
+        "conflict_of_interest",
+        "funding",
+        "ai_disclosure",
+        "references",
+    ]
+    return HierarchicalPaperOutline(
+        title="冻结前瞻证据下的赢家保护目标验证研究",
+        thesis="本研究只在冻结的项目证据和核验文献边界内组织方法、结果与受限结论。",
+        abstract_moves=["背景问题", "研究目标", "冻结方法", "主要结果", "边界结论"],
+        sections=[
+            OutlineNode(
+                node_id=f"section-{key.replace('_', '-')}",
+                section_key=key,
+                heading=key,
+                level=2,
+                purpose="按投稿体裁完成本节的明确论证任务。",
+                argument="所有陈述只使用冻结主张和已经核验的来源记录。",
+                claim_ids=["result-001"] if key in {"abstract", "results", "discussion", "conclusion"} else [],
+                source_ids=source_ids if key == "related_work" else [],
+            )
+            for key in section_keys
+        ],
+    )
+
+
 def test_full_paper_expansion_has_separate_success_certificate(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -393,12 +436,33 @@ def test_full_paper_expansion_has_separate_success_certificate(
 
     async def fake_writer(prompt: str, *, cwd: Path | None = None) -> PaperDraftSections:
         assert "paper-15" in prompt
+        assert "approved_hierarchical_outline" in prompt
         assert cwd == run.resolve()
         return _full_draft(verdict, source_ids)
+
+    async def fake_outline(prompt: str, *, cwd: Path | None = None) -> HierarchicalPaperOutline:
+        assert "evidence_claim_map" in prompt
+        assert cwd == run.resolve()
+        return _full_outline(source_ids)
+
+    async def fake_review(prompt: str, *, cwd: Path | None = None) -> RoleReview:
+        payload = json.loads(prompt)
+        return RoleReview(
+            role=payload["required_role"],
+            artifact=payload["required_artifact"],
+            recommendation="accept",
+        )
+
+    async def fake_humanizer(prompt: str, *, cwd: Path | None = None) -> PaperDraftSections:
+        payload = json.loads(prompt)
+        return PaperDraftSections.model_validate(payload["approved_draft"])
 
     import research_forge.agent_runtime as agent_runtime
 
     monkeypatch.setattr(agent_runtime, "generate_bundle_paper_draft", fake_writer)
+    monkeypatch.setattr(agent_runtime, "generate_bundle_paper_outline", fake_outline)
+    monkeypatch.setattr(agent_runtime, "review_bundle_paper_artifact", fake_review)
+    monkeypatch.setattr(agent_runtime, "humanize_bundle_paper_draft", fake_humanizer)
     audit = asyncio.run(expand_project_bundle_paper(run))
 
     assert audit.full_manuscript_generated

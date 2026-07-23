@@ -121,10 +121,7 @@ def _human_validation_status(analysis: dict[str, Any] | None) -> str:
 
 
 def _manual_validation_complete(analysis: dict[str, Any] | None) -> bool:
-    return (
-        _human_validation_status(analysis) in {"complete", "completed", "validated"}
-        and bool(analysis and analysis.get("primary_analysis_interpretable") is True)
-    )
+    return _human_validation_status(analysis) in {"complete", "completed", "validated"}
 
 
 def analyze_root_causes(
@@ -134,6 +131,9 @@ def analyze_root_causes(
     protocol: dict[str, Any],
     backbone: dict[str, Any],
     analysis: dict[str, Any] | None = None,
+    context_review: dict[str, Any] | None = None,
+    context_repair_verification: dict[str, Any] | None = None,
+    successor_protocol_plan: dict[str, Any] | None = None,
     review_corpus: str = "",
     target: ReviewTarget = ReviewTarget.PUBLICATION,
     source_paths: list[str] | None = None,
@@ -151,6 +151,122 @@ def analyze_root_causes(
     treatment_gate = str(protocol.get("treatment_gate", "")).lower()
     backbone_model = str(backbone.get("model", "")).lower()
     human_complete = _manual_validation_complete(analysis)
+    context_repair_verified = bool(
+        context_repair_verification
+        and context_repair_verification.get("passed") is True
+        and context_repair_verification.get("does_not_recompute_historical_primary_analysis")
+        is True
+        and int(context_repair_verification.get("replayed_cases", 0)) > 0
+        and int(context_repair_verification.get("supported_cases", -1))
+        == int(context_repair_verification.get("replayed_cases", 0))
+    )
+
+    if (
+        human_complete
+        and analysis
+        and analysis.get("primary_analysis_interpretable") is False
+    ):
+        findings.append(
+            RootCauseFinding(
+                code="RC-PRIMARY-ENDPOINT-INVALID",
+                name="预注册主测量端点未通过人工有效性门",
+                severity=RootCauseSeverity.CRITICAL,
+                origin_stage="Stage 2 measurement validation",
+                latest_prevention_stage="before confirmatory interpretation",
+                root_cause=(
+                    "独立人工审计已经完成，但保护评估器超过预注册错误阈值；因此自动 treatment "
+                    "contrast 只能保留为诊断记录。"
+                ),
+                causal_consequence=(
+                    "本轮数据不能证明 evidence gate 降低了人工判断的不支持声明比例，但不影响系统"
+                    "对故障链路进行定位和追加修复。"
+                ),
+                permanent_rule=(
+                    "人工有效性门未通过时，禁止把自动端点解释为 treatment benefit；必须修复测量链并"
+                    "在新冻结协议下重新检验。"
+                ),
+                required_action=(
+                    "保留原审计和主分析失效状态；根据追加上下文复核修复证据包与判定优先级，再启动"
+                    "新的前瞻性 rerun。"
+                ),
+                evidence=[
+                    f"human_validation={_human_validation_status(analysis)}",
+                    "primary_analysis_interpretable=False",
+                    f"analysis_status={analysis.get('analysis_status')}",
+                ],
+            )
+        )
+
+    if context_review:
+        all_supported = (
+            int(context_review.get("reviewed_evaluator_unsupported", 0)) > 0
+            and int(
+                dict(context_review.get("contextual_verdict_counts", {})).get(
+                    "supported", 0
+                )
+            )
+            == int(context_review.get("reviewed_evaluator_unsupported", 0))
+        )
+        if all_supported:
+            findings.extend(
+                [
+                    RootCauseFinding(
+                        code="RC-EVIDENCE-PACKAGING-CONTEXT-LOSS",
+                        name="证据包遗漏冻结任务规范上下文",
+                        severity=RootCauseSeverity.CRITICAL,
+                        origin_stage="Stage 2 evidence packaging",
+                        latest_prevention_stage="before protected evaluation",
+                        root_cause=(
+                            "包含 target score 的声明只绑定了运行指标，未同时绑定冻结任务规范中的 "
+                            "target_score、direction 与来源哈希。"
+                        ),
+                        causal_consequence=(
+                            "自动评估器和盲态人工只能看到不完整的局部证据，无法可靠判断目标比较声明。"
+                        ),
+                        permanent_rule=(
+                            "凡声明引用任务目标、基线或方向，证据包必须携带对应冻结字段、来源路径和哈希。"
+                        ),
+                        required_action=(
+                            "扩展 claim evidence packet schema，加入 task_specification binding，并在缺失时"
+                            "确定性 abstain 而非交给 NLI。"
+                        ),
+                        evidence=[
+                            f"contextual_verdict_letters={context_review.get('contextual_verdict_letters')}",
+                            "review_type=post_unblinding_context_restored_diagnostic",
+                            f"implementation_repair_verified={context_repair_verified}",
+                        ],
+                        resolved=context_repair_verified,
+                    ),
+                    RootCauseFinding(
+                        code="RC-DETERMINISTIC-METRIC-PRECEDENCE-GAP",
+                        name="精确数值证据未优先于概率 NLI",
+                        severity=RootCauseSeverity.CRITICAL,
+                        origin_stage="Stage 2 evaluator decision policy",
+                        latest_prevention_stage="before protected evaluation",
+                        root_cause=(
+                            "结构审计只在失败时强制 unsupported；当有效运行中的指标名称和值与声明精确"
+                            "一致时，系统仍允许 NLI 的矛盾概率覆盖确定性匹配。"
+                        ),
+                        causal_consequence=(
+                            "完全一致的数值声明会被误判为 unsupported，并污染 arm-level 主端点。"
+                        ),
+                        permanent_rule=(
+                            "纯实验数值声明在 run valid、artifact binding 和 metric equality 全部通过时，"
+                            "必须确定性判 supported；NLI 只处理确定性规则无法决定的语义关系。"
+                        ),
+                        required_action=(
+                            "在 evaluator 中增加 deterministic-supported 路径和回归测试，再以新实现哈希"
+                            "冻结 successor protocol。"
+                        ),
+                        evidence=[
+                            f"contextual_supported={dict(context_review.get('contextual_verdict_counts', {})).get('supported')}",
+                            "replaces_preregistered_blinded_audit=False",
+                            f"implementation_repair_verified={context_repair_verified}",
+                        ],
+                        resolved=context_repair_verified,
+                    ),
+                ]
+            )
 
     generator_family = "codex" if "codex" in backbone_model else backbone_model.split(":", 1)[0]
     evaluator_family = "codex" if "codex" in evaluator else evaluator.split("_", 1)[0]
@@ -560,7 +676,23 @@ def analyze_root_causes(
         "本轮大修的主因不是文字质量，而是测量同源、反事实不隔离，以及尚未完成人工校准时就进入"
         "发表审批语境。稿件修订能改善透明度，但不能补造缺失的实验识别条件。"
     )
-    if not automated_publication_gate_passed:
+    diagnostic_loop_complete = bool(
+        human_complete
+        and analysis
+        and analysis.get("primary_analysis_interpretable") is False
+        and context_repair_verified
+        and successor_protocol_plan
+        and successor_protocol_plan.get("successor", {}).get("predecessor_outcome_reuse_allowed")
+        is False
+    )
+    if not automated_publication_gate_passed and diagnostic_loop_complete:
+        root_conclusion = (
+            "The fault-localization and implementation-repair loop is complete, and a hash-bound "
+            "successor plan preserves the non-reuse boundary. The historical treatment endpoint "
+            "remains non-confirmatory; remaining findings are successor-study prerequisites rather "
+            "than evidence that the diagnostic workflow failed."
+        )
+    elif not automated_publication_gate_passed:
         root_conclusion = (
             "The current publication gate is blocked by unresolved upstream scientific design "
             "findings. Manuscript editing cannot repair those conditions."
@@ -688,6 +820,7 @@ def analyze_project_root_causes(
     analysis_candidates = (
         project / "stage2" / "final_analysis.json",
         project / "stage2" / "provisional_analysis.json",
+        project / "stage2" / "protected_nli_evaluation" / "final_analysis.json",
         project / "stage2" / "protected_nli_evaluation" / "summary.json",
     )
     analysis_path = next((path for path in analysis_candidates if path.is_file()), None)
@@ -696,6 +829,18 @@ def analyze_project_root_causes(
         "protocol": project / "stage2" / "protocol.json",
         "backbone": project / "stage2" / "backbone_manifest.json",
         "analysis": analysis_path,
+        "context_review": project
+        / "stage2"
+        / "protected_nli_evaluation"
+        / "manual-audit"
+        / "context-restored-review"
+        / "result.json",
+        "context_repair_verification": project
+        / "design_revisions"
+        / "publication_context_repair_verification.json",
+        "successor_protocol_plan": project
+        / "design_revisions"
+        / "publication_successor_protocol_plan_v1.json",
     }
     missing = [name for name in ("plan", "protocol", "backbone") if not sources[name].is_file()]
     if missing:
@@ -706,6 +851,11 @@ def analyze_project_root_causes(
         protocol=read_json(sources["protocol"]),
         backbone=read_json(sources["backbone"]),
         analysis=_load_optional(analysis_path) if analysis_path else None,
+        context_review=_load_optional(sources["context_review"]),
+        context_repair_verification=_load_optional(
+            sources["context_repair_verification"]
+        ),
+        successor_protocol_plan=_load_optional(sources["successor_protocol_plan"]),
         review_corpus=_review_corpus(project),
         target=target,
         source_paths=[
