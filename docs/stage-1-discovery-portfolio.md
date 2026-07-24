@@ -24,6 +24,23 @@ discovery and author-Claim extraction, but without a frozen protocol-output
 binding they remain `derived_materials` and cannot support a scientific
 verdict.
 
+Cache and dependency directories are excluded before resource hashing,
+Claim extraction and candidate discovery. The protected set includes common
+generic and provider-specific locations such as `cache`, `.cache`,
+`torch_cache`, `hf_cache`, `huggingface_cache`, `.huggingface` and `.torch`.
+If a historical candidate references one of these locations, the Discovery
+audit records `cache_boundary_contamination`, assigns the earliest affected
+step to `project_scan`, and permits a bounded non-scientific successor repair.
+
+Large `.h5` and `.hdf5` files use a separate metadata-only adapter. It records
+file size and modification time, root groups, demonstration and sample counts,
+mask names, and the first demonstration's dataset names, shapes and dtypes.
+It never materializes dataset arrays and does not represent its structural
+digest as a full-file content hash. HDF5 metadata can establish dataset
+coverage and suggest paired experimental designs, but without a frozen
+training protocol and machine-readable evaluation outputs the direction
+remains an `inferred_chain` and its verdict remains `unverifiable`.
+
 ## Research Fingerprint
 
 The fingerprint preserves the project domains, problems, methods, metrics,
@@ -118,3 +135,12 @@ directions with exact report/protocol/output provenance. Live academic
 retrieval is allowed to remain `external_grounding_incomplete` when returned
 papers do not match a candidate Claim; irrelevant search results are never
 presented as novelty evidence.
+
+The StereoPolicy dataset is the HDF5 acceptance case. A historical Stage-1 run
+incorrectly selected a DINOv2 model card under `torch_cache`. The cache audit
+localized the defect to `project_scan` and generated a successor Study. The
+successor excluded the cache, inspected 29/29 HDF5 files through metadata
+only, and recorded 4,102 demonstrations and 1,476,244 trajectory steps. It
+produced a normalized paired-evaluation direction for stereo vision, depth
+features and point-cloud representations in robotic imitation learning. This
+establishes a testable dataset boundary, not a trained-policy result.

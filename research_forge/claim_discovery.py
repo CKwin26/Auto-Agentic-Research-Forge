@@ -805,6 +805,40 @@ def build_academic_concept_normalizations(
         academic_query_terms: list[str] = []
 
         if (
+            "robotic imitation learning" in lower
+            and any(
+                cue in lower
+                for cue in (
+                    "stereo rgb",
+                    "rgb-depth",
+                    "stereo dino",
+                    "point clouds",
+                )
+            )
+        ):
+            operational_definition = (
+                "Compare observation representations under matched robot tasks, "
+                "demonstration counts, trajectory boundaries, policy backbone, "
+                "training budget, evaluator, and seed schedule."
+            )
+            academic_title = (
+                "机器人模仿学习中双目视觉、深度特征与点云表示的配对评估"
+            )
+            academic_concepts = [
+                "robotic imitation learning",
+                "visual representation learning for robot manipulation",
+                "stereo vision for robot policy learning",
+                "point-cloud policy learning",
+                "sample efficiency in imitation learning",
+                "paired representation ablation",
+            ]
+            academic_query_terms = [
+                "robot imitation learning visual representation ablation",
+                "stereo vision versus point cloud robot manipulation policy",
+                "DINO visual features imitation learning robotics",
+                "sample efficiency observation representation robomimic",
+            ]
+        elif (
             ("内转子" in lower and "表贴" in lower)
             or (
                 "embedded structure" in lower

@@ -16,6 +16,7 @@ from .claim_discovery import (
     discover_project_claims,
     extract_office_text,
 )
+from .hdf5_metadata import HDF5MetadataResource, inventory_hdf5_metadata
 from .manuscript_depth import audit_manuscript_depth
 from .models import StrictModel
 from .storage import read_json, sha256_file, slugify, write_json_atomic
@@ -41,6 +42,9 @@ _ALLOWED_SUFFIXES = {
 _EXCLUDED_DIRECTORIES = {
     ".agents",
     ".codex",
+    ".cache",
+    ".huggingface",
+    ".torch",
     ".git",
     ".next",
     ".openai",
@@ -51,10 +55,15 @@ _EXCLUDED_DIRECTORIES = {
     ".wrangler",
     "__pycache__",
     "build",
+    "cache",
+    "caches",
     "dist",
     "htmlcov",
     "node_modules",
     "tmp",
+    "torch_cache",
+    "hf_cache",
+    "huggingface_cache",
     "work",
 }
 _EXCLUDED_EXACT_NAMES = {
@@ -146,6 +155,7 @@ class BundleInspection(StrictModel):
     excluded_count: int
     candidates: list[NoveltyCandidate]
     recommended_track_id: str | None = None
+    hdf5_metadata: list[HDF5MetadataResource] = Field(default_factory=list)
     claim_discovery: ClaimDiscoveryReport | None = None
     discovery_portfolio: DiscoveryPortfolio | None = None
 
@@ -276,6 +286,13 @@ def _is_excluded(relative: Path) -> bool:
     return False
 
 
+def is_excluded_bundle_path(path: str | Path) -> bool:
+    """Return whether a project-relative path crosses a protected directory."""
+
+    relative = Path(str(path).replace("\\", "/"))
+    return _is_excluded(relative)
+
+
 def inventory_project_bundle(
     source_root: str | Path,
 ) -> tuple[list[BundleResource], int]:
@@ -364,6 +381,14 @@ def inventory_project_bundle(
         deduplicated.append(resource)
     resources = deduplicated
     return resources, excluded
+
+
+def inventory_project_hdf5_metadata(
+    source_root: str | Path,
+) -> list[HDF5MetadataResource]:
+    return inventory_hdf5_metadata(
+        source_root, excluded_directories=_EXCLUDED_DIRECTORIES
+    )
 
 
 def _load_json_object(path: Path) -> dict[str, Any]:
@@ -1003,13 +1028,114 @@ def discover_derived_material_candidate(
     )
 
 
+def discover_hdf5_metadata_candidate(
+    source_root: str | Path,
+    metadata_resources: list[HDF5MetadataResource] | None = None,
+) -> NoveltyCandidate | None:
+    """Derive a provisional, non-verdict-eligible direction from HDF5 structure."""
+
+    root = _safe_source_root(source_root)
+    metadata = (
+        metadata_resources
+        if metadata_resources is not None
+        else inventory_hdf5_metadata(
+            root, excluded_directories=_EXCLUDED_DIRECTORIES
+        )
+    )
+    readable = [item for item in metadata if item.readable and item.demo_count]
+    if not readable:
+        return None
+    tasks = sorted({item.task for item in readable})
+    families = sorted({item.representation_family for item in readable})
+    cells: dict[tuple[str, int], set[str]] = {}
+    for item in readable:
+        cells.setdefault((item.task, item.demo_count), set()).add(
+            item.representation_family
+        )
+    paired_cells = sum(len(value) >= 2 for value in cells.values())
+    total_demos = sum(item.demo_count for item in readable)
+    total_samples = sum(item.sample_count for item in readable)
+    family_labels = {
+        "stereo_rgb": "stereo RGB",
+        "rgb_depth": "RGB-depth",
+        "stereo_dino_features": "stereo DINO features",
+        "pointcloud": "point clouds",
+        "hdf5_observations": "HDF5 observations",
+    }
+    readable_families = [family_labels.get(item, item) for item in families]
+    family_text = ", ".join(readable_families)
+    task_text = ", ".join(tasks)
+    question = (
+        "Under matched task and demonstration boundaries, how do "
+        f"{family_text} affect imitation-learning performance and sample "
+        f"efficiency across {task_text}?"
+    )
+    latest = max(
+        datetime.fromisoformat(item.modified_at) for item in readable
+    ).isoformat()
+    representative = min(
+        readable, key=lambda item: (item.size_bytes, item.path)
+    )
+    reasons = [
+        (
+            f"metadata-only inspection found {len(readable)} readable HDF5 files, "
+            f"{total_demos} demonstrations, and {total_samples} trajectory steps"
+        ),
+        f"identified {len(tasks)} tasks and {len(families)} observation families",
+    ]
+    if paired_cells:
+        reasons.append(
+            f"identified {paired_cells} task-size cells with two or more representations"
+        )
+    return NoveltyCandidate(
+        track_id=f"hdf5-metadata-{slugify(root.name)}-v1",
+        novelty_seed=question,
+        protocol_path=representative.path,
+        output_path=None,
+        report_path=None,
+        implementation_paths=[],
+        test_paths=[],
+        conclusion_excerpt=(
+            "HDF5 structure establishes dataset coverage and possible paired "
+            "comparisons; it does not provide trained-policy evaluation results."
+        ),
+        latest_artifact_at=latest,
+        evidence_maturity="mixed_or_unspecified",
+        artifact_chain_complete=False,
+        protocol_bound_to_output=False,
+        paperability_score=min(
+            85,
+            40
+            + min(15, len(tasks) * 4)
+            + min(15, len(families) * 3)
+            + min(15, paired_cells * 2),
+        ),
+        paperability_reasons=reasons,
+        blockers=[
+            "HDF5 files are bound by structural metadata, not full-file hashes",
+            "no frozen training and evaluation protocol",
+            "no trained-policy metrics or seed-level results",
+            "idea verdict must remain unverifiable until an explicit experiment chain is supplied",
+        ],
+        source_mode="derived_materials",
+        closure_input_ready=True,
+        display_title=(
+            "Paired visual-representation evaluation for robotic imitation learning"
+        ),
+    )
+
+
 def inspect_project_bundle(
     source_root: str | Path, *, discover_claims: bool = False
 ) -> BundleInspection:
     root = _safe_source_root(source_root)
     resources, excluded = inventory_project_bundle(root)
+    hdf5_metadata = inventory_project_hdf5_metadata(root)
     candidates = discover_novelty_candidates(root, resources)
     if not any(candidate.artifact_chain_complete for candidate in candidates):
+        hdf5_candidate = discover_hdf5_metadata_candidate(root, hdf5_metadata)
+        if hdf5_candidate is not None:
+            candidates.append(hdf5_candidate)
         derived = discover_derived_material_candidate(root, resources)
         if derived is not None:
             candidates.append(derived)
@@ -1050,6 +1176,7 @@ def inspect_project_bundle(
         excluded_count=excluded,
         candidates=candidates,
         recommended_track_id=recommended,
+        hdf5_metadata=hdf5_metadata,
         claim_discovery=claim_discovery,
     )
 
