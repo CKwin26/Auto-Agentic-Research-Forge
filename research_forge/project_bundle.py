@@ -14,6 +14,7 @@ from .claim_discovery import (
     ClaimDiscoveryReport,
     DiscoveryPortfolio,
     discover_project_claims,
+    extract_office_text,
 )
 from .manuscript_depth import audit_manuscript_depth
 from .models import StrictModel
@@ -31,6 +32,9 @@ _ALLOWED_SUFFIXES = {
     ".toml",
     ".tsv",
     ".txt",
+    ".docx",
+    ".pptx",
+    ".xlsx",
     ".yaml",
     ".yml",
 }
@@ -69,6 +73,7 @@ _EXCLUDED_EXACT_NAMES = {
 }
 _EXCLUDED_NAME_FRAGMENTS = ("credential", "private-key", "private_key", "secret")
 _MAX_RESOURCE_BYTES = 25 * 1024 * 1024
+_MAX_OFFICE_RESOURCE_BYTES = 100 * 1024 * 1024
 _MAX_SNAPSHOT_BYTES = 100 * 1024 * 1024
 _MAX_INVENTORY_FILES = 20_000
 _COMMON_TRACK_TOKENS = {
@@ -87,8 +92,14 @@ _STAGE_NAMES = (
     "stage_3_experimentation",
     "stage_4_synthesis",
 )
-_TEXT_MATERIAL_SUFFIXES = {".md", ".txt"}
-_STRUCTURED_EVIDENCE_SUFFIXES = {".csv", ".json", ".jsonl", ".tsv"}
+_TEXT_MATERIAL_SUFFIXES = {".docx", ".md", ".pptx", ".txt", ".xlsx"}
+_STRUCTURED_EVIDENCE_SUFFIXES = {
+    ".csv",
+    ".json",
+    ".jsonl",
+    ".tsv",
+    ".xlsx",
+}
 _SOURCE_MODES = Literal["declared_chain", "derived_materials"]
 
 
@@ -254,6 +265,8 @@ def _is_excluded(relative: Path) -> bool:
     if any(part in _EXCLUDED_DIRECTORIES for part in lower_parts[:-1]):
         return True
     name = relative.name.casefold()
+    if name.startswith("~$"):
+        return True
     if name in _EXCLUDED_EXACT_NAMES or name.startswith(".env."):
         return True
     if any(fragment in name for fragment in _EXCLUDED_NAME_FRAGMENTS):
@@ -309,10 +322,16 @@ def inventory_project_bundle(
                 excluded += 1
                 continue
             size = path.stat().st_size
+            suffix = path.suffix.casefold()
+            size_limit = (
+                _MAX_OFFICE_RESOURCE_BYTES
+                if suffix in {".docx", ".pptx", ".xlsx"}
+                else _MAX_RESOURCE_BYTES
+            )
             if (
                 _is_excluded(relative)
-                or path.suffix.casefold() not in _ALLOWED_SUFFIXES
-                or size > _MAX_RESOURCE_BYTES
+                or suffix not in _ALLOWED_SUFFIXES
+                or size > size_limit
             ):
                 excluded += 1
                 continue
@@ -321,12 +340,29 @@ def inventory_project_bundle(
                     path=relative.as_posix(),
                     size_bytes=size,
                     sha256=sha256_file(path),
-                    suffix=path.suffix.casefold(),
+                    suffix=suffix,
                     modified_at=datetime.fromtimestamp(
                         path.stat().st_mtime, timezone.utc
                     ).isoformat(),
                 )
             )
+    resource_paths = {item.path.casefold() for item in resources}
+    deduplicated: list[BundleResource] = []
+    for resource in resources:
+        translated_base = re.sub(
+            r"(?:[-_ ]translate(?:d)?)((?:\.[^.]+)?)$",
+            r"\1",
+            resource.path,
+            flags=re.IGNORECASE,
+        )
+        if (
+            translated_base.casefold() != resource.path.casefold()
+            and translated_base.casefold() in resource_paths
+        ):
+            excluded += 1
+            continue
+        deduplicated.append(resource)
+    resources = deduplicated
     return resources, excluded
 
 
@@ -349,6 +385,8 @@ def _track_tokens(track_id: str) -> list[str]:
 
 
 def _text(path: Path, *, limit: int = 400_000) -> str:
+    if path.suffix.casefold() in {".docx", ".pptx", ".xlsx"}:
+        return extract_office_text(path, limit=limit)
     if path.stat().st_size > limit:
         with path.open("r", encoding="utf-8", errors="replace") as handle:
             return handle.read(limit)
@@ -707,6 +745,25 @@ def _derived_question(text: str, fallback: str) -> str:
     question_match = re.search(r"([^\n。！？!?]{12,500}[？?])", source)
     if question_match:
         return re.sub(r"\s+", " ", question_match.group(1)).strip()
+    lower = source.casefold()
+    if (
+        "内转子" in lower
+        and ("表贴" in lower or "surface-mounted" in lower)
+    ):
+        return (
+            "内嵌式与表贴式转子结构在预先指定的电机性能指标上"
+            "是否存在可重复差异？"
+        )
+    if "绕线" in lower and "pcba" in lower:
+        return (
+            "绕线与 PCBA 固定工艺变更能否在冻结的质量、可靠性和"
+            "成本指标上优于原工艺？"
+        )
+    if "涂覆" in lower or "powder coating" in lower:
+        return (
+            "转子涂覆材料与工序参数如何影响冻结的涂层质量和"
+            "制造缺陷指标？"
+        )
     excerpt = _first_substantive_excerpt(source, limit=500)
     return excerpt or f"从项目 {fallback} 的现有材料中识别一个可检验的研究问题"
 

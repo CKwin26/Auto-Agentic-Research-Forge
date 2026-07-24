@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -35,6 +36,22 @@ def _write_text(path: Path, text: str) -> None:
 def _write_json(path: Path, value: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _write_minimal_pptx(path: Path, lines: list[str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = "".join(
+        f"<a:r><a:t>{line}</a:t></a:r>" for line in lines
+    )
+    slide = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
+        'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">'
+        f"<p:cSld><p:spTree><p:sp><p:txBody><a:p>{payload}</a:p>"
+        "</p:txBody></p:sp></p:spTree></p:cSld></p:sld>"
+    )
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("ppt/slides/slide1.xml", slide)
 
 
 def _stock_like_bundle(root: Path) -> dict[str, object]:
@@ -620,3 +637,42 @@ def test_single_text_library_can_close_without_inventing_experimental_evidence(
     assert completion["passed"]
     assert completion["pilot_draft_generated"]
     assert not completion["paper_draft_ready"]
+
+
+def test_office_materials_are_read_only_discovery_inputs(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "office-library"
+    _write_minimal_pptx(
+        source / "绕线工艺优化.pptx",
+        [
+            "绕线工艺优化研究",
+            "研究问题：绕线工艺优化能否降低装配缺陷率？",
+            "The first step is to load the material into the machine.",
+            "结论：现有产线观察显示返工次数降低，但没有冻结对照实验。",
+        ],
+    )
+    _write_minimal_pptx(
+        source / "绕线工艺优化-translate.pptx",
+        ["Translated duplicate", "The new process improves quality."],
+    )
+    (source / "~$绕线工艺优化.pptx").write_bytes(b"temporary lock")
+
+    inspection = inspect_project_bundle(source, discover_claims=True)
+
+    assert inspection.resource_count == 1
+    assert inspection.excluded_count == 2
+    assert inspection.candidates
+    candidate = inspection.candidates[0]
+    assert candidate.source_mode == "derived_materials"
+    assert candidate.protocol_path == "绕线工艺优化.pptx"
+    assert candidate.artifact_chain_complete is False
+    assert inspection.claim_discovery is not None
+    assert any(
+        "返工次数降低" in claim.statement
+        for claim in inspection.claim_discovery.author_claims
+    )
+    assert not any(
+        "first step" in claim.statement.casefold()
+        for claim in inspection.claim_discovery.author_claims
+    )

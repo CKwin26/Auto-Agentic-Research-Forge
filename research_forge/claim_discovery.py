@@ -15,9 +15,11 @@ import os
 import re
 import urllib.parse
 import urllib.request
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Literal, Sequence
+from xml.etree import ElementTree
 
 from pydantic import Field
 
@@ -91,6 +93,8 @@ _CANONICAL_CONCEPTS = {
     "causal", "claim_evidence", "right_tail", "ranking_model", "catalyst",
     "random_baseline", "concentration", "cross_sectional",
     "rare_high_return", "learning_to_rank", "top_k", "walk_forward",
+    "motor_rotor", "surface_mounted", "manufacturing_process",
+    "reliability",
 }
 _DISTINCTIVE_CONCEPTS = _CANONICAL_CONCEPTS - {"portfolio", "return", "baseline"}
 
@@ -315,6 +319,139 @@ def _clean_statement(value: str) -> str:
     return value.strip(" `#*\t")[:1200]
 
 
+def _natural_archive_key(value: str) -> tuple[Any, ...]:
+    return tuple(
+        int(item) if item.isdigit() else item.casefold()
+        for item in re.split(r"(\d+)", value)
+    )
+
+
+def _xml_text_values(
+    archive: zipfile.ZipFile,
+    member: str,
+    *,
+    accepted_tags: set[str],
+    limit: int,
+) -> list[str]:
+    values: list[str] = []
+    length = 0
+    with archive.open(member) as handle:
+        for _, element in ElementTree.iterparse(handle, events=("end",)):
+            tag = element.tag.rsplit("}", 1)[-1]
+            if tag in accepted_tags and element.text:
+                value = re.sub(r"\s+", " ", element.text).strip()
+                if value:
+                    values.append(value)
+                    length += len(value) + 1
+            element.clear()
+            if length >= limit:
+                break
+    return values
+
+
+def extract_office_text(path: Path, *, limit: int = 500_000) -> str:
+    """Extract bounded text from OOXML without executing macros or formulas."""
+
+    if path.suffix.casefold() not in {".docx", ".pptx", ".xlsx"}:
+        return ""
+    try:
+        with zipfile.ZipFile(path) as archive:
+            members = set(archive.namelist())
+            parts = [f"# {path.stem}"]
+            remaining = max(0, limit - len(parts[0]))
+            if path.suffix.casefold() == ".docx":
+                member = "word/document.xml"
+                if member in members:
+                    parts.extend(
+                        _xml_text_values(
+                            archive,
+                            member,
+                            accepted_tags={"t"},
+                            limit=remaining,
+                        )
+                    )
+            elif path.suffix.casefold() == ".pptx":
+                slides = sorted(
+                    (
+                        item
+                        for item in members
+                        if re.fullmatch(r"ppt/slides/slide\d+\.xml", item)
+                    ),
+                    key=_natural_archive_key,
+                )
+                for index, member in enumerate(slides, start=1):
+                    if sum(len(item) + 1 for item in parts) >= limit:
+                        break
+                    parts.append(f"## Slide {index}")
+                    parts.extend(
+                        _xml_text_values(
+                            archive,
+                            member,
+                            accepted_tags={"t"},
+                            limit=max(
+                                0,
+                                limit
+                                - sum(len(item) + 1 for item in parts),
+                            ),
+                        )
+                    )
+            else:
+                shared: list[str] = []
+                if "xl/sharedStrings.xml" in members:
+                    shared = _xml_text_values(
+                        archive,
+                        "xl/sharedStrings.xml",
+                        accepted_tags={"t"},
+                        limit=min(limit, 300_000),
+                    )
+                sheets = sorted(
+                    (
+                        item
+                        for item in members
+                        if re.fullmatch(
+                            r"xl/worksheets/sheet\d+\.xml", item
+                        )
+                    ),
+                    key=_natural_archive_key,
+                )
+                for index, member in enumerate(sheets, start=1):
+                    current_length = sum(len(item) + 1 for item in parts)
+                    if current_length >= limit:
+                        break
+                    parts.append(f"## Sheet {index}")
+                    current_length += len(parts[-1]) + 1
+                    with archive.open(member) as handle:
+                        for _, cell in ElementTree.iterparse(
+                            handle, events=("end",)
+                        ):
+                            if cell.tag.rsplit("}", 1)[-1] != "c":
+                                continue
+                            cell_type = cell.attrib.get("t", "")
+                            value = ""
+                            for child in cell.iter():
+                                local = child.tag.rsplit("}", 1)[-1]
+                                if local in {"v", "t"} and child.text:
+                                    value = child.text.strip()
+                                    if value:
+                                        break
+                            if cell_type == "s" and value.isdigit():
+                                position = int(value)
+                                value = (
+                                    shared[position]
+                                    if position < len(shared)
+                                    else ""
+                                )
+                            if value:
+                                parts.append(value)
+                                current_length += len(value) + 1
+                            cell.clear()
+                            if current_length >= limit:
+                                break
+            return "\n".join(parts)[:limit]
+    except (OSError, zipfile.BadZipFile, ElementTree.ParseError):
+        return ""
+
+
 def _claim_type(statement: str) -> str:
     lower = statement.casefold()
     if statement.endswith(("?", "？")):
@@ -334,8 +471,46 @@ def _claim_type(statement: str) -> str:
     return "unspecified"
 
 
-def _markdown_claims(path: Path, relative: str, sha256: str) -> list[AuthorClaim]:
-    text = path.read_text(encoding="utf-8", errors="replace")[:500_000]
+def _is_procedural_statement(statement: str) -> bool:
+    lower = statement.casefold().lstrip(" .,:;，。；：")
+    if re.match(
+        r"^(第[一二三四五六七八九十]+步|"
+        r"the\s+(first|second|third|fourth|fifth)\s+step)",
+        lower,
+    ):
+        return True
+    if lower.startswith(
+        (
+            "员工需",
+            "employees need",
+            "employees must",
+            "使用设备",
+            "use equipment",
+            "作业要领",
+            "operational guidelines",
+            "操作方法",
+            "operational approach",
+            "确认方法",
+            "confirmation method",
+        )
+    ):
+        return True
+    if re.match(
+        r"^(summary report|汇报人|document number|文件编号|"
+        r"motor model|马达型号)",
+        lower,
+    ):
+        return True
+    return False
+
+
+def _claims_from_text(
+    text: str,
+    relative: str,
+    sha256: str,
+    *,
+    allow_typed_lines: bool = False,
+) -> list[AuthorClaim]:
     lines = text.splitlines()
     active_heading = ""
     active_level = 7
@@ -360,7 +535,16 @@ def _markdown_claims(path: Path, relative: str, sha256: str) -> list[AuthorClaim
             continue
         if statement.endswith((":", "：")):
             continue
-        if not inline and not active_heading:
+        if _is_procedural_statement(statement):
+            continue
+        if (
+            not inline
+            and not active_heading
+            and not (
+                allow_typed_lines
+                and _claim_type(statement) != "unspecified"
+            )
+        ):
             continue
         if statement.startswith(("|", "```", "http://", "https://")):
             continue
@@ -374,6 +558,13 @@ def _markdown_claims(path: Path, relative: str, sha256: str) -> list[AuthorClaim
             )
         )
     return found
+
+
+def _markdown_claims(
+    path: Path, relative: str, sha256: str
+) -> list[AuthorClaim]:
+    text = path.read_text(encoding="utf-8", errors="replace")[:500_000]
+    return _claims_from_text(text, relative, sha256)
 
 
 def _json_claims(path: Path, relative: str, sha256: str) -> list[AuthorClaim]:
@@ -413,12 +604,27 @@ def extract_author_claims(source_root: Path, resources: Sequence[Any]) -> list[A
         relative = str(_resource_value(resource, "path", ""))
         suffix = str(_resource_value(resource, "suffix", Path(relative).suffix)).casefold()
         size = int(_resource_value(resource, "size_bytes", 0) or 0)
-        if not relative or size > 500_000:
+        size_limit = (
+            100 * 1024 * 1024
+            if suffix in {".docx", ".pptx", ".xlsx"}
+            else 500_000
+        )
+        if not relative or size > size_limit:
             continue
         path = source_root / relative
         digest = str(_resource_value(resource, "sha256", ""))
         if suffix in {".md", ".txt"}:
             candidates.extend(_markdown_claims(path, relative, digest))
+        elif suffix in {".docx", ".pptx", ".xlsx"}:
+            office_text = extract_office_text(path, limit=500_000)
+            candidates.extend(
+                _claims_from_text(
+                    office_text,
+                    relative,
+                    digest,
+                    allow_typed_lines=True,
+                )
+            )
         elif suffix == ".json":
             candidates.extend(_json_claims(path, relative, digest))
     merged: dict[str, AuthorClaim] = {}
@@ -484,6 +690,25 @@ def _terms(text: str) -> set[str]:
             "walk-forward",
             "walk forward",
         ),
+        "motor_rotor": (
+            "电机转子",
+            "内转子",
+            "motor rotor",
+            "rotor topology",
+        ),
+        "surface_mounted": (
+            "表贴式",
+            "表贴结构",
+            "surface-mounted",
+            "surface mounted",
+        ),
+        "manufacturing_process": (
+            "制造工艺",
+            "工艺优化",
+            "manufacturing process",
+            "process optimization",
+        ),
+        "reliability": ("可靠性", "reliability"),
     }
     terms.update(
         concept
@@ -579,7 +804,26 @@ def build_academic_concept_normalizations(
         academic_concepts: list[str] = []
         academic_query_terms: list[str] = []
 
-        if "极端赢家" in lower or "extreme winner" in lower:
+        if (
+            ("内转子" in lower and "表贴" in lower)
+            or (
+                "embedded structure" in lower
+                and "surface-mounted structure" in lower
+            )
+        ):
+            academic_title = "内嵌式与表贴式电机转子结构的性能比较"
+            academic_concepts = [
+                "electric motor rotor topology",
+                "interior versus surface-mounted rotor structure",
+                "comparative motor performance evaluation",
+                "design-of-experiments for motor manufacturing",
+            ]
+            academic_query_terms = [
+                "interior versus surface-mounted motor rotor performance",
+                "electric motor rotor topology comparison",
+                "motor design comparative experimental evaluation",
+            ]
+        elif "极端赢家" in lower or "extreme winner" in lower:
             operational_definition = (
                 _high_return_operational_definition(candidate_text)
                 or shared_high_return_definition
@@ -612,6 +856,35 @@ def build_academic_concept_normalizations(
                 academic_title = (
                     "面向稀有高收益事件识别的横截面股票排序与前瞻评估"
                 )
+        elif (
+            ("绕线" in lower or "winding process" in lower)
+            and "pcba" in lower
+        ):
+            academic_title = "电机定子绕线与 PCBA 固定工艺优化的质量效应"
+            academic_concepts = [
+                "electric motor manufacturing process optimization",
+                "stator winding process",
+                "PCBA hot-riveting reliability",
+                "manufacturing quality evaluation",
+            ]
+            academic_query_terms = [
+                "motor stator winding process optimization quality",
+                "PCBA hot riveting manufacturing reliability",
+                "electric motor manufacturing process evaluation",
+            ]
+        elif "涂覆" in lower or "powder coating" in lower:
+            academic_title = "转子粉末涂覆工艺的材料—过程—质量关系"
+            academic_concepts = [
+                "rotor powder coating process",
+                "coating material composition",
+                "manufacturing defect prevention",
+                "process quality control",
+            ]
+            academic_query_terms = [
+                "rotor powder coating process quality",
+                "coating material process defect control",
+                "motor rotor coating manufacturing",
+            ]
         elif any(
             cue in lower
             for cue in ("灵活退出", "动态退出", "flexible exit", "exit signal")
@@ -1763,7 +2036,43 @@ def build_discovery_portfolio(
             item.direction_id,
         )
     )
-    directions = directions[:5]
+    unique_directions: dict[str, DiscoveryDirection] = {}
+    for direction in directions:
+        key = (
+            f"track:{direction.primary_track_id}"
+            if direction.primary_track_id
+            else f"title:{direction.title.casefold()}"
+        )
+        existing = unique_directions.get(key)
+        if existing is None:
+            unique_directions[key] = direction
+            continue
+        unique_directions[key] = existing.model_copy(
+            update={
+                "source_claim_ids": list(
+                    dict.fromkeys(
+                        [
+                            *existing.source_claim_ids,
+                            *direction.source_claim_ids,
+                        ]
+                    )
+                ),
+                "recommendation_reasons": list(
+                    dict.fromkeys(
+                        [
+                            *existing.recommendation_reasons,
+                            *direction.recommendation_reasons,
+                        ]
+                    )
+                ),
+                "blockers": list(
+                    dict.fromkeys(
+                        [*existing.blockers, *direction.blockers]
+                    )
+                ),
+            }
+        )
+    directions = list(unique_directions.values())[:5]
     external_complete = any(
         item.external_source_ids for item in directions
     )

@@ -16,6 +16,14 @@ read-only project scan
   -> frozen Scope Contract
 ```
 
+Project scan accepts source code, text and structured files, plus read-only
+OOXML materials (`.docx`, `.pptx`, `.xlsx`). Office lock files and translated
+duplicates are excluded when the original is present. Legacy binary `.xls`
+and archives are not interpreted. Office materials can support boundary
+discovery and author-Claim extraction, but without a frozen protocol-output
+binding they remain `derived_materials` and cannot support a scientific
+verdict.
+
 ## Research Fingerprint
 
 The fingerprint preserves the project domains, problems, methods, metrics,
