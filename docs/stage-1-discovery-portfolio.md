@@ -89,6 +89,26 @@ Contract with that exact `direction_id`, approves the Scope Gate, freezes
 `ScopeContract v1`, and only then freezes the Discovery ResourceSet. Selecting
 a different direction after freezing requires Scope vNext.
 
+## Bounded automatic repair
+
+Every completed Discovery DAG is checked for deterministic output-integrity
+defects. The first automatic checks cover procedural instructions incorrectly
+emitted as author Claims and duplicate author Claims. A finding appends a
+`WorkflowDiagnostic`, identifies the earliest affected step and creates a
+versioned `RepairContract`.
+
+Safe parsing, filtering and deduplication repairs run automatically. Research
+Forge creates a successor Study, rebinds only immutable outputs outside the
+affected DAG descendants, reruns the affected steps, and evaluates the
+contract's regression checks. The predecessor result, diagnostic, repair
+revisions and artifact hashes remain available. The predecessor is marked
+`superseded` only after the successor passes regression.
+
+Repairs that may change the research question, academic interpretation,
+experimental design or incur a high-cost run are never automatic. They stop at
+the owner repair Gate. This mechanism is therefore a bounded successor, not an
+in-place rewrite of history.
+
 ## Current acceptance case
 
 The stock-research project is the first acceptance case. The current

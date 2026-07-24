@@ -8,12 +8,14 @@ from research_forge.workflow_domain import (
     ExecutionStatus,
     ExecutorType,
     Phase,
+    StudyLifecycle,
     WorkflowRepository,
 )
 from research_forge.workflow_scheduler import (
     PersistentDAGScheduler,
     TransientStepError,
     approve_discovery_direction,
+    auto_repair_discovery_study,
     create_project_discovery_study,
     run_project_discovery,
     stage_one_handlers,
@@ -110,6 +112,102 @@ def test_stage_one_runs_as_persisted_dag_and_stops_at_scope_gate(
     assert {item["step_instance_id"] for item in repeated["workflow"]["steps"]} == {
         item["step_instance_id"] for item in result["workflow"]["steps"]
     }
+
+
+def test_discovery_auto_repair_creates_successor_and_reuses_only_safe_steps(
+    tmp_path: Path,
+) -> None:
+    source = _project_bundle(tmp_path)
+    repository = WorkflowRepository(tmp_path / "workflow")
+    _, study_id = create_project_discovery_study(
+        repository,
+        source,
+        include_external=False,
+        identity="legacy-claim-parser",
+    )
+    handlers = stage_one_handlers()
+
+    def legacy_claim_parser(context):
+        scan = context.result("project_scan")
+        resource = scan["resources"][0]
+        return {
+            "author_claims": [
+                {
+                    "claim_id": "legacy-procedural-claim",
+                    "statement": (
+                        "Employees must install the winding fixture before measurement."
+                    ),
+                    "claim_type": "method",
+                    "origin": "author_asserted",
+                    "source_spans": [
+                        {
+                            "path": resource["path"],
+                            "sha256": resource["sha256"],
+                            "line": 1,
+                            "section": "Contributions",
+                        }
+                    ],
+                    "evidence_status": "author_statement_only",
+                }
+            ]
+        }
+
+    handlers["author_claim_extraction"] = legacy_claim_parser
+    PersistentDAGScheduler(repository, handlers).run(study_id)
+    original_claim_step = next(
+        item
+        for item in repository.list_steps(study_id)
+        if item.step_type == "author_claim_extraction"
+    )
+    original_payload = repository.load_step_result(
+        study_id, original_claim_step.step_instance_id
+    )
+
+    outcome = auto_repair_discovery_study(repository, study_id)
+
+    assert outcome is not None
+    assert outcome["regression_passed"] is True
+    assert {"project_scan", "candidate_discovery"}.issubset(
+        outcome["reused_step_types"]
+    )
+    assert "author_claim_extraction" not in outcome["reused_step_types"]
+    successor_id = outcome["successor_study_id"]
+    successor_claim_step = next(
+        item
+        for item in repository.list_steps(successor_id)
+        if item.step_type == "author_claim_extraction"
+    )
+    successor_payload = repository.load_step_result(
+        successor_id, successor_claim_step.step_instance_id
+    )
+    assert all(
+        not item["statement"].startswith("Employees must")
+        for item in successor_payload["author_claims"]
+    )
+    assert (
+        repository.load_step_result(study_id, original_claim_step.step_instance_id)
+        == original_payload
+    )
+    assert repository.load_study(study_id).lifecycle is StudyLifecycle.SUPERSEDED
+    assert repository.load_study(successor_id).predecessor_study_id == study_id
+    successor_scan = next(
+        item
+        for item in repository.list_steps(successor_id)
+        if item.step_type == "project_scan"
+    )
+    successor_scan_artifact = next(
+        item
+        for item in repository.list_artifacts(successor_id)
+        if item.artifact_id == successor_scan.output_artifact_ids[0]
+    )
+    assert successor_scan_artifact.predecessor_artifact_id is not None
+    repair = repository.list_repair_contracts(study_id)[0]
+    assert repair.status.value == "completed"
+    assert repair.successor_study_id == successor_id
+    assert (
+        repository.list_diagnostics(study_id)[0].failure_code
+        == "procedural_claim_false_positive"
+    )
 
 
 def test_scope_approval_completes_waiting_owner_node(tmp_path: Path) -> None:

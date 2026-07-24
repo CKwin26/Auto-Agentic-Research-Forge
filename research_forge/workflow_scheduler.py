@@ -30,6 +30,7 @@ from .claim_discovery import (
     build_project_fingerprint,
     extract_author_claims,
     recommend_claims,
+    _is_procedural_statement,
 )
 from .project_bundle import (
     BundleInspection,
@@ -42,14 +43,18 @@ from .project_bundle import (
 from .workflow_domain import (
     ArtifactStatus,
     ArtifactRole,
+    DiagnosticOwner,
     EntryMode,
     ExecutionStatus,
     ExecutorType,
     GateType,
     Phase,
+    RepairContract,
+    RepairStatus,
     ScopeContractVersion,
     StepInstance,
     StudyLifecycle,
+    WorkflowDiagnostic,
     WorkflowRepository,
     stable_id,
     utc_now,
@@ -440,6 +445,28 @@ def _author_claim_extraction(context: StepContext) -> dict[str, Any]:
     scan = context.result("project_scan")
     resources = _models(scan["resources"], BundleResource)
     claims = extract_author_claims(Path(scan["source_root"]), resources)
+    repair_actions = set(
+        context.repository.load_study(context.study_id).settings.get(
+            "discovery_repair_actions", []
+        )
+    )
+    if "procedural_claim_false_positive" in repair_actions:
+        claims = [
+            item for item in claims if not _is_procedural_statement(item.statement)
+        ]
+    if "duplicate_author_claim" in repair_actions:
+        unique: list[AuthorClaim] = []
+        seen: set[tuple[str, str]] = set()
+        for item in claims:
+            key = (
+                item.statement.strip().casefold(),
+                item.source_spans[0].path.strip().casefold(),
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            unique.append(item)
+        claims = unique
     return {"author_claims": [item.model_dump(mode="json") for item in claims]}
 
 
@@ -1281,6 +1308,333 @@ def create_project_discovery_study(
     return project.project_id, study.study_id
 
 
+def audit_discovery_study(
+    repository: WorkflowRepository, study_id: str
+) -> list[WorkflowDiagnostic]:
+    """Find deterministic Stage-1 output defects without changing history."""
+
+    steps = {item.step_type: item for item in repository.list_steps(study_id)}
+    claims_step = steps.get("author_claim_extraction")
+    if claims_step is None or claims_step.status is not ExecutionStatus.SUCCEEDED:
+        return []
+    payload = repository.load_step_result(study_id, claims_step.step_instance_id)
+    claims = payload.get("author_claims", [])
+    findings: list[tuple[str, str]] = []
+    procedural = [
+        str(item.get("statement", ""))
+        for item in claims
+        if _is_procedural_statement(str(item.get("statement", "")))
+    ]
+    if procedural:
+        findings.append(
+            (
+                "procedural_claim_false_positive",
+                (
+                    f"{len(procedural)} process instruction(s) were emitted as "
+                    "author research claims."
+                ),
+            )
+        )
+    seen: set[tuple[str, str]] = set()
+    duplicates = 0
+    for item in claims:
+        spans = item.get("source_spans") or [{}]
+        key = (
+            str(item.get("statement", "")).strip().casefold(),
+            str(spans[0].get("path", "")).strip().casefold(),
+        )
+        if key in seen:
+            duplicates += 1
+        seen.add(key)
+    if duplicates:
+        findings.append(
+            (
+                "duplicate_author_claim",
+                f"{duplicates} duplicate author claim(s) were emitted.",
+            )
+        )
+
+    existing_codes = {
+        item.failure_code for item in repository.list_diagnostics(study_id)
+    }
+    diagnostics: list[WorkflowDiagnostic] = []
+    for failure_code, rationale in findings:
+        if failure_code in existing_codes:
+            continue
+        diagnostic = WorkflowDiagnostic(
+            diagnostic_id=stable_id(
+                "diagnostic", study_id, failure_code, claims_step.step_instance_id
+            ),
+            study_id=study_id,
+            phase=Phase.DISCOVERY,
+            earliest_affected_step_type="author_claim_extraction",
+            diagnostic_owner=DiagnosticOwner.EVIDENCE_PACKAGING,
+            failure_code=failure_code,
+            rationale=rationale,
+            evidence_artifact_ids=claims_step.output_artifact_ids,
+            scientific_change=False,
+            auto_repair_eligible=True,
+        )
+        diagnostics.append(repository.save_diagnostic(diagnostic))
+    return diagnostics
+
+
+def _step_descendants(
+    steps: list[StepInstance], root_step_type: str
+) -> set[str]:
+    roots = {
+        item.step_instance_id for item in steps if item.step_type == root_step_type
+    }
+    if not roots:
+        raise ValueError(f"unknown earliest affected step: {root_step_type}")
+    affected = set(roots)
+    while True:
+        additions = {
+            item.step_instance_id
+            for item in steps
+            if set(item.depends_on).intersection(affected)
+        }
+        if additions.issubset(affected):
+            return affected
+        affected.update(additions)
+
+
+def _clone_reusable_discovery_steps(
+    repository: WorkflowRepository,
+    predecessor_study_id: str,
+    successor_study_id: str,
+    affected_step_ids: set[str],
+) -> list[str]:
+    """Bind immutable predecessor outputs into a successor Study."""
+
+    old_steps = repository.list_steps(predecessor_study_id)
+    old_by_type = {item.step_type: item for item in old_steps}
+    new_by_type = {
+        item.step_type: item for item in repository.list_steps(successor_study_id)
+    }
+    reusable_types = {
+        item.step_type
+        for item in old_steps
+        if item.step_instance_id not in affected_step_ids
+        and item.status is ExecutionStatus.SUCCEEDED
+        and item.step_type in new_by_type
+    }
+    cloned: set[str] = set()
+    while reusable_types.difference(cloned):
+        progressed = False
+        for step_type in sorted(reusable_types.difference(cloned)):
+            old_step = old_by_type[step_type]
+            old_dependency_types = {
+                repository.load_step(predecessor_study_id, dependency).step_type
+                for dependency in old_step.depends_on
+            }
+            if not old_dependency_types.intersection(reusable_types).issubset(cloned):
+                continue
+            new_step = new_by_type[step_type]
+            result = repository.load_step_result(
+                predecessor_study_id, old_step.step_instance_id
+            )
+            result_artifact = repository.save_step_result(
+                successor_study_id,
+                new_step.step_instance_id,
+                result,
+                predecessor_artifact_id=(
+                    old_step.output_artifact_ids[0]
+                    if old_step.output_artifact_ids
+                    else None
+                ),
+            )
+            extra_output_ids: list[str] = []
+            for old_artifact_id in old_step.output_artifact_ids[1:]:
+                old_artifact = next(
+                    item
+                    for item in repository.list_artifacts(predecessor_study_id)
+                    if item.artifact_id == old_artifact_id
+                )
+                rebound = repository.register_artifact(
+                    successor_study_id,
+                    old_artifact.path,
+                    old_artifact.sha256,
+                    kind=old_artifact.kind,
+                    role=old_artifact.role,
+                    status=old_artifact.status,
+                    version=old_artifact.version,
+                    predecessor_artifact_id=old_artifact.artifact_id,
+                )
+                extra_output_ids.append(rebound.artifact_id)
+            input_ids: list[str] = []
+            for dependency_id in new_step.depends_on:
+                dependency = repository.load_step(successor_study_id, dependency_id)
+                input_ids.extend(dependency.output_artifact_ids)
+                for input_artifact_id in dependency.output_artifact_ids:
+                    repository.add_dependency(
+                        successor_study_id,
+                        input_artifact_id,
+                        result_artifact.artifact_id,
+                        relation="successor_reuses_step_dependency",
+                    )
+            repository.update_step(
+                successor_study_id,
+                new_step.step_instance_id,
+                ExecutionStatus.SUCCEEDED,
+                input_artifact_ids=input_ids,
+                output_artifact_ids=[
+                    result_artifact.artifact_id,
+                    *extra_output_ids,
+                ],
+            )
+            cloned.add(step_type)
+            progressed = True
+        if not progressed:
+            raise ValueError("reusable discovery steps could not be topologically cloned")
+    return sorted(cloned)
+
+
+def execute_discovery_repair(
+    repository: WorkflowRepository,
+    repair: RepairContract,
+    *,
+    decided_by: str = "automatic_safe_repair",
+) -> dict[str, Any]:
+    """Create and run an append-only successor for a bounded Stage-1 repair."""
+
+    if repair.scientific_change and not repair.approved_by:
+        raise ValueError("scientific repairs require owner approval")
+    if repair.successor_study_id:
+        return {
+            "repair": repair.model_dump(mode="json"),
+            "workflow": repository.snapshot(repair.successor_study_id),
+            "reused_step_types": [],
+        }
+    if not repair.earliest_affected_step_type:
+        raise ValueError("repair contract has no earliest affected step")
+
+    predecessor = repository.load_study(repair.study_id)
+    project = repository.load_project(predecessor.project_id)
+    if not project.source_root:
+        raise ValueError("discovery repair requires the original project bundle")
+    repairing = repair.model_copy(
+        update={"status": RepairStatus.REPAIRING, "approved_by": decided_by}
+    )
+    repository.save_repair_contract(repairing)
+
+    _, successor_study_id = create_project_discovery_study(
+        repository,
+        project.source_root,
+        title=f"{predecessor.title} · repair v{repair.version}",
+        include_external=bool(
+            predecessor.settings.get("include_external_discovery", True)
+        ),
+        identity=f"successor:{repair.repair_id}",
+    )
+    successor = repository.load_study(successor_study_id)
+    repository.save_study(
+        successor.model_copy(
+            update={
+                "predecessor_study_id": predecessor.study_id,
+                "settings": {
+                    **successor.settings,
+                    "repair_contract_id": repair.repair_id,
+                    "discovery_repair_actions": [
+                        str(item.get("failure_code", ""))
+                        for item in repair.regression_checks
+                        if item.get("failure_code")
+                    ],
+                },
+            }
+        ),
+        "successor_study_linked",
+    )
+    affected = _step_descendants(
+        repository.list_steps(predecessor.study_id),
+        repair.earliest_affected_step_type,
+    )
+    reused = _clone_reusable_discovery_steps(
+        repository, predecessor.study_id, successor_study_id, affected
+    )
+    workflow = PersistentDAGScheduler(
+        repository, stage_one_handlers(), recover_interrupted=True
+    ).run(successor_study_id)
+    post_diagnostics = audit_discovery_study(repository, successor_study_id)
+    failed_codes = {
+        item.failure_code
+        for item in post_diagnostics
+        if item.failure_code
+        in {
+            str(check.get("failure_code", ""))
+            for check in repair.regression_checks
+        }
+    }
+    final_status = (
+        RepairStatus.DIAGNOSING if failed_codes else RepairStatus.COMPLETED
+    )
+    completed = repairing.model_copy(
+        update={
+            "status": final_status,
+            "successor_study_id": successor_study_id,
+        }
+    )
+    repository.save_repair_contract(completed)
+    repository.save_study(
+        predecessor.model_copy(
+            update={
+                "successor_study_id": successor_study_id,
+                "lifecycle": (
+                    StudyLifecycle.SUPERSEDED
+                    if final_status is RepairStatus.COMPLETED
+                    else predecessor.lifecycle
+                ),
+            }
+        ),
+        "study_successor_created",
+    )
+    return {
+        "repair": completed.model_dump(mode="json"),
+        "successor_study_id": successor_study_id,
+        "reused_step_types": reused,
+        "regression_passed": not failed_codes,
+        "workflow": workflow,
+    }
+
+
+def auto_repair_discovery_study(
+    repository: WorkflowRepository, study_id: str
+) -> dict[str, Any] | None:
+    """Automatically repair only deterministic, non-scientific Stage-1 defects."""
+
+    diagnostics = audit_discovery_study(repository, study_id)
+    eligible = [
+        item
+        for item in diagnostics
+        if item.auto_repair_eligible and not item.scientific_change
+    ]
+    if not eligible:
+        return None
+    earliest = eligible[0].earliest_affected_step_type
+    step = next(
+        item
+        for item in repository.list_steps(study_id)
+        if item.step_type == earliest
+    )
+    repair = repository.propose_repair(
+        study_id,
+        diagnostic_owner=eligible[0].diagnostic_owner,
+        scientific_change=False,
+        earliest_affected_phase=Phase.DISCOVERY,
+        changed_artifact_ids=step.output_artifact_ids,
+        regression_checks=[
+            {
+                "failure_code": item.failure_code,
+                "expectation": "not_detected_in_successor",
+            }
+            for item in eligible
+        ],
+        diagnostic_id=eligible[0].diagnostic_id,
+        earliest_affected_step_type=earliest,
+    )
+    return execute_discovery_repair(repository, repair)
+
+
 def run_project_discovery(
     source_root: str | Path,
     *,
@@ -1288,6 +1642,7 @@ def run_project_discovery(
     title: str | None = None,
     include_external: bool = True,
     identity: str | None = None,
+    auto_repair: bool = True,
 ) -> dict[str, Any]:
     repository = WorkflowRepository(repository_root)
     project_id, study_id = create_project_discovery_study(
@@ -1297,9 +1652,22 @@ def run_project_discovery(
         include_external=include_external,
         identity=identity,
     )
+    visited: set[str] = set()
+    while study_id not in visited:
+        visited.add(study_id)
+        successor_id = repository.load_study(study_id).successor_study_id
+        if not successor_id:
+            break
+        study_id = successor_id
     snapshot = PersistentDAGScheduler(
         repository, stage_one_handlers(), recover_interrupted=True
     ).run(study_id)
+    repair_outcome = (
+        auto_repair_discovery_study(repository, study_id) if auto_repair else None
+    )
+    if repair_outcome is not None:
+        study_id = str(repair_outcome["successor_study_id"])
+        snapshot = repair_outcome["workflow"]
     scan_step = next(
         item
         for item in repository.list_steps(study_id)
@@ -1357,6 +1725,7 @@ def run_project_discovery(
         "project_id": project_id,
         "study_id": study_id,
         "workflow": snapshot,
+        "automatic_repair": repair_outcome,
     }
 
 

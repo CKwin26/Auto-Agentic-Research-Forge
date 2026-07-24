@@ -1598,8 +1598,30 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
                         payload.get("predecessor_run_id", "")
                     ).strip()
                     or None,
+                    diagnostic_id=str(payload.get("diagnostic_id", "")).strip()
+                    or None,
+                    earliest_affected_step_type=str(
+                        payload.get("earliest_affected_step_type", "")
+                    ).strip()
+                    or None,
                 )
                 self._send_json(repair.model_dump(mode="json"), HTTPStatus.CREATED)
+                return
+            if parsed.path == "/api/studies/discovery/auto-repair":
+                from .workflow_domain import WorkflowRepository
+                from .workflow_scheduler import auto_repair_discovery_study
+
+                repository = WorkflowRepository(self.server.workflow_root)
+                study_id = str(payload.get("study_id", "")).strip()
+                outcome = auto_repair_discovery_study(repository, study_id)
+                self._send_json(
+                    outcome
+                    or {
+                        "study_id": study_id,
+                        "repair_required": False,
+                        "workflow": repository.snapshot(study_id),
+                    }
+                )
                 return
             if parsed.path == "/api/network/audit":
                 from .workflow_domain import NetworkAuditEvent, WorkflowRepository

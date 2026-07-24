@@ -551,6 +551,29 @@ class ArtifactDependency(StrictModel):
     created_at: str = Field(default_factory=utc_now)
 
 
+class WorkflowDiagnostic(StrictModel):
+    """Append-only fault-localization record.
+
+    Diagnostics explain why a successor may be needed.  They never mutate a
+    historical step result or scientific verdict.
+    """
+
+    schema_version: int = 1
+    diagnostic_id: str = Field(pattern=r"^diagnostic-[a-f0-9]{16}$")
+    study_id: str
+    phase: Phase
+    earliest_affected_step_type: str = Field(
+        pattern=r"^[a-z][a-z0-9_]{1,99}$"
+    )
+    diagnostic_owner: DiagnosticOwner
+    failure_code: str = Field(pattern=r"^[a-z][a-z0-9_]{2,99}$")
+    rationale: str = Field(min_length=3, max_length=4_000)
+    evidence_artifact_ids: list[str] = Field(default_factory=list)
+    scientific_change: bool = False
+    auto_repair_eligible: bool = False
+    created_at: str = Field(default_factory=utc_now)
+
+
 class RepairContract(StrictModel):
     schema_version: int = 1
     repair_id: str = Field(pattern=r"^repair-[a-f0-9]{16}$")
@@ -564,8 +587,12 @@ class RepairContract(StrictModel):
     invalidated_artifact_ids: list[str]
     reusable_artifact_ids: list[str]
     regression_checks: list[dict[str, Any]]
+    diagnostic_id: str | None = None
+    earliest_affected_step_type: str | None = None
     predecessor_run_id: str | None = None
     successor_run_id: str | None = None
+    predecessor_study_id: str | None = None
+    successor_study_id: str | None = None
     approved_by: str | None = None
     created_at: str = Field(default_factory=utc_now)
 
@@ -942,7 +969,12 @@ class WorkflowRepository:
         ]
 
     def save_step_result(
-        self, study_id: str, step_id: str, result: dict[str, Any]
+        self,
+        study_id: str,
+        step_id: str,
+        result: dict[str, Any],
+        *,
+        predecessor_artifact_id: str | None = None,
     ) -> ArtifactRecord:
         """Persist a node result and register it as a first-class DAG artifact."""
         self.load_step(study_id, step_id)
@@ -954,6 +986,7 @@ class WorkflowRepository:
             sha256_file(path),
             kind="step_result",
             role=ArtifactRole.OTHER,
+            predecessor_artifact_id=predecessor_artifact_id,
         )
         self._event(
             study_id,
@@ -1444,10 +1477,23 @@ class WorkflowRepository:
 
     def save_repair_contract(self, repair: RepairContract) -> RepairContract:
         self.load_study(repair.study_id)
-        write_json_atomic(
-            self._study_dir(repair.study_id) / "repairs" / f"{repair.repair_id}.json",
-            repair,
+        repair_path = (
+            self._study_dir(repair.study_id)
+            / "repairs"
+            / f"{repair.repair_id}.json"
         )
+        if repair_path.is_file():
+            previous = RepairContract.model_validate(read_json(repair_path))
+            if previous.model_dump(mode="json") != repair.model_dump(mode="json"):
+                history_dir = repair_path.parent / "history"
+                revision = (
+                    len(list(history_dir.glob(f"{repair.repair_id}-r*.json"))) + 1
+                )
+                write_json_atomic(
+                    history_dir / f"{repair.repair_id}-r{revision}.json",
+                    previous,
+                )
+        write_json_atomic(repair_path, repair)
         study = self.load_study(repair.study_id)
         self.save_study(
             study.model_copy(update={"repair_status": repair.status}),
@@ -1474,6 +1520,45 @@ class WorkflowRepository:
             )
         ]
 
+    def save_diagnostic(self, diagnostic: WorkflowDiagnostic) -> WorkflowDiagnostic:
+        self.load_study(diagnostic.study_id)
+        known = {item.artifact_id for item in self.list_artifacts(diagnostic.study_id)}
+        unknown = sorted(set(diagnostic.evidence_artifact_ids).difference(known))
+        if unknown:
+            raise ValueError(
+                "diagnostic references unknown artifacts: " + ", ".join(unknown)
+            )
+        path = (
+            self._study_dir(diagnostic.study_id)
+            / "diagnostics"
+            / f"{diagnostic.diagnostic_id}.json"
+        )
+        if path.is_file():
+            existing = WorkflowDiagnostic.model_validate(read_json(path))
+            if existing.model_dump(mode="json") != diagnostic.model_dump(mode="json"):
+                raise ValueError("diagnostics are append-only")
+            return existing
+        write_json_atomic(path, diagnostic)
+        self._event(
+            diagnostic.study_id,
+            "diagnostic_appended",
+            diagnostic_id=diagnostic.diagnostic_id,
+            failure_code=diagnostic.failure_code,
+            earliest_affected_step_type=diagnostic.earliest_affected_step_type,
+        )
+        return diagnostic
+
+    def list_diagnostics(self, study_id: str) -> list[WorkflowDiagnostic]:
+        self.load_study(study_id)
+        return [
+            WorkflowDiagnostic.model_validate(read_json(path))
+            for path in sorted(
+                (self._study_dir(study_id) / "diagnostics").glob(
+                    "diagnostic-*.json"
+                )
+            )
+        ]
+
     def propose_repair(
         self,
         study_id: str,
@@ -1484,6 +1569,8 @@ class WorkflowRepository:
         changed_artifact_ids: list[str],
         regression_checks: list[dict[str, Any]],
         predecessor_run_id: str | None = None,
+        diagnostic_id: str | None = None,
+        earliest_affected_step_type: str | None = None,
     ) -> RepairContract:
         impact = self.impact(study_id, changed_artifact_ids)
         existing = sorted((self._study_dir(study_id) / "repairs").glob("repair-*.json"))
@@ -1504,7 +1591,10 @@ class WorkflowRepository:
             invalidated_artifact_ids=impact["invalidated_artifact_ids"],
             reusable_artifact_ids=impact["reusable_artifact_ids"],
             regression_checks=regression_checks,
+            diagnostic_id=diagnostic_id,
+            earliest_affected_step_type=earliest_affected_step_type,
             predecessor_run_id=predecessor_run_id,
+            predecessor_study_id=study_id,
         )
         self.save_repair_contract(repair)
         if scientific_change:
@@ -1728,6 +1818,14 @@ class WorkflowRepository:
                 item.model_dump(mode="json")
                 for item in self.list_evidence_chains(study_id)
             ],
+            "diagnostics": [
+                item.model_dump(mode="json")
+                for item in self.list_diagnostics(study_id)
+            ],
+            "repairs": [
+                item.model_dump(mode="json")
+                for item in self.list_repair_contracts(study_id)
+            ],
             "task_groups": groups,
             "readiness": (
                 self.load_readiness(study_id).model_dump(mode="json")
@@ -1806,6 +1904,7 @@ __all__ = [
     "StudyVerdictStatus",
     "SystemReadiness",
     "WorkflowRepository",
+    "WorkflowDiagnostic",
     "affected_artifacts",
     "aggregate_study_verdict",
     "is_secret_path",
