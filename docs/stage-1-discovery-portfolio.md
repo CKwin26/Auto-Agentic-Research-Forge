@@ -6,6 +6,7 @@ Its canonical order is:
 ```text
 read-only project scan
   -> author Claim Registry
+  -> Academic Concept Normalization
   -> structured Research Fingerprint
   -> purpose-specific external Query Plan
   -> normalized and frozen external sources
@@ -21,6 +22,25 @@ The fingerprint preserves the project domains, problems, methods, metrics,
 canonical concepts, evidence assets and source research tracks. Every term is
 derived from a local, hashed project resource. It is a discovery aid and does
 not become scientific evidence.
+
+Before the fingerprint is used for retrieval, project-internal labels are
+separated from scholarly terminology:
+
+```text
+internal label
+  -> operational definition
+  -> academic concepts
+  -> academic title and query terms
+```
+
+For example, an internal label such as `极端赢家` is not submitted as a
+research field. When the project defines it as a future 20-trading-day return
+that is both industry-top-decile and at least 10% in absolute terms, the
+retrieval layer uses concepts such as cross-sectional equity return
+prediction, rare high-return event ranking, learning-to-rank for stock
+selection and walk-forward evaluation. The internal label remains visible as
+provenance. An unresolved mapping is marked `needs_owner_review`; it cannot be
+silently promoted into an academic direction.
 
 The query matrix separates:
 

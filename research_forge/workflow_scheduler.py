@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Callable, Literal, cast
 
 from .claim_discovery import (
+    AcademicConceptNormalization,
     AuthorClaim,
     ClaimDiscoveryReport,
     DiscoveryPortfolio,
@@ -25,6 +26,7 @@ from .claim_discovery import (
     _terms,
     build_discovery_portfolio,
     build_discovery_query_intents,
+    build_academic_concept_normalizations,
     build_project_fingerprint,
     extract_author_claims,
     recommend_claims,
@@ -452,6 +454,22 @@ def _candidate_discovery(context: StepContext) -> dict[str, Any]:
     return {"candidates": [item.model_dump(mode="json") for item in candidates]}
 
 
+def _academic_concept_normalization(context: StepContext) -> dict[str, Any]:
+    scan = context.result("project_scan")
+    claims = _models(
+        context.result("author_claim_extraction")["author_claims"], AuthorClaim
+    )
+    candidates = context.result("candidate_discovery")["candidates"]
+    normalizations = build_academic_concept_normalizations(
+        scan["source_root"], candidates, claims
+    )
+    return {
+        "academic_normalizations": [
+            item.model_dump(mode="json") for item in normalizations
+        ]
+    }
+
+
 def _fingerprint(context: StepContext) -> dict[str, Any]:
     scan = context.result("project_scan")
     claims = context.result("author_claim_extraction")
@@ -460,7 +478,28 @@ def _fingerprint(context: StepContext) -> dict[str, Any]:
         scan["resources"],
         candidates["candidates"],
         _models(claims["author_claims"], AuthorClaim),
+        source_root=scan["source_root"],
     )
+    normalization_step = next(
+        (
+            item
+            for item in context.repository.list_steps(context.study_id)
+            if item.step_type == "academic_concept_normalization"
+            and item.status is ExecutionStatus.SUCCEEDED
+        ),
+        None,
+    )
+    if normalization_step is not None:
+        payload = context.repository.load_step_result(
+            context.study_id, normalization_step.step_instance_id
+        )
+        normalizations = _models(
+            payload["academic_normalizations"],
+            AcademicConceptNormalization,
+        )
+        fingerprint = fingerprint.model_copy(
+            update={"academic_normalizations": normalizations}
+        )
     return {"fingerprint": fingerprint.model_dump(mode="json")}
 
 
@@ -958,6 +997,7 @@ def stage_one_handlers() -> dict[str, StepHandler]:
         "project_scan": _project_scan,
         "author_claim_extraction": _author_claim_extraction,
         "candidate_discovery": _candidate_discovery,
+        "academic_concept_normalization": _academic_concept_normalization,
         "project_fingerprint": _fingerprint,
         "draft_discovery_query_plan": _draft_discovery_query_plan,
         "evaluate_network_policy": _evaluate_discovery_policy,
@@ -1083,12 +1123,31 @@ def create_project_discovery_study(
         depends_on=[scan.step_instance_id],
         task_group="project_discovery",
     )
+    academic_normalization = repository.add_step(
+        study.study_id,
+        "academic_concept_normalization",
+        Phase.DISCOVERY,
+        ExecutorType.DETERMINISTIC_SERVICE,
+        depends_on=[
+            scan.step_instance_id,
+            claims.step_instance_id,
+            candidates.step_instance_id,
+        ],
+        expected_output=(
+            "Internal labels, operational definitions, scholarly concepts, "
+            "academic titles, and query terms"
+        ),
+    )
     fingerprint = repository.add_step(
         study.study_id,
         "project_fingerprint",
         Phase.DISCOVERY,
         ExecutorType.DETERMINISTIC_SERVICE,
-        depends_on=[claims.step_instance_id, candidates.step_instance_id],
+        depends_on=[
+            claims.step_instance_id,
+            candidates.step_instance_id,
+            academic_normalization.step_instance_id,
+        ],
     )
     query_plan = repository.add_step(
         study.study_id,

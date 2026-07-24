@@ -570,6 +570,7 @@ const executorLabel = {
 const stepTitle = {
   project_scan: "扫描项目资源",
   evidence_chain_detection: "识别证据链",
+  academic_concept_normalization: "规范化学术概念",
   discovery_portfolio: "形成候选方向组合",
   scope_review: "确认研究边界",
   freeze_scope_contract: "冻结研究边界",
@@ -869,11 +870,16 @@ function DirectionSelect({ inspection, selectedId, onSelect, onBack, onContinue 
               <span className="direction-index">{String(index + 1).padStart(2, "0")}</span>
               <div className="direction-copy">
                 <div><h2>{paperTopicTitle(direction)}</h2>{index === 0 ? <em>推荐</em> : null}</div>
+                {direction.internal_label && direction.internal_label !== direction.title ? (
+                  <small className="internal-label">项目内称：{direction.internal_label}</small>
+                ) : null}
                 <p><span className="topic-label">核心问题</span>{candidateQuestion(direction)}</p>
                 <dl>
                   <div><dt>候选贡献</dt><dd>{direction.contribution}</dd></div>
                   <div><dt>研究范围</dt><dd>{direction.scope}</dd></div>
                   <div><dt>证据基础</dt><dd>{direction.evidence_chain_count || 0} 条完整验证链</dd></div>
+                  {direction.operational_definition ? <div><dt>操作性定义</dt><dd>{direction.operational_definition}</dd></div> : null}
+                  {direction.academic_concepts?.length ? <div><dt>学术概念</dt><dd>{direction.academic_concepts.join("；")}</dd></div> : null}
                   {direction.relation_to_prior_work ? <div><dt>已有工作</dt><dd>{direction.relation_to_prior_work}</dd></div> : null}
                 </dl>
                 {direction.novelty_grounding ? (

@@ -9,8 +9,10 @@ from research_forge.claim_discovery import (
     RecommendedClaim,
     SourceSpan,
     TrendSignal,
+    build_academic_concept_normalizations,
     build_discovery_portfolio,
     build_discovery_query_intents,
+    build_project_fingerprint,
     discover_project_claims,
     extract_author_claims,
     recommend_claims,
@@ -25,6 +27,47 @@ def _resource(path: Path, root: Path) -> dict:
         "sha256": hashlib.sha256(payload).hexdigest(),
         "suffix": path.suffix,
     }
+
+
+def test_internal_project_label_is_normalized_before_academic_search(
+    tmp_path: Path,
+) -> None:
+    report = tmp_path / "docs" / "ranker.md"
+    report.parent.mkdir()
+    report.write_text(
+        "\n".join(
+            [
+                "# 极端赢家排序器 V2 研究报告",
+                "算法采用 LightGBM LambdaMART，并加入公开催化特征。",
+                "目标固定为：未来20个交易日可执行收益位于所属行业前 10%，"
+                "并且绝对收益不低于 +10%。",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    candidate = {
+        "track_id": "extreme-winner-ranker-v2",
+        "display_title": "极端赢家排序器 V2 研究报告",
+        "novelty_seed": "公开催化剂特征可能改善极端赢家排序。",
+        "protocol_path": "protocols/ranker.json",
+        "report_path": "docs/ranker.md",
+    }
+
+    rows = build_academic_concept_normalizations(tmp_path, [candidate], [])
+    fingerprint = build_project_fingerprint(
+        [],
+        [candidate],
+        [],
+        source_root=tmp_path,
+    )
+    queries = build_discovery_query_intents(fingerprint, [])
+
+    assert rows[0].status == "normalized"
+    assert "极端赢家" not in rows[0].academic_title
+    assert "横截面股票排序" in rows[0].academic_title
+    assert "未来20个交易日" in rows[0].operational_definition
+    assert queries[0].query.startswith("cross-sectional equity ranking")
+    assert "extreme winner" not in " ".join(item.query for item in queries)
 
 
 def test_author_claims_keep_exact_file_provenance(tmp_path: Path) -> None:

@@ -89,7 +89,8 @@ _CANONICAL_CONCEPTS = {
     "flexible_exit", "exit_signal", "drawdown", "portfolio", "return",
     "robustness", "timing", "extreme_winner", "quality", "baseline",
     "causal", "claim_evidence", "right_tail", "ranking_model", "catalyst",
-    "random_baseline", "concentration",
+    "random_baseline", "concentration", "cross_sectional",
+    "rare_high_return", "learning_to_rank", "top_k", "walk_forward",
 }
 _DISTINCTIVE_CONCEPTS = _CANONICAL_CONCEPTS - {"portfolio", "return", "baseline"}
 
@@ -136,6 +137,19 @@ class TrendSignal(StrictModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class AcademicConceptNormalization(StrictModel):
+    normalization_id: str
+    source_track_id: str
+    internal_label: str
+    operational_definition: str = ""
+    academic_title: str = ""
+    academic_concepts: list[str] = Field(default_factory=list)
+    academic_query_terms: list[str] = Field(default_factory=list)
+    source_paths: list[str] = Field(default_factory=list)
+    status: Literal["normalized", "needs_owner_review"]
+    warnings: list[str] = Field(default_factory=list)
+
+
 class ProjectResearchFingerprint(StrictModel):
     domains: list[str] = Field(default_factory=list)
     problems: list[str] = Field(default_factory=list)
@@ -144,6 +158,9 @@ class ProjectResearchFingerprint(StrictModel):
     terms: list[str] = Field(default_factory=list)
     evidence_assets: list[str] = Field(default_factory=list)
     source_track_ids: list[str] = Field(default_factory=list)
+    academic_normalizations: list[AcademicConceptNormalization] = Field(
+        default_factory=list
+    )
 
 
 class RecommendedClaim(StrictModel):
@@ -237,6 +254,13 @@ class DiscoveryDirection(StrictModel):
     recommendation_reasons: list[str] = Field(default_factory=list)
     blockers: list[str] = Field(default_factory=list)
     prohibited_claims: list[str] = Field(default_factory=list)
+    internal_label: str = ""
+    operational_definition: str = ""
+    academic_concepts: list[str] = Field(default_factory=list)
+    academic_query_terms: list[str] = Field(default_factory=list)
+    academic_normalization_status: Literal[
+        "normalized", "needs_owner_review"
+    ] = "needs_owner_review"
     scientific_evidence_status: Literal["discovery_only"] = "discovery_only"
 
 
@@ -440,6 +464,26 @@ def _terms(text: str) -> set[str]:
         "catalyst": ("催化剂", "catalyst"),
         "random_baseline": ("随机基线", "random baseline", "random portfolio"),
         "concentration": ("集中", "concentration", "portfolio size"),
+        "cross_sectional": ("横截面", "cross-sectional", "cross sectional"),
+        "rare_high_return": (
+            "稀有高收益",
+            "高收益事件",
+            "rare high-return",
+            "rare high return",
+        ),
+        "learning_to_rank": (
+            "学习排序",
+            "learning-to-rank",
+            "learning to rank",
+            "lambdamart",
+        ),
+        "top_k": ("top-k", "top k", "top5", "top 5"),
+        "walk_forward": (
+            "滚动窗口",
+            "前瞻评估",
+            "walk-forward",
+            "walk forward",
+        ),
     }
     terms.update(
         concept
@@ -449,15 +493,216 @@ def _terms(text: str) -> set[str]:
     return terms
 
 
+def _candidate_source_text(
+    source_root: Path | None, candidate: Any
+) -> tuple[str, list[str]]:
+    parts = [
+        str(_candidate_value(candidate, "display_title", "") or ""),
+        str(_candidate_value(candidate, "novelty_seed", "") or ""),
+        str(_candidate_value(candidate, "conclusion_excerpt", "") or ""),
+    ]
+    source_paths: list[str] = []
+    for field in ("protocol_path", "report_path"):
+        relative = str(_candidate_value(candidate, field, "") or "").strip()
+        if not relative:
+            continue
+        source_paths.append(relative)
+        if source_root is None:
+            continue
+        path = source_root / relative
+        try:
+            if path.is_file() and path.stat().st_size <= 500_000:
+                parts.append(
+                    path.read_text(encoding="utf-8", errors="replace")
+                )
+        except OSError:
+            continue
+    return "\n".join(parts), source_paths
+
+
+def _high_return_operational_definition(text: str) -> str:
+    for raw_line in text.splitlines():
+        line = re.sub(r"[`*_#]+", "", raw_line).strip(" -：:")
+        lower = line.casefold()
+        has_horizon = bool(
+            re.search(r"(未来|future)\s*20", lower)
+            or re.search(r"20\s*(个)?(交易日|trading days?)", lower)
+        )
+        has_relative_threshold = bool(
+            re.search(
+                r"(行业|industry).{0,40}(前|top).{0,20}10\s*%", lower
+            )
+        )
+        has_absolute_threshold = bool(
+            re.search(r"(绝对|absolute).{0,40}10\s*%", lower)
+        )
+        if has_horizon and has_relative_threshold and has_absolute_threshold:
+            definition = re.split(r"(?<=[。.!?])\s*", line, maxsplit=1)[0]
+            return re.sub(
+                r"^(主要事件定义继续沿用冻结版|目标固定为|定义|标签定义)"
+                r"\s*[：:]\s*",
+                "",
+                definition,
+            )[:600]
+    return ""
+
+
+def build_academic_concept_normalizations(
+    source_root: str | Path | None,
+    candidates: Sequence[Any],
+    author_claims: Sequence[AuthorClaim],
+) -> list[AcademicConceptNormalization]:
+    """Map project labels to scholarly concepts without granting claim authority."""
+
+    root = Path(source_root).resolve() if source_root is not None else None
+    claim_text = "\n".join(item.statement for item in author_claims)
+    candidate_texts = [
+        _candidate_source_text(root, candidate) for candidate in candidates
+    ]
+    project_text = "\n".join([claim_text, *[item[0] for item in candidate_texts]])
+    shared_high_return_definition = _high_return_operational_definition(
+        project_text
+    )
+    rows: list[AcademicConceptNormalization] = []
+    for candidate, (candidate_text, source_paths) in zip(
+        candidates, candidate_texts, strict=True
+    ):
+        track_id = str(_candidate_value(candidate, "track_id", "") or "")
+        internal_label = str(
+            _candidate_value(candidate, "display_title", "")
+            or _candidate_value(candidate, "novelty_seed", "")
+            or track_id
+        ).strip()
+        lower = candidate_text.casefold()
+        operational_definition = ""
+        academic_title = ""
+        academic_concepts: list[str] = []
+        academic_query_terms: list[str] = []
+
+        if "极端赢家" in lower or "extreme winner" in lower:
+            operational_definition = (
+                _high_return_operational_definition(candidate_text)
+                or shared_high_return_definition
+            )
+            academic_concepts = [
+                "cross-sectional equity return prediction",
+                "rare high-return event ranking",
+                "learning-to-rank for stock selection",
+                "industry-relative return ranking",
+                "top-k portfolio selection",
+                "walk-forward evaluation",
+            ]
+            academic_query_terms = [
+                "cross-sectional equity ranking rare high-return events",
+                "learning-to-rank stock selection",
+                "industry-relative return prediction",
+                "top-k portfolio walk-forward evaluation",
+            ]
+            if "lambdamart" in lower or "催化" in lower:
+                academic_title = (
+                    "公开催化特征增强的横截面股票排序："
+                    "LambdaMART 配对比较"
+                )
+            elif "稳健" in lower or "robust" in lower:
+                academic_title = (
+                    "面向稀有高收益事件识别的横截面股票排序："
+                    "滚动窗口稳健性评估"
+                )
+            else:
+                academic_title = (
+                    "面向稀有高收益事件识别的横截面股票排序与前瞻评估"
+                )
+        elif any(
+            cue in lower
+            for cue in ("灵活退出", "动态退出", "flexible exit", "exit signal")
+        ):
+            academic_title = "基于动态退出规则的投资组合持有期决策"
+            academic_concepts = [
+                "dynamic portfolio exit policy",
+                "holding-period return prediction",
+                "optimal stopping in portfolio management",
+            ]
+            academic_query_terms = [
+                "dynamic portfolio exit policy",
+                "holding-period return prediction",
+                "optimal stopping portfolio management",
+            ]
+        elif (
+            ("质量" in lower and "择时" in lower)
+            or "quality timing" in lower
+        ):
+            academic_title = "滚动择时窗口下的因子型横截面股票选择"
+            academic_concepts = [
+                "factor-based equity selection",
+                "rolling-window market timing",
+                "cross-sectional return prediction",
+            ]
+            academic_query_terms = [
+                "factor-based equity selection rolling window",
+                "market timing window robustness",
+                "cross-sectional return prediction",
+            ]
+
+        normalized = bool(academic_title and academic_concepts)
+        warnings: list[str] = []
+        if not normalized:
+            warnings.append(
+                "No reliable scholarly concept mapping was found; owner "
+                "confirmation is required before literature retrieval."
+            )
+        elif not operational_definition:
+            warnings.append(
+                "The scholarly concept mapping is available, but the project "
+                "does not expose a concise operational definition."
+            )
+        rows.append(
+            AcademicConceptNormalization(
+                normalization_id=_stable_id(
+                    "academic-normalization",
+                    f"{track_id}:{internal_label}:{academic_title}",
+                ),
+                source_track_id=track_id,
+                internal_label=internal_label,
+                operational_definition=operational_definition,
+                academic_title=academic_title,
+                academic_concepts=academic_concepts,
+                academic_query_terms=academic_query_terms,
+                source_paths=source_paths,
+                status=(
+                    "normalized" if normalized else "needs_owner_review"
+                ),
+                warnings=warnings,
+            )
+        )
+    return rows
+
+
 def build_project_fingerprint(
-    resources: Sequence[Any], candidates: Sequence[Any], author_claims: Sequence[AuthorClaim]
+    resources: Sequence[Any],
+    candidates: Sequence[Any],
+    author_claims: Sequence[AuthorClaim],
+    *,
+    source_root: str | Path | None = None,
 ) -> ProjectResearchFingerprint:
+    academic_normalizations = build_academic_concept_normalizations(
+        source_root, candidates, author_claims
+    )
     candidate_text = " ".join(
         f"{_candidate_value(item, 'track_id', '')} {_candidate_value(item, 'display_title', '')} {_candidate_value(item, 'novelty_seed', '')}"
         for item in candidates
     )
     claim_text = " ".join(item.statement for item in author_claims)
-    all_text = f"{candidate_text} {claim_text}"
+    academic_text = " ".join(
+        " ".join(
+            [
+                item.academic_title,
+                *item.academic_concepts,
+                *item.academic_query_terms,
+            ]
+        )
+        for item in academic_normalizations
+    )
+    all_text = f"{candidate_text} {claim_text} {academic_text}"
     discovered_terms = _terms(all_text)
     canonical_terms = sorted(discovered_terms & _CANONICAL_CONCEPTS)
     ranked_terms = sorted(
@@ -484,6 +729,7 @@ def build_project_fingerprint(
         terms=terms,
         evidence_assets=evidence_assets,
         source_track_ids=[str(_candidate_value(item, "track_id", "")) for item in candidates],
+        academic_normalizations=academic_normalizations,
     )
 
 
@@ -772,7 +1018,32 @@ def build_discovery_query_intents(
     }
     topic_seeds: list[str] = []
     topic_signatures: set[tuple[str, ...]] = set()
+    normalized_track_ids = {
+        item.source_track_id
+        for item in fingerprint.academic_normalizations
+        if item.status == "normalized"
+    }
+    for normalization in fingerprint.academic_normalizations:
+        if (
+            normalization.status != "normalized"
+            or not normalization.academic_query_terms
+        ):
+            continue
+        seed = re.sub(
+            r"\s+", " ", normalization.academic_query_terms[0]
+        ).strip()
+        signature = tuple(seed.casefold().split()[:3])
+        if not seed or signature in topic_signatures:
+            continue
+        topic_seeds.append(seed)
+        topic_signatures.add(signature)
+        if len(topic_seeds) >= 3:
+            break
     for track_id in fingerprint.source_track_ids:
+        if len(topic_seeds) >= 3:
+            break
+        if track_id in normalized_track_ids:
+            continue
         tokens = [
             item
             for item in re.split(r"[-_\s]+", track_id.casefold())
@@ -796,8 +1067,6 @@ def build_discovery_query_intents(
             continue
         topic_seeds.append(seed)
         topic_signatures.add(signature)
-        if len(topic_seeds) >= 3:
-            break
     if not topic_seeds:
         topic_seeds = list(dict.fromkeys([*canonical, *short_project_terms]))[:3]
     if not topic_seeds:
@@ -846,13 +1115,37 @@ def build_discovery_query_intents(
         statement = _clean_statement(claim.statement)
         if not statement:
             continue
-        claim_terms = [
-            item.replace("_", " ")
-            for item in sorted(_terms(statement))
-            if item in _CANONICAL_CONCEPTS
-            or re.fullmatch(r"[a-z][a-z0-9-]{3,}", item)
-        ]
-        claim_query = " ".join(claim_terms[:8]).strip() or statement[:120]
+        statement_terms = _terms(statement)
+        related_normalizations = sorted(
+            (
+                (
+                    _match_score(
+                        statement_terms,
+                        _terms(
+                            f"{item.source_track_id} {item.internal_label} "
+                            f"{item.operational_definition}"
+                        ),
+                    ),
+                    item,
+                )
+                for item in fingerprint.academic_normalizations
+                if item.status == "normalized"
+                and item.academic_query_terms
+            ),
+            key=lambda item: -item[0],
+        )
+        if related_normalizations and related_normalizations[0][0] >= 0.12:
+            claim_query = related_normalizations[0][1].academic_query_terms[0]
+        else:
+            claim_terms = [
+                item.replace("_", " ")
+                for item in sorted(statement_terms)
+                if item in _CANONICAL_CONCEPTS
+                or re.fullmatch(r"[a-z][a-z0-9-]{3,}", item)
+            ]
+            claim_query = (
+                " ".join(claim_terms[:8]).strip() or statement[:120]
+            )
         rows.append(
             (
                 "contradicting_evidence",
@@ -904,8 +1197,37 @@ def recommend_claims(
         )
     recommendations: list[RecommendedClaim] = []
     project_terms = set(fingerprint.terms)
+    normalization_terms = [
+        (
+            _terms(
+                f"{item.source_track_id} {item.internal_label} "
+                f"{item.operational_definition}"
+            ),
+            _terms(
+                " ".join(
+                    [
+                        item.academic_title,
+                        *item.academic_concepts,
+                        *item.academic_query_terms,
+                    ]
+                )
+            ),
+        )
+        for item in fingerprint.academic_normalizations
+        if item.status == "normalized"
+    ]
     for seed_id, statement, source_claim_ids in seeds:
         claim_terms = _terms(statement)
+        related_normalizations = sorted(
+            normalization_terms,
+            key=lambda item: -_match_score(claim_terms, item[0]),
+        )
+        if (
+            related_normalizations
+            and _match_score(claim_terms, related_normalizations[0][0])
+            >= 0.12
+        ):
+            claim_terms |= related_normalizations[0][1]
         seed_terms = claim_terms | project_terms
         matched: list[tuple[float, TrendSignal]] = []
         for trend in trends:
@@ -1264,12 +1586,64 @@ def build_discovery_portfolio(
             item.signal_class in {"market_attention", "adoption_signal"}
             for item in matched_signals
         )
-        title = (
+        track_ids = [
+            str(_candidate_value(item, "track_id", ""))
+            for item in related_candidates
+            if str(_candidate_value(item, "track_id", "")).strip()
+        ]
+        normalizations = {
+            item.source_track_id: item
+            for item in fingerprint.academic_normalizations
+        }
+        academic_normalization = next(
+            (
+                normalizations[track_id]
+                for track_id in track_ids
+                if track_id in normalizations
+            ),
+            None,
+        )
+        internal_title = (
             str(_candidate_value(primary, "display_title", "") or "").strip()
             if primary is not None
             else ""
         ) or recommendation.statement[:140].rstrip("。.")
-        question = recommendation.statement.strip()
+        title = (
+            academic_normalization.academic_title
+            if academic_normalization is not None
+            and academic_normalization.academic_title
+            else internal_title
+        )
+        if (
+            academic_normalization is None
+            or academic_normalization.status == "needs_owner_review"
+        ):
+            blockers.append(
+                "Academic concept normalization requires owner review."
+            )
+        if (
+            academic_normalization is not None
+            and academic_normalization.operational_definition
+            and "rare high-return event ranking"
+            in academic_normalization.academic_concepts
+        ):
+            operational_definition = (
+                academic_normalization.operational_definition.rstrip(
+                    "。.!?？"
+                )
+            )
+            question = (
+                "在冻结样本、持有期和基线后，候选横截面排序模型能否提高"
+                "由下述操作性定义确定的高收益事件在 Top-K 组合中的识别率："
+                f"{operational_definition}？"
+            )
+            falsifiable_hypothesis = (
+                "候选横截面排序模型相对于冻结基线具有更高的 Top-K "
+                f"高收益事件命中率；事件定义为：{operational_definition}"
+            )
+        else:
+            question = recommendation.statement.strip()
+            falsifiable_hypothesis = recommendation.statement
         if not question.endswith(("?", "？")):
             question = (
                 "在冻结的项目资源与评价口径下，是否能够验证："
@@ -1287,11 +1661,6 @@ def build_discovery_portfolio(
             if scholarly_count
             else "尚未获得足够的最近工作匹配，不能声称新颖性。"
         )
-        track_ids = [
-            str(_candidate_value(item, "track_id", ""))
-            for item in related_candidates
-            if str(_candidate_value(item, "track_id", "")).strip()
-        ]
         direction = DiscoveryDirection(
             direction_id=_stable_id(
                 "discovery-direction",
@@ -1299,7 +1668,7 @@ def build_discovery_portfolio(
             ),
             title=title[:240],
             research_question=question[:1200],
-            falsifiable_hypothesis=recommendation.statement[:2000],
+            falsifiable_hypothesis=falsifiable_hypothesis[:2000],
             candidate_contribution=contribution[:2000],
             scope_in=[
                 "read-only project resources bound to this direction",
@@ -1350,6 +1719,27 @@ def build_discovery_portfolio(
                 "Do not claim exhaustive literature coverage.",
                 "Do not claim novelty without an explicit closest-work comparison.",
             ],
+            internal_label=internal_title,
+            operational_definition=(
+                academic_normalization.operational_definition
+                if academic_normalization is not None
+                else ""
+            ),
+            academic_concepts=(
+                academic_normalization.academic_concepts
+                if academic_normalization is not None
+                else []
+            ),
+            academic_query_terms=(
+                academic_normalization.academic_query_terms
+                if academic_normalization is not None
+                else []
+            ),
+            academic_normalization_status=(
+                academic_normalization.status
+                if academic_normalization is not None
+                else "needs_owner_review"
+            ),
         )
         directions.append(direction)
 
@@ -1414,7 +1804,12 @@ def discover_project_claims(
 ) -> ClaimDiscoveryReport:
     root = Path(source_root).resolve()
     author_claims = extract_author_claims(root, resources)
-    fingerprint = build_project_fingerprint(resources, candidates, author_claims)
+    fingerprint = build_project_fingerprint(
+        resources,
+        candidates,
+        author_claims,
+        source_root=source_root,
+    )
     queries = _project_queries(fingerprint)
     provider_status: dict[str, str] = {}
     warnings: list[str] = []

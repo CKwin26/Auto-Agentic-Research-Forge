@@ -62,6 +62,7 @@ def test_stage_one_runs_as_persisted_dag_and_stops_at_scope_gate(
     assert steps["project_scan"]["status"] == "succeeded"
     assert steps["author_claim_extraction"]["status"] == "succeeded"
     assert steps["candidate_discovery"]["status"] == "succeeded"
+    assert steps["academic_concept_normalization"]["status"] == "succeeded"
     for step_type in (
         "draft_discovery_query_plan",
         "evaluate_network_policy",
