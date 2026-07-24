@@ -77,6 +77,10 @@ def test_readiness_threshold_never_changes_acceptance_probability(tmp_path: Path
     assert low.publication_submission_ready is False
 
 
+@pytest.mark.skipif(
+    not PUBLICATION_MANUSCRIPT.is_file(),
+    reason="archived publication case-study artifacts are not part of a clean checkout",
+)
 def test_frozen_cross_family_calibration_passes_automated_measurement_only(tmp_path: Path) -> None:
     target, target_path = create_publication_target(
         PUBLICATION_MANUSCRIPT,
@@ -97,7 +101,10 @@ def test_frozen_cross_family_calibration_passes_automated_measurement_only(tmp_p
     assert "READINESS-INDEPENDENT-VALIDATION-BELOW-HARD-MINIMUM" not in {
         item.code for item in report.hard_blockers
     }
-    assert report.human_gate_pending is True
+    # The human process is complete even though it invalidated the primary
+    # endpoint.  Endpoint invalidity is represented by scientific blockers,
+    # not by falsely reverting the audit to a pending state.
+    assert report.human_gate_pending is False
     assert report.publication_submission_ready is False
 
 

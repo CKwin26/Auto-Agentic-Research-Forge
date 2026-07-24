@@ -171,6 +171,6 @@ The vector is authoritative. A single weighted score is intentionally not used b
 
 The live compatibility check accepts two explicit runtimes: `datasets==3.6.0` for legacy scripted SICK tasks and `datasets==4.0.0` for current Parquet schemas that use the newer `List` feature. The selected interpreter is recorded by activation; unvalidated versions fail closed. Separate environments keep the compatibility split visible and avoid expanding the core Research Forge installation.
 
-AIRS-lite is a development adapter, not an AIRS leaderboard submission. It uses the official data split and metric semantics but not AIRS's official container/harness; reports remain non-publishable without Docker isolation.
+AIRS-lite is a development adapter, not an AIRS leaderboard submission. It uses the official data split and metric semantics but not AIRS's official RAD/aira-dojo harness; **even a Docker-isolated Lite run is not an AIRS leaderboard result**.
 
 The next external adapter should execute prepared AIRS tasks inside the official container protocol, followed by the longer ResearchGym tasks. Manuscript and citation tracks belong after evidence-bound paper generation exists.

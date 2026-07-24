@@ -1,0 +1,13 @@
+{
+  "embedding": "sparse",
+  "parsing": {
+    "use_doc_details": false,
+    "defer_embedding": false,
+    "multimodal": false
+  },
+  "answer": {
+    "evidence_k": 10,
+    "evidence_skip_summary": true,
+    "max_concurrent_requests": 1
+  }
+}

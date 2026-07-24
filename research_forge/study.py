@@ -7,6 +7,8 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+from pydantic import TypeAdapter
+
 from .agent_runtime import backend_name, backend_status, model_name
 from .benchmark import REGISTERED_TASKS, load_task
 from .contracts import transition
@@ -77,6 +79,89 @@ PUBLICATION_TELEMETRY_METRICS = [
     "model_call_count",
     "monetary_cost_usd",
 ]
+
+
+def _validate_frozen_legacy_publication_protocol(
+    project: Path, stage2: Path, raw: dict[str, object]
+) -> Stage2Protocol:
+    """Validate a completed, hash-sealed publication protocol against its freeze-era profile.
+
+    Later schema releases added prospective requirements such as a separately
+    frozen robustness evaluator.  Those requirements must govern new protocols,
+    but mutating an already executed protocol would break its protected hashes.
+    This compatibility path is therefore available only when both original
+    freeze manifests and the completed protected-evaluator manifest bind the
+    exact legacy bytes.  It validates every field with the current field types,
+    then reapplies the freeze-era publication invariants without pretending the
+    later prospective fields existed.
+    """
+    if raw.get("study_intent") != "publication" or raw.get("schema_version") != 1:
+        raise ValueError("legacy compatibility applies only to schema-v1 publication protocols")
+    later_fields = {
+        "secondary_evaluator_contract",
+        "evidence_gate_specification",
+        "construct_analysis_requirements",
+        "telemetry_contract",
+    }
+    if later_fields.issubset(raw) and raw.get("secondary_evaluator_contract"):
+        raise ValueError("current publication protocols must use the current schema validator")
+    protocol_path = stage2 / "protocol.json"
+    protocol_hash = sha256_file(protocol_path)
+    for manifest_name in ("protected_manifest.json", "frozen_manifest.json"):
+        manifest_path = stage2 / manifest_name
+        if not manifest_path.is_file():
+            raise ValueError(f"legacy protocol compatibility requires {manifest_name}")
+        manifest = read_json(manifest_path)
+        if manifest.get("hashes", {}).get("stage2/protocol.json") != protocol_hash:
+            raise ValueError(f"legacy protocol is not hash-bound by {manifest_name}")
+    evaluator_manifest_path = stage2 / "protected_nli_evaluation" / "manifest.json"
+    if not evaluator_manifest_path.is_file():
+        raise ValueError("legacy protocol compatibility requires completed protected evaluation")
+    evaluator_manifest = read_json(evaluator_manifest_path)
+    if (
+        evaluator_manifest.get("protocol_id") != raw.get("protocol_id")
+        or evaluator_manifest.get("protocol_sha256") != protocol_hash
+        or evaluator_manifest.get("evaluator") != raw.get("protected_evaluator")
+    ):
+        raise ValueError("protected evaluator does not bind the exact legacy protocol")
+    implementation_hash = str(evaluator_manifest.get("implementation_contract_sha256", ""))
+    matching_contracts = [
+        path
+        for path in (project / "design_revisions").glob("protected_nli_implementation_contract*.json")
+        if sha256_file(path) == implementation_hash
+    ]
+    if len(matching_contracts) != 1:
+        raise ValueError("legacy protected-evaluator implementation contract is missing or ambiguous")
+    implementation = read_json(matching_contracts[0])
+    if (
+        implementation.get("protocol_id") != raw.get("protocol_id")
+        or implementation.get("protocol_sha256") != protocol_hash
+        or implementation.get("formal_cells_completed_when_implementation_frozen") != 0
+        or implementation.get("treatment_effects_inspected") is not False
+    ):
+        raise ValueError("legacy protected-evaluator implementation was not prospectively frozen")
+
+    values: dict[str, object] = {}
+    for name, field in Stage2Protocol.model_fields.items():
+        if name in raw:
+            values[name] = TypeAdapter(field.annotation).validate_python(raw[name])
+        elif not field.is_required():
+            values[name] = field.get_default(call_default_factory=True)
+        else:
+            raise ValueError(f"legacy publication protocol is missing required field: {name}")
+    protocol = Stage2Protocol.model_construct(**values)
+    if not protocol.publication_contract_id or protocol.pilot_reason is not None:
+        raise ValueError("legacy publication contract binding is invalid")
+    if protocol.counterfactual_source != "shared_run_artifact" or protocol.branch_order != "pair_randomized":
+        raise ValueError("legacy publication counterfactual design is invalid")
+    expected_pairs = {
+        f"{task.task_id}--seed-{seed}" for task in protocol.tasks for seed in protocol.seeds
+    }
+    if set(protocol.pair_branch_order) != expected_pairs:
+        raise ValueError("legacy publication branch-order assignments are incomplete")
+    if not protocol.independent_calibration_contract:
+        raise ValueError("legacy publication calibration contract is missing")
+    return protocol
 SHARED_PROMPTS = [
     "experimenter.md",
     "study_finalizer.md",
@@ -1153,6 +1238,57 @@ def archive_failed_stage2_protocol(project: Path, *, reason: str) -> Path:
     return destination
 
 
+def load_stage2_protocol_for_audit(project: Path) -> tuple[Stage2Protocol, bool]:
+    """Load a current protocol or a hash-sealed freeze-era publication protocol.
+
+    The boolean return value identifies the narrowly validated legacy profile.
+    This loader is for read-only auditing of completed artifacts; it does not
+    relax prospective validation for creating or executing a new protocol.
+    """
+    project = project.resolve()
+    stage2 = _project_stage2(project)
+    raw_protocol = read_json(stage2 / "protocol.json")
+    try:
+        return Stage2Protocol.model_validate(raw_protocol), False
+    except Exception as current_error:
+        try:
+            return (
+                _validate_frozen_legacy_publication_protocol(
+                    project, stage2, raw_protocol
+                ),
+                True,
+            )
+        except Exception as legacy_error:
+            raise ValueError(
+                "protocol failed both current and frozen-legacy validation: "
+                f"current={current_error}; legacy={legacy_error}"
+            ) from legacy_error
+
+
+def stage2_audit_allows_completed_historical_read(audit: Stage2Audit) -> bool:
+    """Allow completed frozen artifacts to outlive later controller development.
+
+    A historical read is safe only when the sole failing check is the expected
+    mismatch between today's live controller and the frozen controller snapshot.
+    The snapshot, protected manifests, and all completed cells must still pass.
+    """
+    drift_message = "the live shared controller differs from the frozen Stage 2 snapshot"
+    non_live_checks_pass = all(
+        passed
+        for name, passed in audit.checks.items()
+        if name != "live_controller_matches_frozen"
+    )
+    return (
+        not audit.passed
+        and audit.violations == [drift_message]
+        and audit.checks.get("live_controller_matches_frozen") is False
+        and non_live_checks_pass
+        and audit.planned_cells == 80
+        and audit.baseline_cells_completed == 40
+        and audit.treatment_cells_completed == 40
+    )
+
+
 def audit_stage2_protocol(project: Path, *, persist: bool = False) -> Stage2Audit:
     project = project.resolve()
     stage2 = _project_stage2(project)
@@ -1173,8 +1309,11 @@ def audit_stage2_protocol(project: Path, *, persist: bool = False) -> Stage2Audi
         check("stage1_gate_still_valid", False, f"could not audit Stage 1: {exc}")
 
     try:
-        protocol = Stage2Protocol.model_validate(read_json(stage2 / "protocol.json"))
+        protocol, _legacy_profile = load_stage2_protocol_for_audit(project)
         check("protocol_schema_valid", True, "")
+        # This dictionary contains gate results, not descriptive metadata.  A
+        # current protocol and an accepted hash-sealed legacy profile both pass.
+        check("legacy_protocol_profile", True, "")
     except Exception as exc:
         check("protocol_schema_valid", False, f"Stage 2 protocol is invalid: {exc}")
     try:

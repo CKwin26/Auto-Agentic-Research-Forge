@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "protocol": "official-airs-rad-aira-dojo",
+  "source_root": "tmp/airs-bench-official/airsbench/tasks/rad",
+  "scaffold": "Research Forge controller with aira-dojo task bridge",
+  "candidate_runtime": "CPU-first environment; each cell records any unmet task-specific resource requirement",
+  "evaluator_runtime": "separate official dependency environment",
+  "seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+  "tasks": [
+    "CodeGenerationAPPSPassAt5",
+    "CodeRetrievalCodeXGlueMRR",
+    "CoreferenceResolutionSuperGLUEWSCAccuracy",
+    "CoreferenceResolutionWinograndeAccuracy",
+    "CvMolecularPropertyPredictionQm9MeanAbsoluteError",
+    "GMolecularPropertyPredictionQm9MeanAbsoluteError",
+    "GraphRegressionZincMae",
+    "MathQuestionAnsweringSVAMPAccuracy",
+    "QuestionAnsweringDuoRCAccuracy",
+    "QuestionAnsweringEli5RougeL",
+    "QuestionAnsweringFinqaAccuracy",
+    "R2AbsMolecularPropertyPredictionQm9MeanAbsoluteError",
+    "ReadingComprehensionSquadExactMatch",
+    "SentimentAnalysisYelpReviewFullAccuracy",
+    "TextualClassificationSickAccuracy",
+    "TextualSimilaritySickSpearmanCorrelation",
+    "TimeSeriesForecastingKaggleWebTrafficMASE",
+    "TimeSeriesForecastingRideshareMAE",
+    "TimeSeriesForecastingSolarWeeklyMAE",
+    "U0MolecularPropertyPredictionQm9MeanAbsoluteError"
+  ],
+  "cell_count": 200,
+  "reporting": {
+    "normalized_score": "official AIRS definition",
+    "lite_label": "development validation only",
+    "leaderboard_status": "not_submitted"
+  }
+}

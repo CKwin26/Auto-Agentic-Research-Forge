@@ -1,0 +1,37 @@
+[
+  {
+    "case_id": "immediate-resistance-mechanisms",
+    "question": "What two mechanisms were proposed to explain immediate resistance to LBH589-induced apoptosis?",
+    "expected_answerable": true,
+    "required_term_groups": [
+      ["heterogeneity"],
+      ["apoptosis-induced", "survival"]
+    ]
+  },
+  {
+    "case_id": "hct-r-origin-and-purpose",
+    "question": "How were HCT-R cells derived, and why were they used in this study?",
+    "expected_answerable": true,
+    "required_term_groups": [
+      ["HCT-116"],
+      ["butyrate"],
+      ["resistant"]
+    ]
+  },
+  {
+    "case_id": "survival-pathways-and-inhibitors",
+    "question": "Which survival pathways induced by LBH589 were targeted, and which inhibitors were used?",
+    "expected_answerable": true,
+    "required_term_groups": [
+      ["AKT", "MK2206"],
+      ["STAT3", "pyridone 6"],
+      ["ERK", "AZD6244"]
+    ]
+  },
+  {
+    "case_id": "unsupported-phase-three-trial",
+    "question": "What phase III randomized clinical trial established a survival benefit for this intervention?",
+    "expected_answerable": false,
+    "required_term_groups": []
+  }
+]

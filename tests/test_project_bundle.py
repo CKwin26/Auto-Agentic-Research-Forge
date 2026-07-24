@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -12,6 +13,11 @@ from research_forge.paper_expansion import (
     expand_project_bundle_paper,
     prepare_project_bundle_paper,
     verify_project_bundle_paper,
+)
+from research_forge.paper_authoring import (
+    HierarchicalPaperOutline,
+    OutlineNode,
+    RoleReview,
 )
 from research_forge.project_bundle import (
     audit_project_bundle_loop,
@@ -30,6 +36,22 @@ def _write_text(path: Path, text: str) -> None:
 def _write_json(path: Path, value: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _write_minimal_pptx(path: Path, lines: list[str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = "".join(
+        f"<a:r><a:t>{line}</a:t></a:r>" for line in lines
+    )
+    slide = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
+        'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">'
+        f"<p:cSld><p:spTree><p:sp><p:txBody><a:p>{payload}</a:p>"
+        "</p:txBody></p:sp></p:spTree></p:cSld></p:sld>"
+    )
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("ppt/slides/slide1.xml", slide)
 
 
 def _stock_like_bundle(root: Path) -> dict[str, object]:
@@ -328,6 +350,44 @@ def _full_draft(verdict: dict[str, object], source_ids: list[str]) -> PaperDraft
     )
 
 
+def _full_outline(source_ids: list[str]) -> HierarchicalPaperOutline:
+    section_keys = [
+        "abstract",
+        "introduction",
+        "related_work",
+        "methods",
+        "results",
+        "discussion",
+        "limitations",
+        "conclusion",
+        "data_availability",
+        "ethics_statement",
+        "author_contributions",
+        "conflict_of_interest",
+        "funding",
+        "ai_disclosure",
+        "references",
+    ]
+    return HierarchicalPaperOutline(
+        title="冻结前瞻证据下的赢家保护目标验证研究",
+        thesis="本研究只在冻结的项目证据和核验文献边界内组织方法、结果与受限结论。",
+        abstract_moves=["背景问题", "研究目标", "冻结方法", "主要结果", "边界结论"],
+        sections=[
+            OutlineNode(
+                node_id=f"section-{key.replace('_', '-')}",
+                section_key=key,
+                heading=key,
+                level=2,
+                purpose="按投稿体裁完成本节的明确论证任务。",
+                argument="所有陈述只使用冻结主张和已经核验的来源记录。",
+                claim_ids=["result-001"] if key in {"abstract", "results", "discussion", "conclusion"} else [],
+                source_ids=source_ids if key == "related_work" else [],
+            )
+            for key in section_keys
+        ],
+    )
+
+
 def test_full_paper_expansion_has_separate_success_certificate(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -393,12 +453,33 @@ def test_full_paper_expansion_has_separate_success_certificate(
 
     async def fake_writer(prompt: str, *, cwd: Path | None = None) -> PaperDraftSections:
         assert "paper-15" in prompt
+        assert "approved_hierarchical_outline" in prompt
         assert cwd == run.resolve()
         return _full_draft(verdict, source_ids)
+
+    async def fake_outline(prompt: str, *, cwd: Path | None = None) -> HierarchicalPaperOutline:
+        assert "evidence_claim_map" in prompt
+        assert cwd == run.resolve()
+        return _full_outline(source_ids)
+
+    async def fake_review(prompt: str, *, cwd: Path | None = None) -> RoleReview:
+        payload = json.loads(prompt)
+        return RoleReview(
+            role=payload["required_role"],
+            artifact=payload["required_artifact"],
+            recommendation="accept",
+        )
+
+    async def fake_humanizer(prompt: str, *, cwd: Path | None = None) -> PaperDraftSections:
+        payload = json.loads(prompt)
+        return PaperDraftSections.model_validate(payload["approved_draft"])
 
     import research_forge.agent_runtime as agent_runtime
 
     monkeypatch.setattr(agent_runtime, "generate_bundle_paper_draft", fake_writer)
+    monkeypatch.setattr(agent_runtime, "generate_bundle_paper_outline", fake_outline)
+    monkeypatch.setattr(agent_runtime, "review_bundle_paper_artifact", fake_review)
+    monkeypatch.setattr(agent_runtime, "humanize_bundle_paper_draft", fake_humanizer)
     audit = asyncio.run(expand_project_bundle_paper(run))
 
     assert audit.full_manuscript_generated
@@ -556,3 +637,42 @@ def test_single_text_library_can_close_without_inventing_experimental_evidence(
     assert completion["passed"]
     assert completion["pilot_draft_generated"]
     assert not completion["paper_draft_ready"]
+
+
+def test_office_materials_are_read_only_discovery_inputs(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "office-library"
+    _write_minimal_pptx(
+        source / "绕线工艺优化.pptx",
+        [
+            "绕线工艺优化研究",
+            "研究问题：绕线工艺优化能否降低装配缺陷率？",
+            "The first step is to load the material into the machine.",
+            "结论：现有产线观察显示返工次数降低，但没有冻结对照实验。",
+        ],
+    )
+    _write_minimal_pptx(
+        source / "绕线工艺优化-translate.pptx",
+        ["Translated duplicate", "The new process improves quality."],
+    )
+    (source / "~$绕线工艺优化.pptx").write_bytes(b"temporary lock")
+
+    inspection = inspect_project_bundle(source, discover_claims=True)
+
+    assert inspection.resource_count == 1
+    assert inspection.excluded_count == 2
+    assert inspection.candidates
+    candidate = inspection.candidates[0]
+    assert candidate.source_mode == "derived_materials"
+    assert candidate.protocol_path == "绕线工艺优化.pptx"
+    assert candidate.artifact_chain_complete is False
+    assert inspection.claim_discovery is not None
+    assert any(
+        "返工次数降低" in claim.statement
+        for claim in inspection.claim_discovery.author_claims
+    )
+    assert not any(
+        "first step" in claim.statement.casefold()
+        for claim in inspection.claim_discovery.author_claims
+    )

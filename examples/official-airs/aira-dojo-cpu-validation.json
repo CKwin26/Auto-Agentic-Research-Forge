@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "adapter": "official-airs-rad-aira-dojo",
+  "purpose": "protocol-consistency validation only; no leaderboard submission",
+  "harness": "aira-dojo",
+  "seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+  "tasks": [
+    "TextualClassificationSickAccuracy",
+    "TextualSimilaritySickSpearmanCorrelation",
+    "SentimentAnalysisYelpReviewFullAccuracy",
+    "MathQuestionAnsweringSVAMPAccuracy"
+  ],
+  "required_invariants": [
+    "verbatim official prepare.py",
+    "verbatim official evaluate_prepare.py",
+    "verbatim official evaluate.py",
+    "agent mount never contains hidden test labels",
+    "source hash must remain unchanged from import through scoring",
+    "each result remains not_submitted until an official AIRS contribution path is used"
+  ]
+}

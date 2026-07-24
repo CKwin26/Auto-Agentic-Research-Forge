@@ -12,7 +12,7 @@
 
 <p align="center">
   <img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white">
-  <img alt="132 tests passing" src="https://img.shields.io/badge/tests-132%20passing-2EA043?style=flat-square">
+  <a href="https://github.com/CKwin26/Auto-Agentic-Research-Forge/actions/workflows/ci.yml"><img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/CKwin26/Auto-Agentic-Research-Forge/ci.yml?branch=main&style=flat-square&label=tests"></a>
   <img alt="Codex default backend" src="https://img.shields.io/badge/backend-Codex-111827?style=flat-square">
   <a href="https://github.com/CKwin26/Auto-Agentic-Research-Forge/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/CKwin26/Auto-Agentic-Research-Forge?style=flat-square&color=0A7B83"></a>
 </p>
@@ -20,6 +20,7 @@
 <p align="center">
   <a href="#why-research-forge">Why Research Forge</a> ·
   <a href="#four-stage-closed-loop">How it works</a> ·
+  <a href="#external-research-engine">External research</a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="docs/project-bundle-workflow.md">Project bundles</a> ·
   <a href="docs/benchmark.md">RF-Bench</a>
@@ -49,11 +50,14 @@ $py = ".\.venv\Scripts\python.exe"
 | Capability | What it changes |
 |---|---|
 | **Use your real project bundle** | Read-only ingestion turns selected local code, datasets, protocols, tests, and reports into the explicit research boundary. |
+| **Dual-channel claim discovery** | Hashed author statements are matched with RedFox and scholarly attention signals to recommend validation targets; trends rank opportunities but never count as scientific evidence. |
+| **Closed-loop external research** | Policy-controlled academic, web, code, model and dataset retrieval is normalized, rights-checked, frozen, synthesized and citation-audited across the same four phases. |
 | **Idea-to-paper and project-to-paper** | Both entry points use the same governed research workspace instead of separate demo flows. |
 | **Evidence before prose** | Idea verdicts, protocol-output binding, numeric results, and frozen literature remain independent from manuscript generation. |
 | **Scientist-panel review** | The bundled [Nuwa Scientist Panel](skills/nuwa-scientist-panel/SKILL.md) runs blinded Feynman-, Tukey-, Shannon-, and Popper-inspired reviews with deterministic veto and abstention rules. |
 | **Fault ownership** | `diagnostic_owner` separates failures in idea validation, evidence packaging, literature grounding, and paper writing. |
 | **Rollback and repair** | Append-only failure ledgers identify the earliest preventable stage, produce a repair contract, and rerun only affected downstream stages. |
+| **Editable scientific diagrams** | Workflow and architecture figures are authored as editable draw.io sources, exported through the local draw.io CLI, and hash-bound to the manuscript artifact manifest. |
 | **Codex without a separate API key** | The default backend reuses local ChatGPT/Codex authentication; an explicit API backend remains available for server deployments. |
 
 ## Four-stage closed loop
@@ -158,6 +162,46 @@ mindmap
 </p>
 
 The paper is downstream of the research verdict. Stage 4 can report that an idea is unsupported or that evidence is incomplete; it cannot rewrite Stage 3 into a success. See [the four-stage contract](docs/four-stage-closed-loop.md).
+
+## External research engine
+
+External retrieval is shared infrastructure—not a fifth phase. One persistent
+DAG connects policy-controlled search, metadata and license checks, lawful
+full-text acquisition, immutable snapshots, evidence-bound synthesis, citation
+auditing and bounded repair.
+
+```mermaid
+flowchart LR
+    A["Plan + sanitize"] --> B["Search in parallel"]
+    B --> C["Normalize + verify"]
+    C --> D["Rights-aware acquisition"]
+    D --> E["Freeze snapshots"]
+    E --> F["Evidence synthesis"]
+    F --> G["Citation + coverage audit"]
+    G -. "diagnosed blocker" .-> H["Repair successor"]
+```
+
+Supported public sources include scholarly metadata/search, Codex-native web
+search, GitHub, Hugging Face and open-access resolution. The default network
+policy is offline; enabling providers requires explicit owner approval.
+Discovery signals and search rankings can propose directions but never decide
+the scientific verdict.
+
+Stage 1 is project-grounded: it extracts hashed local Claims and a structured
+Research Fingerprint before generating purpose-specific literature and trend
+queries. External sources are matched back to individual Claims, and the
+backend produces a comparable Discovery Portfolio before the owner selects and
+freezes Scope. See [Stage 1 project-grounded discovery](docs/stage-1-discovery-portfolio.md).
+
+For an existing Workflow v2 Study:
+
+```powershell
+research-forge --workflow-root .rfab/workflow-v2 retrieval workflow-run `
+  --study-id <study-id> --stage all --run-key public-loop-v1 --plan-only
+```
+
+The complete design, policy command, resume semantics and verification steps
+are documented in the [External Research closed loop](docs/external-research-closed-loop.md).
 
 ## Review, diagnosis, and rollback
 
@@ -285,6 +329,13 @@ Official final PDFs must go through the compile gate rather than calling LaTeX d
 
 `finalize-pdf` audits first, compiles in a temporary staging directory, and publishes the PDF only after every compiler pass succeeds. It writes a depth report plus a finalization manifest binding the source, gate report, compiler choice, and PDF by SHA-256. A failed depth audit never invokes the compiler and cannot create a new official final PDF or finalization manifest. This prevents heading-complete but underdeveloped drafts from silently becoming final artifacts; it still does not certify scientific validity.
 
+Conceptual research figures use draw.io Desktop when it is installed. The editable `.drawio` file remains the provenance source, while the paper embeds its exported PNG/PDF. You can also export a source explicitly:
+
+```powershell
+research-forge diagram export figures\workflow.drawio `
+  --output figures\workflow.pdf --format pdf
+```
+
 RF-Bench is now included as the evaluation layer. It separates candidate submissions from protected evaluator metrics, runs fixed seed/budget matrices, audits the complete artifact chain, and reports scientific gain separately from integrity. See [the RF-Bench guide](docs/benchmark.md).
 
 The first real AIRS-lite experiment now has a three-seed, Docker-isolated result on SICK textual entailment: Accuracy improved from `0.5686914` to `0.6763147`, with zero within-run and across-seed variance and all integrity audits passing. See [the experiment record](docs/real-experiment-2026-07-16.md). A subsequent bounded Codex search on SICK semantic similarity improved Spearman correlation from `0.5757186` to `0.7457773`; independent seed 1/2 reconstruction produced a three-seed mean of `0.7457461` with `0.0002041` standard deviation and matching code hashes. See [the SICK Spearman record](docs/real-experiment-sick-spearman-2026-07-17.md). Automatic loops use the verified `rf-airs-cpu:v1` environment; see [the controlled-environment record](docs/controlled-ml-environment.md).
@@ -356,7 +407,7 @@ Codex is the default; no environment variable is required:
 Planning and proposal turns use the Python Codex SDK with a read-only sandbox, denied approval escalation, strict output schema, and ephemeral threads. The beta SDK currently pins a Codex runtime that is compatible with `gpt-5.4`, so Research Forge uses that explicit default instead of inheriting a potentially newer local default. After upgrading the SDK/runtime, override it when desired:
 
 ```powershell
-$env:RESEARCH_FORGE_CODEX_MODEL = "gpt-5.6"
+$env:RESEARCH_FORGE_CODEX_MODEL = "gpt-5.3-spark"
 ```
 
 The former Agents SDK path remains an explicit fallback. It is never selected automatically after a Codex failure:
@@ -364,7 +415,7 @@ The former Agents SDK path remains an explicit fallback. It is never selected au
 ```powershell
 & .\.venv\Scripts\python.exe -m pip install -e ".[api]"
 $env:RESEARCH_FORGE_BACKEND = "api"
-$env:AUTORESEARCH_MODEL = "gpt-5.6-terra"
+$env:AUTORESEARCH_MODEL = "gpt-5.3-spark"
 ```
 
 Only this fallback loads `OPENAI_API_KEY` from `.env.local`.
@@ -425,7 +476,7 @@ Inspect without changing the source project:
 
 ```powershell
 $py = ".\.venv\Scripts\python.exe"
-& $py main.py bundle inspect "C:\path\to\existing-project"
+& $py main.py bundle inspect "C:\path\to\existing-project" --discover-claims
 ```
 
 Close the four-stage evidence loop for the highest-ranked declared research track or, when none is complete, the automatically derived project-material track:
@@ -433,10 +484,11 @@ Close the four-stage evidence loop for the highest-ranked declared research trac
 ```powershell
 & $py main.py bundle close-loop "C:\path\to\existing-project" `
   --output-root bundle_runs `
-  --track auto
+  --track auto `
+  --discover-claims
 ```
 
-The command does not copy `.env*`, credentials, private keys, build directories, virtual environments, or `node_modules`. It produces separate stage manifests, a frozen scope, a protocol/evidence boundary lock, an idea verdict, a claim registry, a working manuscript, a paper-expansion decision, an audit, and a hash-bound completion certificate. A completed working-paper loop is not automatically a usable full paper: derived materials without an exact experiment binding, retrospective evidence, mixed/inconclusive results, insufficient bound numeric evidence, and missing frozen literature remain explicit blockers.
+The command does not copy `.env*`, credentials, private keys, build directories, virtual environments, or `node_modules`. With `--discover-claims`, Stage 1 also persists hashed project-authored statements and matches them with RedFox/academic attention signals. Those signals recommend what to validate; they are never experimental evidence and cannot satisfy a frozen protocol-output gate. See [dual-channel claim discovery](docs/claim-discovery.md) for the contracts and provider degradation behavior. The run produces separate stage manifests, a frozen scope, a protocol/evidence boundary lock, an idea verdict, a claim registry, a working manuscript, a paper-expansion decision, an audit, and a hash-bound completion certificate. A completed working-paper loop is not automatically a usable full paper: derived materials without an exact experiment binding, retrospective evidence, mixed/inconclusive results, insufficient bound numeric evidence, and missing frozen literature remain explicit blockers.
 
 The full-paper writer is a second, separately certified action. It unlocks only after a clean prospective idea verdict, exact protocol-output binding, at least 15 bound numeric results, and a manifest binding at least 15 explicitly verified paper records under `literature/sources/`:
 
@@ -553,6 +605,45 @@ It may read `AUTORESEARCH_PROJECT_DIR` and `AUTORESEARCH_RUN_DIR`. The metrics f
 
 The generated `run_experiment.py` is only a smoke-test fixture. Replace it with your real train/evaluate wrapper before freezing the first real project.
 
+### Automatic evidence remediation
+
+An existing project can let the remediation loop execute a trusted experiment by
+adding `research-forge.experiments.json` (or `.research-forge/experiments.json`).
+The command is executed directly without a shell. Relative artifact paths are
+written into an isolated execution directory and are copied into the successor
+source snapshot under `.research-forge/evidence/` only after validation succeeds;
+the imported source project remains unchanged.
+
+```json
+{
+  "schema_version": 1,
+  "experiments": [
+    {
+      "experiment_id": "independent-evaluation-v1",
+      "action_ids": ["action-independent-evaluation"],
+      "title": "执行冻结口径的独立评价",
+      "command": ["{python}", "scripts/evaluate.py", "--output", "{evidence_dir}/metrics.json"],
+      "cwd": ".",
+      "timeout_seconds": 3600,
+      "required_env": [],
+      "required_inputs": ["data/evaluation.csv"],
+      "network_access": false,
+      "artifacts": [
+        {"path": "metrics.json", "format": "json", "required_keys": ["primary_metric"]}
+      ]
+    }
+  ]
+}
+```
+
+Supported placeholders are `{python}`, `{source_root}`, `{evidence_dir}`,
+`{action_id}`, `{plan_id}`, `{experiment_dir}`, `{evaluator_dir}`, `{run_dir}`,
+`{params_file}`, `{submission_file}`, `{metrics_file}`, and `{project_dir}`.
+Missing files, environment variables, network permission, or configuration put
+the durable task into `waiting_for_user`; resolving the condition resumes the
+actual experiment and never counts as evidence by itself. A directly runnable
+frozen `execution_contract.json` is also recognized for independent evaluation.
+
 ## Project artifacts
 
 ```text
@@ -584,14 +675,24 @@ workspaces/<project>/
   synthesis/claims.json        # structured claim-to-run/source bindings
   synthesis/manuscript.md      # deterministic evidence-bound draft
   synthesis/audit.json         # integrity and publication-readiness checks
-  completion_certificate.json  # hashes the completed four-stage artifact set
+  completion_record.json       # verifies the completed four-stage artifact set
+  completion_certificate.json  # legacy read-compatible record
 ```
 
 ## Current boundary
 
-This is a runnable MVP, not yet a universal autonomous scientist. Stage 1 now queries real Crossref and Semantic Scholar metadata, verifies canonical identifiers, records raw responses, performs bounded semantic screening, and creates a source-bound novelty map. It does not treat metadata/abstract review as full-paper review or proof of novelty, and it cannot approve its own shortlist. It deliberately does not let an agent install packages, launch an application-owned shell, change evaluators, or mutate literature records directly. The next safe expansions are full-text acquisition and extraction, dataset adapters, GPU/process monitoring, statistical comparison policies, and bounded prose generation whose claims remain subordinate to the claim registry.
+This is a runnable research-control platform, not a universal autonomous
+scientist. The external-research path now supports policy-controlled scholarly,
+web, GitHub and Hugging Face retrieval; rights-aware full-text acquisition;
+hash-bound PaperQA indexing; stateless evidence synthesis; and citation,
+retraction and coverage audits. It still does not treat metadata review as
+full-paper review or proof of novelty, cannot approve its own Scope, and cannot
+promote search attention into scientific evidence. Observational, interview,
+questionnaire and wet-lab studies may be scoped and diagnosed, but Research
+Forge does not claim to have automatically executed their external human or
+physical experiments.
 
-The local Windows runtime is **not an OS sandbox**. Use it only for trusted fixtures or development. The Docker runtime is the unattended boundary for tasks with a separate evaluator, but it is still a local benchmark harness rather than AIRS's official leaderboard container protocol. The state store is designed for one local CLI process at a time and must not be run concurrently; it does not yet use a cross-process file lock. Post-run consistency gates reject proposal-journal/file mismatches if an external launcher violates this rule.
+The local Windows runtime is **not an OS sandbox**. Use it only for trusted fixtures or development. The Docker runtime is the unattended boundary for tasks with a separate evaluator, but it is still a local benchmark harness rather than the official AIRS RAD/aira-dojo harness; Docker isolation alone never makes an AIRS-lite result a leaderboard result. The state store is designed for one local CLI process at a time and must not be run concurrently; it does not yet use a cross-process file lock. Post-run consistency gates reject proposal-journal/file mismatches if an external launcher violates this rule.
 
 ## RF-Bench quick start
 

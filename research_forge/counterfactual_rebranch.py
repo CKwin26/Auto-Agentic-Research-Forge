@@ -4,14 +4,11 @@ import hashlib
 import importlib.metadata
 import itertools
 import json
-import math
 import os
 import re
 import shutil
 import statistics
-import tempfile
 import time
-import urllib.request
 from collections import Counter
 from pathlib import Path
 from typing import Any, Iterable
@@ -95,33 +92,13 @@ def _implementation_sha256() -> str:
 
 
 def _download_atomic(url: str, destination: Path, expected_sha256: str) -> None:
-    destination.parent.mkdir(parents=True, exist_ok=True)
     if destination.is_file() and sha256_file(destination) == expected_sha256:
         return
-    if destination.exists():
-        destination.unlink()
-    descriptor, temporary_name = tempfile.mkstemp(
-        prefix=f".{destination.name}.", suffix=".download", dir=destination.parent
+    raise RuntimeError(
+        "direct model download is disabled. Acquire the pinned Hugging Face "
+        f"resource through RetrievalGateway ({url}), then place its verified "
+        f"artifact at {destination}; expected sha256={expected_sha256}"
     )
-    os.close(descriptor)
-    temporary = Path(temporary_name)
-    try:
-        request = urllib.request.Request(url, headers={"User-Agent": "research-forge/0.1"})
-        with urllib.request.urlopen(request, timeout=120) as response, temporary.open("wb") as handle:
-            while True:
-                chunk = response.read(1024 * 1024)
-                if not chunk:
-                    break
-                handle.write(chunk)
-        actual = sha256_file(temporary)
-        if actual != expected_sha256:
-            raise ValueError(
-                f"downloaded asset hash mismatch for {destination.name}: {actual} != {expected_sha256}"
-            )
-        os.replace(temporary, destination)
-    finally:
-        if temporary.exists():
-            temporary.unlink()
 
 
 def ensure_nli_assets() -> dict[str, object]:
@@ -597,6 +574,19 @@ def _experiment_evidence_text(record: dict[str, object]) -> str:
     return "Experiment record: " + json.dumps(fields, ensure_ascii=False, sort_keys=True)
 
 
+def _task_specification_evidence_text(record: dict[str, object]) -> str:
+    fields = {
+        "primary_metric": record.get("primary_metric"),
+        "direction": record.get("direction"),
+        "baseline_score": record.get("baseline_score"),
+        "target_score": record.get("target_score"),
+        "task_specification_sha256": record.get("task_specification_sha256"),
+    }
+    return "Frozen task specification: " + json.dumps(
+        fields, ensure_ascii=False, sort_keys=True
+    )
+
+
 def _source_evidence_text(record: dict[str, object]) -> str:
     authors = record.get("authors") or []
     if isinstance(authors, list):
@@ -617,8 +607,17 @@ def _evidence_chunks(
         return []
     chunks: list[str] = []
     experiment = packet.get("linked_experiment_evidence")
+    task_specification = packet.get("linked_task_specification")
     if isinstance(experiment, dict):
         chunks.append(_experiment_evidence_text(experiment))
+    if isinstance(task_specification, dict):
+        task_text = _task_specification_evidence_text(task_specification)
+        chunks.append(task_text)
+        if isinstance(experiment, dict):
+            # Comparative claims require both premises in the same NLI window.
+            chunks.append(
+                task_text + "\n" + _experiment_evidence_text(experiment)
+            )
     source_records = [
         item for item in packet.get("linked_source_records", []) if isinstance(item, dict)
     ]

@@ -161,6 +161,9 @@ def test_two_unrelated_project_specs_initialize_without_core_changes(tmp_path: P
     unrelated_manifest = read_json(initialize_pipeline_project(tmp_path / "case-b", unrelated))
     assert current_manifest["stage_skill_map"] == unrelated_manifest["stage_skill_map"]
     assert current_manifest["project_spec"]["project_id"] != unrelated_manifest["project_spec"]["project_id"]
+    assert current_manifest["publication_adapter"]["adapter_id"] == "research-agent-evidence-publication-v1"
+    assert unrelated_manifest["publication_adapter"] is None
+    assert not (tmp_path / "case-b" / "publication_adapter.json").exists()
 
 
 def test_unrelated_computational_case_runs_through_existing_core_without_case_code(tmp_path: Path) -> None:

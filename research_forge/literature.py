@@ -6,15 +6,12 @@ import json
 import math
 import os
 import re
-import urllib.error
 import urllib.parse
-import urllib.request
 import uuid
-import time
 from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from .models import (
     EventRecord,
@@ -109,8 +106,14 @@ def _first(value: object) -> str:
 
 
 def _crossref_year(item: dict[str, Any]) -> int | None:
-    for field in ("published", "published-print", "published-online", "issued", "created"):
-        value = item.get(field)
+    for date_field in (
+        "published",
+        "published-print",
+        "published-online",
+        "issued",
+        "created",
+    ):
+        value = item.get(date_field)
         if not isinstance(value, dict):
             continue
         parts = value.get("date-parts")
@@ -154,43 +157,18 @@ class ScholarlyApiClient:
     timeout_seconds: int = 30
     crossref_mailto: str | None = None
     semantic_scholar_api_key: str | None = None
+    transport: Callable[[str, str], tuple[dict[str, Any], bytes]] | None = None
     _last_request_at: dict[str, float] = field(default_factory=dict, init=False, repr=False)
 
     def get(self, url: str, provider: str) -> tuple[dict[str, Any], bytes]:
-        headers = {
-            "Accept": "application/json",
-            "User-Agent": "ResearchForge/0.2 (+local literature review tool)",
-        }
-        if provider == "semantic_scholar" and self.semantic_scholar_api_key:
-            headers["x-api-key"] = self.semantic_scholar_api_key
-        minimum_interval = 1.1 if provider == "semantic_scholar" else 0.05
-        elapsed = time.monotonic() - self._last_request_at.get(provider, 0.0)
-        if elapsed < minimum_interval:
-            time.sleep(minimum_interval - elapsed)
-        request = urllib.request.Request(url, headers=headers, method="GET")
-        raw = b""
-        for attempt in range(2):
-            try:
-                with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
-                    raw = response.read()
-                self._last_request_at[provider] = time.monotonic()
-                break
-            except urllib.error.HTTPError as exc:
-                body = exc.read(1000).decode("utf-8", errors="replace")
-                if exc.code == 429 and attempt == 0:
-                    retry_after = exc.headers.get("Retry-After")
-                    try:
-                        delay = min(max(float(retry_after or 2.0), 1.0), 5.0)
-                    except ValueError:
-                        delay = 2.0
-                    time.sleep(delay)
-                    continue
-                raise RuntimeError(f"{provider} HTTP {exc.code}: {body}") from exc
-            except urllib.error.URLError as exc:
-                raise RuntimeError(f"{provider} request failed: {exc.reason}") from exc
-        value = json.loads(raw.decode("utf-8"))
-        if not isinstance(value, dict):
-            raise ValueError(f"{provider} returned a non-object JSON response")
+        if self.transport is None:
+            raise RuntimeError(
+                "direct scholarly networking is disabled; submit a "
+                "RetrievalRequest through the Forge Retrieval Gateway"
+            )
+        value, raw = self.transport(url, provider)
+        if not isinstance(value, dict) or not isinstance(raw, bytes):
+            raise ValueError("injected scholarly transport returned invalid data")
         return value, raw
 
 
@@ -324,9 +302,11 @@ def _identity(item: dict[str, Any]) -> str:
 
 
 def _merge_candidate(target: dict[str, Any], incoming: dict[str, Any]) -> None:
-    for field in ("abstract", "venue", "work_type", "locator"):
-        if len(str(incoming.get(field) or "")) > len(str(target.get(field) or "")):
-            target[field] = incoming[field]
+    for metadata_field in ("abstract", "venue", "work_type", "locator"):
+        if len(str(incoming.get(metadata_field) or "")) > len(
+            str(target.get(metadata_field) or "")
+        ):
+            target[metadata_field] = incoming[metadata_field]
     if len(incoming.get("authors") or []) > len(target.get("authors") or []):
         target["authors"] = incoming["authors"]
     target["year"] = target.get("year") or incoming.get("year")

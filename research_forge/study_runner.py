@@ -681,6 +681,18 @@ def _claim_evidence_packets(
     sources = {str(item["source_id"]): item for item in _source_packet(stage2)}
     experiments = {str(item["run_id"]): item for item in experiment_packet}
     checks = dict(structural.get("claim_checks", {}))
+    task_path = stage2 / "task_packs" / registry.task_pack / "task.json"
+    linked_task_specification: dict[str, object] | None = None
+    if task_path.is_file():
+        task = read_json(task_path)
+        linked_task_specification = {
+            "task_id": task.get("task_id"),
+            "primary_metric": task.get("primary_metric"),
+            "direction": task.get("direction"),
+            "baseline_score": task.get("baseline_score"),
+            "target_score": task.get("target_score"),
+            "task_specification_sha256": sha256_file(task_path),
+        }
     packets: list[dict[str, object]] = []
     for claim in registry.claims:
         packets.append(
@@ -693,6 +705,7 @@ def _claim_evidence_packets(
                 "linked_experiment_run_id": claim.experiment_run_id,
                 "declared_metric_values": claim.metric_values,
                 "linked_experiment_evidence": experiments.get(claim.experiment_run_id or ""),
+                "linked_task_specification": linked_task_specification,
                 "declared_artifact_paths": claim.artifact_paths,
                 "deterministic_structural_checks": checks.get(claim.claim_id, {}),
             }

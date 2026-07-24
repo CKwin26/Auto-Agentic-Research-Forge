@@ -1,16 +1,21 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 import re
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable, Literal
+from typing import Any, Callable, Iterable, Literal
 
 from pydantic import Field, model_validator
 
+from .claim_discovery import (
+    ClaimDiscoveryReport,
+    DiscoveryPortfolio,
+    discover_project_claims,
+    extract_office_text,
+)
 from .manuscript_depth import audit_manuscript_depth
 from .models import StrictModel
 from .storage import read_json, sha256_file, slugify, write_json_atomic
@@ -27,6 +32,9 @@ _ALLOWED_SUFFIXES = {
     ".toml",
     ".tsv",
     ".txt",
+    ".docx",
+    ".pptx",
+    ".xlsx",
     ".yaml",
     ".yml",
 }
@@ -65,6 +73,7 @@ _EXCLUDED_EXACT_NAMES = {
 }
 _EXCLUDED_NAME_FRAGMENTS = ("credential", "private-key", "private_key", "secret")
 _MAX_RESOURCE_BYTES = 25 * 1024 * 1024
+_MAX_OFFICE_RESOURCE_BYTES = 100 * 1024 * 1024
 _MAX_SNAPSHOT_BYTES = 100 * 1024 * 1024
 _MAX_INVENTORY_FILES = 20_000
 _COMMON_TRACK_TOKENS = {
@@ -83,8 +92,14 @@ _STAGE_NAMES = (
     "stage_3_experimentation",
     "stage_4_synthesis",
 )
-_TEXT_MATERIAL_SUFFIXES = {".md", ".txt"}
-_STRUCTURED_EVIDENCE_SUFFIXES = {".csv", ".json", ".jsonl", ".tsv"}
+_TEXT_MATERIAL_SUFFIXES = {".docx", ".md", ".pptx", ".txt", ".xlsx"}
+_STRUCTURED_EVIDENCE_SUFFIXES = {
+    ".csv",
+    ".json",
+    ".jsonl",
+    ".tsv",
+    ".xlsx",
+}
 _SOURCE_MODES = Literal["declared_chain", "derived_materials"]
 
 
@@ -131,6 +146,8 @@ class BundleInspection(StrictModel):
     excluded_count: int
     candidates: list[NoveltyCandidate]
     recommended_track_id: str | None = None
+    claim_discovery: ClaimDiscoveryReport | None = None
+    discovery_portfolio: DiscoveryPortfolio | None = None
 
 
 class StageResourceUse(StrictModel):
@@ -248,6 +265,8 @@ def _is_excluded(relative: Path) -> bool:
     if any(part in _EXCLUDED_DIRECTORIES for part in lower_parts[:-1]):
         return True
     name = relative.name.casefold()
+    if name.startswith("~$"):
+        return True
     if name in _EXCLUDED_EXACT_NAMES or name.startswith(".env."):
         return True
     if any(fragment in name for fragment in _EXCLUDED_NAME_FRAGMENTS):
@@ -257,7 +276,9 @@ def _is_excluded(relative: Path) -> bool:
     return False
 
 
-def inventory_project_bundle(source_root: str | Path) -> tuple[list[BundleResource], int]:
+def inventory_project_bundle(
+    source_root: str | Path,
+) -> tuple[list[BundleResource], int]:
     root = _safe_source_root(source_root)
     resources: list[BundleResource] = []
     excluded = 0
@@ -301,10 +322,16 @@ def inventory_project_bundle(source_root: str | Path) -> tuple[list[BundleResour
                 excluded += 1
                 continue
             size = path.stat().st_size
+            suffix = path.suffix.casefold()
+            size_limit = (
+                _MAX_OFFICE_RESOURCE_BYTES
+                if suffix in {".docx", ".pptx", ".xlsx"}
+                else _MAX_RESOURCE_BYTES
+            )
             if (
                 _is_excluded(relative)
-                or path.suffix.casefold() not in _ALLOWED_SUFFIXES
-                or size > _MAX_RESOURCE_BYTES
+                or suffix not in _ALLOWED_SUFFIXES
+                or size > size_limit
             ):
                 excluded += 1
                 continue
@@ -313,12 +340,29 @@ def inventory_project_bundle(source_root: str | Path) -> tuple[list[BundleResour
                     path=relative.as_posix(),
                     size_bytes=size,
                     sha256=sha256_file(path),
-                    suffix=path.suffix.casefold(),
+                    suffix=suffix,
                     modified_at=datetime.fromtimestamp(
                         path.stat().st_mtime, timezone.utc
                     ).isoformat(),
                 )
             )
+    resource_paths = {item.path.casefold() for item in resources}
+    deduplicated: list[BundleResource] = []
+    for resource in resources:
+        translated_base = re.sub(
+            r"(?:[-_ ]translate(?:d)?)((?:\.[^.]+)?)$",
+            r"\1",
+            resource.path,
+            flags=re.IGNORECASE,
+        )
+        if (
+            translated_base.casefold() != resource.path.casefold()
+            and translated_base.casefold() in resource_paths
+        ):
+            excluded += 1
+            continue
+        deduplicated.append(resource)
+    resources = deduplicated
     return resources, excluded
 
 
@@ -341,6 +385,8 @@ def _track_tokens(track_id: str) -> list[str]:
 
 
 def _text(path: Path, *, limit: int = 400_000) -> str:
+    if path.suffix.casefold() in {".docx", ".pptx", ".xlsx"}:
+        return extract_office_text(path, limit=limit)
     if path.stat().st_size > limit:
         with path.open("r", encoding="utf-8", errors="replace") as handle:
             return handle.read(limit)
@@ -459,7 +505,10 @@ def _evidence_maturity(protocol: dict[str, Any], output: dict[str, Any]) -> str:
             or "blindtest" in path
             or "blind_test" in path
         )
-        and (value is False or (isinstance(value, str) and "retrospective" in value.casefold()))
+        and (
+            value is False
+            or (isinstance(value, str) and "retrospective" in value.casefold())
+        )
         for path, value in named
     )
     if prospective_true and not retrospective:
@@ -502,7 +551,9 @@ def _scientific_design_bonus(
     title = _report_title(report_text, "")
     if "research" in track_id.casefold() or "研究" in title:
         bonus += 8
-        reasons.append("explicit research track rather than an implementation-only artifact")
+        reasons.append(
+            "explicit research track rather than an implementation-only artifact"
+        )
     searchable_paths = " ".join(
         path.casefold()
         for path, _ in [
@@ -537,7 +588,9 @@ def _scientific_design_bonus(
         reasons.append("multi-period or multi-trade machine-readable evidence")
     if "recalculation" in f"{track_id} {novelty_seed}".casefold():
         bonus -= 12
-        reasons.append("penalty: narrow recalculation rather than a new research design")
+        reasons.append(
+            "penalty: narrow recalculation rather than a new research design"
+        )
     return bonus, reasons
 
 
@@ -546,7 +599,9 @@ def discover_novelty_candidates(
     resources: list[BundleResource] | None = None,
 ) -> list[NoveltyCandidate]:
     root = _safe_source_root(source_root)
-    inventory = resources if resources is not None else inventory_project_bundle(root)[0]
+    inventory = (
+        resources if resources is not None else inventory_project_bundle(root)[0]
+    )
     resource_map = {resource.path: resource for resource in inventory}
     candidates: list[NoveltyCandidate] = []
     protocols = root / "protocols"
@@ -589,7 +644,9 @@ def discover_novelty_candidates(
         if not relative_report:
             blockers.append("missing human-readable conclusion report")
         if relative_output and not bound:
-            blockers.append("experiment output is not bound to the exact protocol object")
+            blockers.append(
+                "experiment output is not bound to the exact protocol object"
+            )
         if not conclusion:
             blockers.append("report has no recognized conclusion section")
         if maturity != "prospective_blind":
@@ -688,6 +745,25 @@ def _derived_question(text: str, fallback: str) -> str:
     question_match = re.search(r"([^\n。！？!?]{12,500}[？?])", source)
     if question_match:
         return re.sub(r"\s+", " ", question_match.group(1)).strip()
+    lower = source.casefold()
+    if (
+        "内转子" in lower
+        and ("表贴" in lower or "surface-mounted" in lower)
+    ):
+        return (
+            "内嵌式与表贴式转子结构在预先指定的电机性能指标上"
+            "是否存在可重复差异？"
+        )
+    if "绕线" in lower and "pcba" in lower:
+        return (
+            "绕线与 PCBA 固定工艺变更能否在冻结的质量、可靠性和"
+            "成本指标上优于原工艺？"
+        )
+    if "涂覆" in lower or "powder coating" in lower:
+        return (
+            "转子涂覆材料与工序参数如何影响冻结的涂层质量和"
+            "制造缺陷指标？"
+        )
     excerpt = _first_substantive_excerpt(source, limit=500)
     return excerpt or f"从项目 {fallback} 的现有材料中识别一个可检验的研究问题"
 
@@ -805,7 +881,9 @@ def discover_derived_material_candidate(
     resources: list[BundleResource] | None = None,
 ) -> NoveltyCandidate | None:
     root = _safe_source_root(source_root)
-    inventory = resources if resources is not None else inventory_project_bundle(root)[0]
+    inventory = (
+        resources if resources is not None else inventory_project_bundle(root)[0]
+    )
     text_resources = [
         resource for resource in inventory if resource.suffix in _TEXT_MATERIAL_SUFFIXES
     ]
@@ -862,8 +940,7 @@ def discover_derived_material_candidate(
     tests = [
         resource.path
         for resource in inventory
-        if resource.suffix in {".py", ".ps1"}
-        and "test" in resource.path.casefold()
+        if resource.suffix in {".py", ".ps1"} and "test" in resource.path.casefold()
     ][:12]
     title = _report_title(conclusion_text, "") or _report_title(boundary_text, "")
     title = title[:120].strip() or f"{root.name} 项目资料研究"
@@ -890,7 +967,9 @@ def discover_derived_material_candidate(
             f"located {len(structured)} structured evidence files; selected one with {numeric_count} numeric fields"
         )
     if implementation or tests:
-        reasons.append("located implementation or test artifacts for reproducibility context")
+        reasons.append(
+            "located implementation or test artifacts for reproducibility context"
+        )
     score = (
         25
         + min(20, len(text_resources) * 2)
@@ -924,7 +1003,9 @@ def discover_derived_material_candidate(
     )
 
 
-def inspect_project_bundle(source_root: str | Path) -> BundleInspection:
+def inspect_project_bundle(
+    source_root: str | Path, *, discover_claims: bool = False
+) -> BundleInspection:
     root = _safe_source_root(source_root)
     resources, excluded = inventory_project_bundle(root)
     candidates = discover_novelty_candidates(root, resources)
@@ -942,8 +1023,26 @@ def inspect_project_bundle(source_root: str | Path) -> BundleInspection:
         )
     )
     recommended = next(
-        (candidate.track_id for candidate in candidates if candidate.closure_input_ready),
+        (
+            candidate.track_id
+            for candidate in candidates
+            if candidate.closure_input_ready
+        ),
         candidates[0].track_id if candidates else None,
+    )
+    claim_discovery = (
+        discover_project_claims(
+            # This compatibility utility has no Study/phase/StepInstance
+            # context, so it may extract local author claims but may not call
+            # external providers. Workflow v2 retrieval goes through the
+            # Forge Retrieval Gateway.
+            root,
+            resources,
+            candidates,
+            include_external=False,
+        )
+        if discover_claims
+        else None
     )
     return BundleInspection(
         source_root=str(root),
@@ -951,10 +1050,13 @@ def inspect_project_bundle(source_root: str | Path) -> BundleInspection:
         excluded_count=excluded,
         candidates=candidates,
         recommended_track_id=recommended,
+        claim_discovery=claim_discovery,
     )
 
 
-def _selected_candidate(inspection: BundleInspection, track_id: str) -> NoveltyCandidate:
+def _selected_candidate(
+    inspection: BundleInspection, track_id: str
+) -> NoveltyCandidate:
     selected_id = inspection.recommended_track_id if track_id == "auto" else track_id
     for candidate in inspection.candidates:
         if candidate.track_id == selected_id:
@@ -1012,7 +1114,10 @@ def _stage_path_sets(
             ),
         ]
         stage_1.extend(
-            (path, "Provides additional project context, methods, or material boundaries.")
+            (
+                path,
+                "Provides additional project context, methods, or material boundaries.",
+            )
             for path in _supporting_paths(
                 resources,
                 ("readme", "overview", "method", "proposal", "研究", "方法", "方案"),
@@ -1025,7 +1130,10 @@ def _stage_path_sets(
             )
         ]
         stage_2.extend(
-            (path, "Provides implementation or test context; it is not treated as a frozen experiment.")
+            (
+                path,
+                "Provides implementation or test context; it is not treated as a frozen experiment.",
+            )
             for path in [*candidate.implementation_paths, *candidate.test_paths]
         )
         stage_3 = [
@@ -1039,7 +1147,10 @@ def _stage_path_sets(
             ),
         ]
         stage_3.extend(
-            (path, "Provides executable or test context for identifying the next validation step.")
+            (
+                path,
+                "Provides executable or test context for identifying the next validation step.",
+            )
             for path in [*candidate.implementation_paths, *candidate.test_paths]
         )
         stage_4 = [
@@ -1058,8 +1169,14 @@ def _stage_path_sets(
         ]
     else:
         stage_1 = [
-            (candidate.protocol_path, "Defines the candidate research question and frozen boundary."),
-            (candidate.report_path or "", "Supplies the existing conclusion used to test paperability."),
+            (
+                candidate.protocol_path,
+                "Defines the candidate research question and frozen boundary.",
+            ),
+            (
+                candidate.report_path or "",
+                "Supplies the existing conclusion used to test paperability.",
+            ),
         ]
         stage_1.extend(
             (path, "Provides project context, data scope, or existing evidence limits.")
@@ -1069,7 +1186,10 @@ def _stage_path_sets(
             )[:8]
         )
         stage_2 = [
-            (candidate.protocol_path, "The exact protocol object frozen before evidence interpretation."),
+            (
+                candidate.protocol_path,
+                "The exact protocol object frozen before evidence interpretation.",
+            ),
         ]
         stage_2.extend(
             (path, "Implements or tests the selected frozen research track.")
@@ -1083,7 +1203,10 @@ def _stage_path_sets(
             )[:10]
         )
         stage_3 = [
-            (candidate.output_path or "", "Contains the machine-readable experimental evidence."),
+            (
+                candidate.output_path or "",
+                "Contains the machine-readable experimental evidence.",
+            ),
             (candidate.protocol_path, "Binds interpretation to the frozen protocol."),
         ]
         stage_3.extend(
@@ -1091,9 +1214,18 @@ def _stage_path_sets(
             for path in [*candidate.implementation_paths, *candidate.test_paths]
         )
         stage_4 = [
-            (candidate.report_path or "", "Provides the project-authored interpretation and limitations."),
-            (candidate.output_path or "", "Provides numerical evidence for manuscript claims."),
-            (candidate.protocol_path, "Constrains manuscript scope and forbidden interpretations."),
+            (
+                candidate.report_path or "",
+                "Provides the project-authored interpretation and limitations.",
+            ),
+            (
+                candidate.output_path or "",
+                "Provides numerical evidence for manuscript claims.",
+            ),
+            (
+                candidate.protocol_path,
+                "Constrains manuscript scope and forbidden interpretations.",
+            ),
         ]
     literature_paths = _literature_paths(resources)
     stage_1.extend(
@@ -1144,11 +1276,12 @@ def _snapshot_resources(
 
 
 def _protocol_scope(
-    candidate: NoveltyCandidate, protocol: dict[str, Any], protocol_hash: str, report_text: str
+    candidate: NoveltyCandidate,
+    protocol: dict[str, Any],
+    protocol_hash: str,
+    report_text: str,
 ) -> ScopeContract:
-    title = _report_title(
-        report_text, candidate.display_title or candidate.track_id
-    )
+    title = _report_title(report_text, candidate.display_title or candidate.track_id)
     purpose = candidate.novelty_seed
     research_question = purpose.rstrip(".。")
     if not research_question.endswith(("?", "？")):
@@ -1174,7 +1307,9 @@ def _protocol_scope(
                 "Use only the snapshotted project materials to define the provisional question and evidence gaps."
             )
         else:
-            scope_in.append(f"Use only the exact protocol and evidence for {candidate.track_id}.")
+            scope_in.append(
+                f"Use only the exact protocol and evidence for {candidate.track_id}."
+            )
     scope_out = [
         str(item)
         for item in (
@@ -1185,7 +1320,9 @@ def _protocol_scope(
         if str(item).strip()
     ]
     if candidate.evidence_maturity != "prospective_blind":
-        scope_out.append("Do not describe retrospective evidence as prospective validation.")
+        scope_out.append(
+            "Do not describe retrospective evidence as prospective validation."
+        )
     if candidate.source_mode == "derived_materials":
         scope_out.extend(
             [
@@ -1194,7 +1331,9 @@ def _protocol_scope(
             ]
         )
     if not scope_out:
-        scope_out.append("Do not generalize beyond the frozen data, method, and evaluation period.")
+        scope_out.append(
+            "Do not generalize beyond the frozen data, method, and evaluation period."
+        )
     return ScopeContract(
         track_id=candidate.track_id,
         title=title,
@@ -1229,7 +1368,11 @@ def _protocol_scope(
 
 def _classify_conclusion(conclusion: str) -> str:
     normalized = conclusion.casefold()
-    if "inconclusive" in normalized or "不确定" in conclusion or "没有达到" in conclusion:
+    if (
+        "inconclusive" in normalized
+        or "不确定" in conclusion
+        or "没有达到" in conclusion
+    ):
         return "inconclusive"
     negative_markers = (
         "不支持",
@@ -1262,7 +1405,9 @@ def _classify_conclusion(conclusion: str) -> str:
     return "unverifiable"
 
 
-def _numeric_evidence(output: dict[str, Any], *, limit: int = 16) -> list[NumericEvidence]:
+def _numeric_evidence(
+    output: dict[str, Any], *, limit: int = 16
+) -> list[NumericEvidence]:
     priority_terms = (
         "selected",
         "evaluation",
@@ -1290,7 +1435,9 @@ def _numeric_evidence(output: dict[str, Any], *, limit: int = 16) -> list[Numeri
         if score > 0 and len(path.split(".")) <= 6:
             scored.append((score, path, value))
     scored.sort(key=lambda item: (-item[0], item[1]))
-    return [NumericEvidence(path=path, value=value) for _, path, value in scored[:limit]]
+    return [
+        NumericEvidence(path=path, value=value) for _, path, value in scored[:limit]
+    ]
 
 
 def _limitations(
@@ -1340,13 +1487,9 @@ def _idea_verdict(
     if candidate.source_mode == "derived_materials":
         pass
     elif status in {"mixed", "inconclusive"}:
-        next_action = (
-            "Freeze the narrowed claim and obtain a new independent evaluation before treating the idea as validated."
-        )
+        next_action = "Freeze the narrowed claim and obtain a new independent evaluation before treating the idea as validated."
     elif candidate.evidence_maturity != "prospective_blind":
-        next_action = (
-            "Preserve the protocol and collect a prospective blind evaluation; do not tune on the observed window."
-        )
+        next_action = "Preserve the protocol and collect a prospective blind evaluation; do not tune on the observed window."
     else:
         next_action = "Proceed to full literature grounding, independent review, and publication formatting."
     return IdeaVerdict(
@@ -1606,7 +1749,9 @@ def _stage_manifest(
 def _make_run_dir(output_root: Path, name: str, track_id: str) -> Path:
     output_root.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    digest = hashlib.sha256(f"{name}|{track_id}|{_utc_now()}".encode("utf-8")).hexdigest()[:8]
+    digest = hashlib.sha256(
+        f"{name}|{track_id}|{_utc_now()}".encode("utf-8")
+    ).hexdigest()[:8]
     run_dir = output_root / f"{slugify(name)}-{stamp}-{digest}"
     run_dir.mkdir()
     return run_dir
@@ -1618,15 +1763,39 @@ def close_project_bundle_loop(
     output_root: str | Path,
     name: str | None = None,
     track_id: str = "auto",
+    discover_claims: bool = False,
+    progress: Callable[..., None] | None = None,
 ) -> Path:
+    def report(**detail: Any) -> None:
+        if progress is not None:
+            progress(**detail)
+
     root = _safe_source_root(source_root)
-    inspection = inspect_project_bundle(root)
+    report(
+        stage="discovery",
+        title="正在扫描项目材料和已有实验产物",
+        detail="读取协议、实验输出、报告和实现文件，并排除密钥与环境文件。",
+        reason="先确认哪些材料能够进入证据链，避免把无关文件当成研究依据。",
+        output="可用材料清单与候选研究问题",
+        next="选择证据链最完整的候选选题",
+    )
+    inspection = inspect_project_bundle(root, discover_claims=discover_claims)
     candidate = _selected_candidate(inspection, track_id)
     resources, _ = inventory_project_bundle(root)
     resource_map = {resource.path: resource for resource in resources}
     stage_paths = _stage_path_sets(candidate, resource_map)
     selected_paths = [path for values in stage_paths.values() for path, _ in values]
-    run_dir = _make_run_dir(Path(output_root).resolve(), name or root.name, candidate.track_id)
+    report(
+        stage="discovery",
+        title=f"正在为“{candidate.track_id}”建立证据清单",
+        detail=f"已找到 {len(resources)} 项项目材料，其中 {len(set(selected_paths))} 项进入本次研究闭环。",
+        reason="每个后续结论都必须能追溯到本次选中的材料。",
+        output="四个研究阶段各自使用的资源清单",
+        next="保存只读快照并冻结研究范围",
+    )
+    run_dir = _make_run_dir(
+        Path(output_root).resolve(), name or root.name, candidate.track_id
+    )
     _snapshot_resources(root, run_dir, selected_paths, resource_map)
 
     write_json_atomic(run_dir / "inspection.json", inspection)
@@ -1654,12 +1823,16 @@ def close_project_bundle_loop(
 
     stage_manifests: dict[str, StageResourceManifest] = {}
     for stage in _STAGE_NAMES:
-        manifest = _stage_manifest(stage, candidate.track_id, stage_paths[stage], resource_map)
+        manifest = _stage_manifest(
+            stage, candidate.track_id, stage_paths[stage], resource_map
+        )
         stage_manifests[stage] = manifest
         write_json_atomic(run_dir / stage / "resources.json", manifest)
 
     protocol = _load_json_object(run_dir / "source_snapshot" / candidate.protocol_path)
-    output = _load_json_object(run_dir / "source_snapshot" / (candidate.output_path or ""))
+    output = _load_json_object(
+        run_dir / "source_snapshot" / (candidate.output_path or "")
+    )
     report_text = _text(run_dir / "source_snapshot" / (candidate.report_path or ""))
     scope = _protocol_scope(
         candidate,
@@ -1674,15 +1847,30 @@ def close_project_bundle_loop(
             "schema_version": 1,
             "recommended_track_id": inspection.recommended_track_id,
             "selected_track_id": candidate.track_id,
-            "candidates": [item.model_dump(mode="json") for item in inspection.candidates],
+            "candidates": [
+                item.model_dump(mode="json") for item in inspection.candidates
+            ],
         },
     )
+    if inspection.claim_discovery is not None:
+        write_json_atomic(
+            run_dir / "stage_1_discovery" / "claim_discovery.json",
+            inspection.claim_discovery,
+        )
     (run_dir / "stage_1_discovery" / "novelty_candidates.md").write_text(
         _render_novelty_portfolio(inspection, candidate.track_id),
         encoding="utf-8",
         newline="\n",
     )
 
+    report(
+        stage="protocol",
+        title="正在冻结实验协议与输出文件的绑定关系",
+        detail=f"核对协议 {candidate.protocol_path} 与实验输出 {candidate.output_path or '未提供'} 的哈希和引用关系。",
+        reason="防止后续写作更换评价口径、数据范围或实验结果。",
+        output="不可被论文阶段改写的协议锁",
+        next="依据冻结口径计算研究判定",
+    )
     protocol_lock = ProtocolLock(
         track_id=candidate.track_id,
         protocol_path=candidate.protocol_path,
@@ -1694,11 +1882,31 @@ def close_project_bundle_loop(
         test_paths=candidate.test_paths,
         source_mode=candidate.source_mode,
     )
-    write_json_atomic(run_dir / "stage_2_protocol" / "protocol_lock.json", protocol_lock)
+    write_json_atomic(
+        run_dir / "stage_2_protocol" / "protocol_lock.json", protocol_lock
+    )
 
+    report(
+        stage="experimentation",
+        title="正在读取实验输出并计算研究判定",
+        detail="逐项比较冻结协议中的通过条件与实际实验输出，单独生成想法判定。",
+        reason="让证据决定支持、反驳、混合或暂不可验证，而不是让论文措辞决定结论。",
+        output="独立的想法判定与证据门结果",
+        next="只把判定允许的主张交给论文阶段",
+    )
     verdict = _idea_verdict(candidate, protocol, output)
-    write_json_atomic(run_dir / "stage_3_experimentation" / "idea_verdict.json", verdict)
+    write_json_atomic(
+        run_dir / "stage_3_experimentation" / "idea_verdict.json", verdict
+    )
 
+    report(
+        stage="synthesis",
+        title="正在把证据允许的主张组织成研究工作稿",
+        detail=f"当前研究判定为 {verdict.status}；正在生成主张清单、论文结构和扩写资格。",
+        reason="论文只能陈述已经被协议和实验结果允许的内容。",
+        output="可追溯的主张清单与研究工作稿",
+        next="审计每条主张、资源快照和论文资格",
+    )
     claims = _render_claims(scope, verdict, resource_map)
     write_json_atomic(run_dir / "stage_4_synthesis" / "claims.json", claims)
     manuscript = _render_manuscript(scope, verdict, stage_manifests)
@@ -1712,10 +1920,20 @@ def close_project_bundle_loop(
 
     prepare_project_bundle_paper(run_dir, persist=True)
 
+    report(
+        stage="synthesis",
+        title="正在逐项审计证据门和论文资格",
+        detail="检查资源快照、协议哈希、实验判定、主张范围和稿件深度是否一致。",
+        reason="即使某个指标很好，只要证据链不完整，也不能升级成可发表结论。",
+        output="研究审计结果与论文扩写资格",
+        next="签发本次研究闭环的完成证书",
+    )
     audit = audit_project_bundle_loop(run_dir, persist=True)
     if not audit.passed:
-        raise ValueError("bundle close-loop audit failed: " + "; ".join(audit.violations))
-    artifact_paths = (
+        raise ValueError(
+            "bundle close-loop audit failed: " + "; ".join(audit.violations)
+        )
+    artifact_paths = [
         "bundle_manifest.json",
         "stage_1_discovery/scope_contract.json",
         "stage_1_discovery/novelty_candidates.md",
@@ -1726,7 +1944,9 @@ def close_project_bundle_loop(
         "stage_4_synthesis/manuscript_depth.json",
         "stage_4_synthesis/paper_expansion_plan.json",
         "stage_4_synthesis/audit.json",
-    )
+    ]
+    if inspection.claim_discovery is not None:
+        artifact_paths.append("stage_1_discovery/claim_discovery.json")
     certificate = BundleCompletionCertificate(
         track_id=candidate.track_id,
         idea_status=verdict.status,
@@ -1735,13 +1955,25 @@ def close_project_bundle_loop(
         manuscript_depth_passed=audit.manuscript_depth_passed,
         paper_draft_ready=audit.paper_draft_ready,
         publication_ready=audit.publication_ready,
-        artifact_hashes={relative: sha256_file(run_dir / relative) for relative in artifact_paths},
+        artifact_hashes={
+            relative: sha256_file(run_dir / relative) for relative in artifact_paths
+        },
     )
     write_json_atomic(run_dir / "completion_certificate.json", certificate)
+    report(
+        stage="synthesis",
+        title="研究闭环审计完成，正在保存最终结果",
+        detail=f"审计已通过；研究判定为 {verdict.status}，论文扩写资格为 {audit.paper_draft_ready}。",
+        reason="把本次执行结果固定为可复核、不可静默改写的记录。",
+        output="完成证书和全部四阶段研究产物",
+        next="进入研究判定页面",
+    )
     return run_dir
 
 
-def audit_project_bundle_loop(run_dir: str | Path, *, persist: bool = False) -> BundleAudit:
+def audit_project_bundle_loop(
+    run_dir: str | Path, *, persist: bool = False
+) -> BundleAudit:
     root = Path(run_dir).resolve()
     checks: dict[str, bool] = {}
     violations: list[str] = []
@@ -1791,12 +2023,11 @@ def audit_project_bundle_loop(run_dir: str | Path, *, persist: bool = False) -> 
     checks["all_four_stage_resource_manifests_valid"] = stages_valid
 
     try:
-        scope = ScopeContract.model_validate(
+        ScopeContract.model_validate(
             read_json(root / "stage_1_discovery" / "scope_contract.json")
         )
         checks["scope_contract_valid"] = True
     except Exception as exc:
-        scope = None
         checks["scope_contract_valid"] = False
         violations.append(f"scope contract is invalid: {exc}")
     try:
@@ -1809,9 +2040,8 @@ def audit_project_bundle_loop(run_dir: str | Path, *, persist: bool = False) -> 
             sha256_file(protocol_path) == lock.protocol_sha256
             and sha256_file(output_path) == lock.output_sha256
         )
-        actual_protocol_binding = (
-            lock.protocol_bound_to_output
-            and _protocol_bound(_load_json_object(protocol_path), _load_json_object(output_path))
+        actual_protocol_binding = lock.protocol_bound_to_output and _protocol_bound(
+            _load_json_object(protocol_path), _load_json_object(output_path)
         )
         checks["protocol_bound_to_output"] = actual_protocol_binding
         checks["evidence_binding_policy_valid"] = (
@@ -1915,7 +2145,9 @@ def audit_project_bundle_loop(run_dir: str | Path, *, persist: bool = False) -> 
         "manuscript_uses_project_conclusion",
         "manuscript_reports_idea_status",
     )
-    pilot_draft_generated = passed and all(checks.get(name, False) for name in pilot_checks)
+    pilot_draft_generated = passed and all(
+        checks.get(name, False) for name in pilot_checks
+    )
     # The four-stage close-loop artifact is deliberately a diagnostic working
     # paper. Full-paper readiness is certified only by paper_expansion.py after
     # the separate idea, evidence, literature, citation, and long-form gates.
@@ -1928,8 +2160,14 @@ def audit_project_bundle_loop(run_dir: str | Path, *, persist: bool = False) -> 
         )
     blockers.append("external scholarly novelty and citations have not been verified")
     blockers.append("the separately gated full-paper expansion has not passed")
-    if verdict is not None and verdict.status in {"mixed", "inconclusive", "unverifiable"}:
-        blockers.append(f"idea verdict is {verdict.status}, not a clean validated result")
+    if verdict is not None and verdict.status in {
+        "mixed",
+        "inconclusive",
+        "unverifiable",
+    }:
+        blockers.append(
+            f"idea verdict is {verdict.status}, not a clean validated result"
+        )
     publication_ready = paper_ready and not blockers
     audit = BundleAudit(
         passed=passed,
@@ -1953,7 +2191,10 @@ def verify_project_bundle_completion(run_dir: str | Path) -> dict[str, Any]:
             read_json(root / "completion_certificate.json")
         )
     except Exception as exc:
-        return {"passed": False, "violations": [f"completion certificate is invalid: {exc}"]}
+        return {
+            "passed": False,
+            "violations": [f"completion certificate is invalid: {exc}"],
+        }
     violations: list[str] = []
     for relative, expected in certificate.artifact_hashes.items():
         path = root / relative

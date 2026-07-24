@@ -5,14 +5,11 @@ import json
 import math
 import os
 import re
-import time
-import urllib.error
 import urllib.parse
-import urllib.request
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Literal, Protocol
+from typing import Any, Callable, Literal, Protocol
 
 from pydantic import Field
 
@@ -133,9 +130,16 @@ def _venue_type(source_type: object, work_type: object) -> Literal["journal", "c
 class OpenAlexClient:
     """Minimal OpenAlex adapter that never persists or reports the API key."""
 
-    def __init__(self, *, api_key: str | None = None, timeout_seconds: int = 30) -> None:
+    def __init__(
+        self,
+        *,
+        api_key: str | None = None,
+        timeout_seconds: int = 30,
+        transport: Callable[[str], tuple[dict[str, Any], bytes]] | None = None,
+    ) -> None:
         self.api_key = api_key or os.getenv("OPENALEX_API_KEY") or None
         self.timeout_seconds = timeout_seconds
+        self.transport = transport
 
     def search_similar(
         self,
@@ -157,37 +161,12 @@ class OpenAlexClient:
         if self.api_key:
             params["api_key"] = self.api_key
         url = f"{OPENALEX_WORKS_URL}?{urllib.parse.urlencode(params)}"
-        request = urllib.request.Request(
-            url,
-            headers={
-                "Accept": "application/json",
-                "User-Agent": "ResearchForge/0.2 (+auditable venue matching)",
-            },
-            method="GET",
-        )
-        raw = b""
-        for attempt in range(2):
-            try:
-                with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
-                    raw = response.read()
-                break
-            except urllib.error.HTTPError as exc:
-                exc.read(1_000)
-                if exc.code in {429, 500, 502, 503, 504} and attempt == 0:
-                    retry_after = exc.headers.get("Retry-After")
-                    try:
-                        delay = min(max(float(retry_after or 1.0), 0.5), 3.0)
-                    except ValueError:
-                        delay = 1.0
-                    time.sleep(delay)
-                    continue
-                raise RuntimeError(f"openalex HTTP {exc.code}") from exc
-            except urllib.error.URLError as exc:
-                if attempt == 0:
-                    time.sleep(0.5)
-                    continue
-                raise RuntimeError(f"openalex request failed: {exc.reason}") from exc
-        payload = json.loads(raw.decode("utf-8"))
+        if self.transport is None:
+            raise RuntimeError(
+                "direct OpenAlex networking is disabled; submit a RetrievalRequest "
+                "through the Forge Retrieval Gateway"
+            )
+        payload, raw = self.transport(url)
         if not isinstance(payload, dict) or not isinstance(payload.get("results"), list):
             raise ValueError("openalex returned an invalid works response")
         papers: list[SimilarPaperEvidence] = []

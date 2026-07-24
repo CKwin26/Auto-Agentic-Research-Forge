@@ -198,3 +198,40 @@ def test_deferred_human_audit_can_pass_the_automated_publication_gate_only() -> 
     assert report.predicted_editorial_outcome == "automated_gate_passed_human_validation_pending"
     maturity = next(item for item in report.findings if item.code == "RC-MATURITY-TARGET-MISMATCH")
     assert maturity.severity.value == "medium"
+
+
+def test_verified_context_repair_closes_implementation_faults_not_historical_endpoint() -> None:
+    plan, protocol, backbone, _analysis = _current_design()
+    report = analyze_root_causes(
+        project_name="fixture",
+        plan=plan,
+        protocol=protocol,
+        backbone=backbone,
+        analysis={
+            "human_validation": "complete",
+            "primary_analysis_interpretable": False,
+            "analysis_status": "publication_human_audit_complete_primary_analysis_invalid",
+        },
+        context_review={
+            "reviewed_evaluator_unsupported": 5,
+            "contextual_verdict_letters": "AAAAA",
+            "contextual_verdict_counts": {"supported": 5},
+        },
+        context_repair_verification={
+            "passed": True,
+            "does_not_recompute_historical_primary_analysis": True,
+            "replayed_cases": 5,
+            "supported_cases": 5,
+        },
+        successor_protocol_plan={
+            "successor": {"predecessor_outcome_reuse_allowed": False}
+        },
+        target=ReviewTarget.PUBLICATION,
+    )
+
+    by_code = {item.code: item for item in report.findings}
+    assert by_code["RC-EVIDENCE-PACKAGING-CONTEXT-LOSS"].resolved is True
+    assert by_code["RC-DETERMINISTIC-METRIC-PRECEDENCE-GAP"].resolved is True
+    assert by_code["RC-PRIMARY-ENDPOINT-INVALID"].resolved is False
+    assert "fault-localization and implementation-repair loop is complete" in report.root_conclusion
+    assert "rather than evidence that the diagnostic workflow failed" in report.root_conclusion

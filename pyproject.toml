@@ -9,7 +9,8 @@ description = "A local-first, evidence-preserving AI research loop with determin
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-  "openai-codex==0.1.0b3",
+  "openai-codex==0.144.4",
+  "httpx>=0.27,<1",
   "pydantic>=2.10,<3",
   "pyyaml>=6.0,<7",
   "python-dotenv>=1.0",
@@ -20,8 +21,18 @@ api = [
   "openai-agents>=0.18,<1",
 ]
 dev = [
+  "matplotlib>=3.9,<4",
   "pillow>=11.0",
   "pytest>=8.3",
+]
+external-research = [
+  "huggingface-hub==1.24.0",
+  "mcp>=1.28,<2",
+  "openai>=2.45,<3",
+  "paper-search-mcp==0.1.4",
+]
+paper-evidence = [
+  "paper-qa==2026.3.18",
 ]
 nli = [
   "onnxruntime==1.27.0",
@@ -33,6 +44,9 @@ research-forge = "research_forge.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["research_forge"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

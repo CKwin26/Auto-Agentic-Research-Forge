@@ -30,7 +30,7 @@ from .study_models import SemanticClaimJudgmentBatch, StudyFinalizerOutput
 ROOT = Path(__file__).resolve().parents[1]
 T = TypeVar("T", bound=BaseModel)
 SUPPORTED_BACKENDS = {"codex", "api"}
-DEFAULT_CODEX_MODEL = "gpt-5.4"
+DEFAULT_CODEX_MODEL = "gpt-5.6-terra"
 CODEX_TRANSIENT_MAX_ATTEMPTS = 8
 CODEX_TURN_TIMEOUT_SECONDS = 20 * 60
 CODEX_TRANSIENT_BACKOFF_SECONDS = (15, 30, 60, 120, 240, 480, 600)
@@ -175,6 +175,18 @@ def _instructions(name: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def _load_local_runtime_env() -> None:
+    """Load the ignored local provider config before backend selection.
+
+    Previously ``.env.local`` was loaded only *after* ``backend_name()`` had
+    already selected the default Codex backend.  That made a correctly written
+    API configuration silently use the managed subscription instead.
+    """
+    from dotenv import load_dotenv
+
+    load_dotenv(ROOT / ".env.local", override=False)
+
+
 def backend_name() -> str:
     backend = os.getenv("RESEARCH_FORGE_BACKEND", "codex").strip().lower()
     if backend not in SUPPORTED_BACKENDS:
@@ -284,6 +296,16 @@ def _codex_process_env() -> dict[str, str]:
     home = _configured_codex_home()
     if home is not None:
         child_env["CODEX_HOME"] = str(home)
+        # CC-Switch may intentionally own the endpoint/model configuration but
+        # leave Codex's OAuth-shaped auth.json without a provider key.  For an
+        # explicit custom provider only, forward the already configured local
+        # key to the child process.  Managed Codex retains the deliberate blank
+        # variables above, so subscription credentials never leak into a
+        # provider subprocess.
+        if codex_provider_binding()["provider_base_url"] != "managed":
+            provider_key = os.getenv("OPENAI_API_KEY", "").strip()
+            if provider_key:
+                child_env["OPENAI_API_KEY"] = provider_key
     return child_env
 
 
@@ -457,6 +479,7 @@ async def _run_structured(
     stage: MacroStage,
     skill_id: str,
 ) -> T:
+    _load_local_runtime_env()
     # Every existing agent entry point now receives its untrusted project
     # material through the same bounded envelope.  This is deliberately done
     # before backend selection so Codex and API paths have identical limits.
@@ -549,6 +572,96 @@ async def generate_bundle_paper_draft(
         cwd=cwd,
         stage=MacroStage.SYNTHESIS,
         skill_id="manuscript-writing",
+    )
+
+
+async def generate_bundle_paper_outline(
+    prompt: str,
+    *,
+    cwd: str | Path | None = None,
+):
+    from .paper_authoring import HierarchicalPaperOutline
+
+    return await _run_structured(
+        "Evidence-bound manuscript architect",
+        _instructions("bundle_paper_outline.md"),
+        HierarchicalPaperOutline,
+        prompt,
+        cwd=cwd,
+        stage=MacroStage.SYNTHESIS,
+        skill_id="manuscript-outline",
+    )
+
+
+async def review_bundle_paper_artifact(
+    prompt: str,
+    *,
+    cwd: str | Path | None = None,
+):
+    from .paper_authoring import RoleReview
+
+    return await _run_structured(
+        "Blinded manuscript panel reviewer",
+        _instructions("bundle_paper_review.md"),
+        RoleReview,
+        prompt,
+        cwd=cwd,
+        stage=MacroStage.SYNTHESIS,
+        skill_id="manuscript-review",
+    )
+
+
+async def revise_bundle_paper_outline(
+    prompt: str,
+    *,
+    cwd: str | Path | None = None,
+):
+    from .paper_authoring import HierarchicalPaperOutline
+
+    return await _run_structured(
+        "Evidence-bound manuscript outline reviser",
+        _instructions("bundle_paper_outline_revision.md"),
+        HierarchicalPaperOutline,
+        prompt,
+        cwd=cwd,
+        stage=MacroStage.SYNTHESIS,
+        skill_id="manuscript-outline-revision",
+    )
+
+
+async def revise_bundle_paper_draft(
+    prompt: str,
+    *,
+    cwd: str | Path | None = None,
+):
+    from .paper_expansion import PaperDraftSections
+
+    return await _run_structured(
+        "Evidence-bound manuscript draft reviser",
+        _instructions("bundle_paper_draft_revision.md"),
+        PaperDraftSections,
+        prompt,
+        cwd=cwd,
+        stage=MacroStage.SYNTHESIS,
+        skill_id="manuscript-draft-revision",
+    )
+
+
+async def humanize_bundle_paper_draft(
+    prompt: str,
+    *,
+    cwd: str | Path | None = None,
+):
+    from .paper_expansion import PaperDraftSections
+
+    return await _run_structured(
+        "Claim-preserving academic prose editor",
+        _instructions("bundle_paper_humanizer.md"),
+        PaperDraftSections,
+        prompt,
+        cwd=cwd,
+        stage=MacroStage.SYNTHESIS,
+        skill_id="manuscript-humanizer",
     )
 
 
@@ -667,6 +780,7 @@ async def repair_localized_markdown_block(
 
 
 def backend_status() -> dict[str, Any]:
+    _load_local_runtime_env()
     backend = backend_name()
     status: dict[str, Any] = {"backend": backend, "model": model_name()}
     if backend == "api":

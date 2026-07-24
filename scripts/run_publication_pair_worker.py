@@ -134,7 +134,7 @@ def main() -> None:
         type=Path,
         default=Path(__file__).resolve().parents[1] / ".private" / "synapai-codex",
     )
-    parser.add_argument("--codex-model", default="gpt-5.6")
+    parser.add_argument("--codex-model", default="gpt-5.3-spark")
     parser.add_argument("--wait-for-pid", type=int)
     parser.add_argument(
         "--runtime-retries",

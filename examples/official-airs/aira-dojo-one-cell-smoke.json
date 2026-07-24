@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "protocol": "official-airs-rad-aira-dojo",
+  "tasks": ["TextualClassificationSickAccuracy"],
+  "seeds": [0],
+  "cell_count": 1,
+  "reporting": {"leaderboard_status": "not_submitted"}
+}
