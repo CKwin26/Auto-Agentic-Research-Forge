@@ -21,6 +21,7 @@ api = [
   "openai-agents>=0.18,<1",
 ]
 dev = [
+  "matplotlib>=3.9,<4",
   "pillow>=11.0",
   "pytest>=8.3",
 ]
