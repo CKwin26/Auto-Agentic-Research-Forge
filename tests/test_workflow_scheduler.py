@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from research_forge.project_bundle import NoveltyCandidate
 from research_forge.workflow_domain import (
     EntryMode,
     ExecutionStatus,
@@ -15,6 +16,7 @@ from research_forge.workflow_scheduler import (
     PersistentDAGScheduler,
     TransientStepError,
     approve_discovery_direction,
+    audit_discovery_study,
     auto_repair_discovery_study,
     create_project_discovery_study,
     run_project_discovery,
@@ -207,6 +209,69 @@ def test_discovery_auto_repair_creates_successor_and_reuses_only_safe_steps(
     assert (
         repository.list_diagnostics(study_id)[0].failure_code
         == "procedural_claim_false_positive"
+    )
+
+
+def test_cache_contamination_is_diagnosed_and_repaired_from_project_scan(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "bundle"
+    cache = source / "torch_cache"
+    cache.mkdir(parents=True)
+    (cache / "MODEL_CARD.md").write_text("# Cached dependency\n", encoding="utf-8")
+    (source / "README.md").write_text("# Primary project\n", encoding="utf-8")
+    repository = WorkflowRepository(tmp_path / "workflow")
+    _, study_id = create_project_discovery_study(
+        repository,
+        source,
+        include_external=False,
+        identity="legacy-cache-boundary",
+    )
+    handlers = stage_one_handlers()
+
+    def contaminated_candidate(_context):
+        candidate = NoveltyCandidate(
+            track_id="cached-model-card-v1",
+            novelty_seed="Evaluate an unrelated cached dependency.",
+            protocol_path="torch_cache/MODEL_CARD.md",
+            latest_artifact_at="2026-01-01T00:00:00+00:00",
+            evidence_maturity="mixed_or_unspecified",
+            artifact_chain_complete=False,
+            protocol_bound_to_output=False,
+            paperability_score=20,
+            blockers=["cached third-party content"],
+            source_mode="derived_materials",
+            closure_input_ready=True,
+            display_title="Cached model card",
+        )
+        return {"candidates": [candidate.model_dump(mode="json")]}
+
+    handlers["candidate_discovery"] = contaminated_candidate
+    PersistentDAGScheduler(repository, handlers).run(study_id)
+
+    diagnostics = audit_discovery_study(repository, study_id)
+    assert [item.failure_code for item in diagnostics] == [
+        "cache_boundary_contamination"
+    ]
+    assert diagnostics[0].earliest_affected_step_type == "project_scan"
+
+    outcome = auto_repair_discovery_study(repository, study_id)
+
+    assert outcome is not None
+    assert outcome["regression_passed"] is True
+    assert outcome["reused_step_types"] == []
+    successor_id = outcome["successor_study_id"]
+    successor_candidate_step = next(
+        item
+        for item in repository.list_steps(successor_id)
+        if item.step_type == "candidate_discovery"
+    )
+    successor_candidates = repository.load_step_result(
+        successor_id, successor_candidate_step.step_instance_id
+    )["candidates"]
+    assert all(
+        not str(item.get("protocol_path", "")).startswith("torch_cache/")
+        for item in successor_candidates
     )
 
 

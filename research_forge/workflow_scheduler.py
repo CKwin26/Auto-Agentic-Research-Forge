@@ -37,9 +37,13 @@ from .project_bundle import (
     BundleResource,
     NoveltyCandidate,
     discover_derived_material_candidate,
+    discover_hdf5_metadata_candidate,
     discover_novelty_candidates,
     inventory_project_bundle,
+    inventory_project_hdf5_metadata,
+    is_excluded_bundle_path,
 )
+from .hdf5_metadata import HDF5MetadataResource
 from .workflow_domain import (
     ArtifactStatus,
     ArtifactRole,
@@ -428,11 +432,15 @@ def _project_scan(context: StepContext) -> dict[str, Any]:
     if not project.source_root:
         raise BlockedStepError("project source folder is not configured")
     resources, excluded = inventory_project_bundle(project.source_root)
+    hdf5_metadata = inventory_project_hdf5_metadata(project.source_root)
     return {
         "source_root": str(Path(project.source_root).resolve()),
         "resource_count": len(resources),
         "excluded_count": excluded,
         "resources": [item.model_dump(mode="json") for item in resources],
+        "hdf5_metadata": [
+            item.model_dump(mode="json") for item in hdf5_metadata
+        ],
         "include_external": bool(
             context.repository.load_study(context.study_id).settings.get(
                 "include_external_discovery", True
@@ -475,9 +483,18 @@ def _candidate_discovery(context: StepContext) -> dict[str, Any]:
     resources = _models(scan["resources"], BundleResource)
     candidates = discover_novelty_candidates(scan["source_root"], resources)
     if not candidates:
-        derived = discover_derived_material_candidate(scan["source_root"], resources)
-        if derived is not None:
-            candidates = [derived]
+        hdf5_candidate = discover_hdf5_metadata_candidate(
+            scan["source_root"],
+            _models(scan.get("hdf5_metadata", []), HDF5MetadataResource),
+        )
+        if hdf5_candidate is not None:
+            candidates = [hdf5_candidate]
+        else:
+            derived = discover_derived_material_candidate(
+                scan["source_root"], resources
+            )
+            if derived is not None:
+                candidates = [derived]
     return {"candidates": [item.model_dump(mode="json") for item in candidates]}
 
 
@@ -1315,11 +1332,12 @@ def audit_discovery_study(
 
     steps = {item.step_type: item for item in repository.list_steps(study_id)}
     claims_step = steps.get("author_claim_extraction")
-    if claims_step is None or claims_step.status is not ExecutionStatus.SUCCEEDED:
-        return []
-    payload = repository.load_step_result(study_id, claims_step.step_instance_id)
-    claims = payload.get("author_claims", [])
-    findings: list[tuple[str, str]] = []
+    candidate_step = steps.get("candidate_discovery")
+    findings: list[tuple[str, str, str, list[str]]] = []
+    claims: list[dict[str, Any]] = []
+    if claims_step is not None and claims_step.status is ExecutionStatus.SUCCEEDED:
+        payload = repository.load_step_result(study_id, claims_step.step_instance_id)
+        claims = payload.get("author_claims", [])
     procedural = [
         str(item.get("statement", ""))
         for item in claims
@@ -1333,6 +1351,8 @@ def audit_discovery_study(
                     f"{len(procedural)} process instruction(s) were emitted as "
                     "author research claims."
                 ),
+                "author_claim_extraction",
+                claims_step.output_artifact_ids if claims_step else [],
             )
         )
     seen: set[tuple[str, str]] = set()
@@ -1351,27 +1371,62 @@ def audit_discovery_study(
             (
                 "duplicate_author_claim",
                 f"{duplicates} duplicate author claim(s) were emitted.",
+                "author_claim_extraction",
+                claims_step.output_artifact_ids if claims_step else [],
             )
         )
+    if (
+        candidate_step is not None
+        and candidate_step.status is ExecutionStatus.SUCCEEDED
+    ):
+        candidate_payload = repository.load_step_result(
+            study_id, candidate_step.step_instance_id
+        )
+        contaminated_paths: set[str] = set()
+        for candidate in candidate_payload.get("candidates", []):
+            paths = [
+                candidate.get("protocol_path"),
+                candidate.get("output_path"),
+                candidate.get("report_path"),
+                *candidate.get("implementation_paths", []),
+                *candidate.get("test_paths", []),
+            ]
+            contaminated_paths.update(
+                str(path)
+                for path in paths
+                if path and is_excluded_bundle_path(str(path))
+            )
+        if contaminated_paths:
+            findings.append(
+                (
+                    "cache_boundary_contamination",
+                    (
+                        "Candidate discovery used excluded cache content: "
+                        + ", ".join(sorted(contaminated_paths)[:10])
+                    ),
+                    "project_scan",
+                    candidate_step.output_artifact_ids,
+                )
+            )
 
     existing_codes = {
         item.failure_code for item in repository.list_diagnostics(study_id)
     }
     diagnostics: list[WorkflowDiagnostic] = []
-    for failure_code, rationale in findings:
+    for failure_code, rationale, earliest_step_type, evidence_ids in findings:
         if failure_code in existing_codes:
             continue
         diagnostic = WorkflowDiagnostic(
             diagnostic_id=stable_id(
-                "diagnostic", study_id, failure_code, claims_step.step_instance_id
+                "diagnostic", study_id, failure_code, earliest_step_type
             ),
             study_id=study_id,
             phase=Phase.DISCOVERY,
-            earliest_affected_step_type="author_claim_extraction",
+            earliest_affected_step_type=earliest_step_type,
             diagnostic_owner=DiagnosticOwner.EVIDENCE_PACKAGING,
             failure_code=failure_code,
             rationale=rationale,
-            evidence_artifact_ids=claims_step.output_artifact_ids,
+            evidence_artifact_ids=evidence_ids,
             scientific_change=False,
             auto_repair_eligible=True,
         )
@@ -1602,11 +1657,18 @@ def auto_repair_discovery_study(
 ) -> dict[str, Any] | None:
     """Automatically repair only deterministic, non-scientific Stage-1 defects."""
 
-    diagnostics = audit_discovery_study(repository, study_id)
+    audit_discovery_study(repository, study_id)
+    diagnostics = repository.list_diagnostics(study_id)
+    handled_diagnostic_ids = {
+        item.diagnostic_id
+        for item in repository.list_repair_contracts(study_id)
+        if item.diagnostic_id
+    }
     eligible = [
         item
         for item in diagnostics
         if item.auto_repair_eligible and not item.scientific_change
+        and item.diagnostic_id not in handled_diagnostic_ids
     ]
     if not eligible:
         return None
@@ -1715,6 +1777,9 @@ def run_project_discovery(
         excluded_count=scan["excluded_count"],
         candidates=candidates,
         recommended_track_id=candidates[0].track_id if candidates else None,
+        hdf5_metadata=_models(
+            scan.get("hdf5_metadata", []), HDF5MetadataResource
+        ),
         claim_discovery=ClaimDiscoveryReport.model_validate(claim_discovery),
         discovery_portfolio=DiscoveryPortfolio.model_validate(
             discovery_portfolio
