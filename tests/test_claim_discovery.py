@@ -283,3 +283,23 @@ def test_discovery_portfolio_binds_local_claims_to_external_sources_without_verd
 
     assert unmatched.status == "external_grounding_incomplete"
     assert unmatched.directions[0].external_source_ids == []
+
+    candidate_only = build_discovery_portfolio(
+        fingerprint,
+        [candidate],
+        report.model_copy(
+            update={
+                "author_claims": [],
+                "recommended_claims": [],
+                "trend_signals": [],
+            }
+        ),
+        intents,
+        query_plan_id="query-plan-candidate-only",
+    )
+
+    assert candidate_only.status == "external_grounding_incomplete"
+    assert candidate_only.directions[0].primary_track_id == "flexible-exit-v1"
+    assert "No eligible author Claim was extracted" in " ".join(
+        candidate_only.directions[0].blockers
+    )

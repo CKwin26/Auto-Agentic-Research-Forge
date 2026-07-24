@@ -1033,8 +1033,65 @@ def build_discovery_portfolio(
     claim_source_matches: list[ClaimSourceMatch] = []
     directions: list[DiscoveryDirection] = []
     accepted_terms: list[set[str]] = []
+    recommendations = list(claim_report.recommended_claims)
+    if not recommendations:
+        for candidate in candidate_rows[:5]:
+            statement = str(
+                _candidate_value(candidate, "novelty_seed", "")
+                or _candidate_value(candidate, "display_title", "")
+                or _candidate_value(candidate, "track_id", "")
+            ).strip()
+            if not statement:
+                continue
+            local_paths = [
+                str(path)
+                for path in (
+                    _candidate_value(candidate, "protocol_path", ""),
+                    _candidate_value(candidate, "output_path", ""),
+                    _candidate_value(candidate, "report_path", ""),
+                )
+                if path
+            ]
+            readiness = int(
+                max(
+                    0,
+                    min(
+                        100,
+                        int(
+                            _candidate_value(
+                                candidate, "paperability_score", 0
+                            )
+                            or 0
+                        ),
+                    ),
+                )
+            )
+            recommendations.append(
+                RecommendedClaim(
+                    claim_id=_stable_id(
+                        "candidate-claim",
+                        f"{_candidate_value(candidate, 'track_id', '')}:{statement}",
+                    ),
+                    statement=statement,
+                    origin="author_asserted",
+                    recommendation_score=readiness,
+                    trend_score=0,
+                    project_match_score=100,
+                    evidence_readiness_score=readiness,
+                    local_evidence_paths=local_paths,
+                    match_reasons=[
+                        "The direction is derived from an explicit local "
+                        "protocol/output/report candidate."
+                    ],
+                    missing_context=[
+                        "No eligible author Claim was extracted; the owner "
+                        "must review the candidate-derived hypothesis.",
+                        "external_trend_match",
+                    ],
+                )
+            )
 
-    for recommendation in claim_report.recommended_claims:
+    for recommendation in recommendations:
         source_claims = [
             author_claims[claim_id]
             for claim_id in recommendation.source_claim_ids
@@ -1295,6 +1352,17 @@ def build_discovery_portfolio(
             ],
         )
         directions.append(direction)
+
+    if not directions and claim_report.recommended_claims:
+        return build_discovery_portfolio(
+            fingerprint,
+            candidate_rows,
+            claim_report.model_copy(update={"recommended_claims": []}),
+            query_intents,
+            query_plan_id=query_plan_id,
+            resource_set_ids=resource_set_ids,
+            coverage=coverage,
+        )
 
     directions.sort(
         key=lambda item: (
