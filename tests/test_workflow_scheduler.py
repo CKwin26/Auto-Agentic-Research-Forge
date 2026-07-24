@@ -1,0 +1,234 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from research_forge.workflow_domain import (
+    EntryMode,
+    ExecutionStatus,
+    ExecutorType,
+    Phase,
+    WorkflowRepository,
+)
+from research_forge.workflow_scheduler import (
+    PersistentDAGScheduler,
+    TransientStepError,
+    create_project_discovery_study,
+    run_project_discovery,
+    stage_one_handlers,
+)
+
+
+def _project_bundle(root: Path) -> Path:
+    source = root / "bundle"
+    (source / "protocols").mkdir(parents=True)
+    (source / "outputs").mkdir()
+    (source / "reports").mkdir()
+    (source / "protocols" / "demo.json").write_text(
+        json.dumps(
+            {
+                "version": "demo",
+                "hypothesis": "The candidate improves accuracy.",
+                "metric": "accuracy",
+            }
+        ),
+        encoding="utf-8",
+    )
+    (source / "outputs" / "demo.json").write_text(
+        json.dumps({"accuracy": 0.81, "valid": True}), encoding="utf-8"
+    )
+    (source / "reports" / "demo.md").write_text(
+        "# Contributions\n\nThe paired evaluation improves accuracy to 0.81.\n",
+        encoding="utf-8",
+    )
+    return source
+
+
+def test_stage_one_runs_as_persisted_dag_and_stops_at_scope_gate(
+    tmp_path: Path,
+) -> None:
+    source = _project_bundle(tmp_path)
+    workflow_root = tmp_path / "workflow"
+
+    result = run_project_discovery(
+        source,
+        repository_root=workflow_root,
+        include_external=False,
+        identity="test-run",
+    )
+    steps = {item["step_type"]: item for item in result["workflow"]["steps"]}
+
+    assert steps["project_scan"]["status"] == "succeeded"
+    assert steps["author_claim_extraction"]["status"] == "succeeded"
+    assert steps["candidate_discovery"]["status"] == "succeeded"
+    for step_type in (
+        "draft_discovery_query_plan",
+        "evaluate_network_policy",
+        "sanitize_discovery_queries",
+        "execute_discovery_retrieval",
+        "normalize_external_resources",
+        "deduplicate_external_resources",
+        "verify_external_metadata",
+        "build_discovery_source_set",
+    ):
+        assert steps[step_type]["status"] == "succeeded"
+    assert steps["scope_drafting"]["status"] == "succeeded"
+    assert steps["scope_review"]["status"] == "waiting_for_user"
+    assert steps["freeze_discovery_source_set"]["status"] == "queued"
+    assert result["workflow"]["task_groups"]["retrieval_gateway"] == {
+        "completed": 8,
+        "total": 9,
+    }
+    assert set(result["claim_discovery"]["provider_status"].values()) == {
+        "not_requested"
+    }
+    assert {
+        "paper_search_mcp",
+        "github",
+        "huggingface",
+        "codex_native_web_search",
+        "openai_web_search",
+        "redfox_wechat",
+        "semantic_scholar",
+        "crossref",
+    }.issubset(result["claim_discovery"]["provider_status"])
+
+    # A process restart resumes from persisted state and does not duplicate nodes.
+    repeated = run_project_discovery(
+        source,
+        repository_root=workflow_root,
+        include_external=False,
+        identity="test-run",
+    )
+    assert len(repeated["workflow"]["steps"]) == len(result["workflow"]["steps"])
+    assert {item["step_instance_id"] for item in repeated["workflow"]["steps"]} == {
+        item["step_instance_id"] for item in result["workflow"]["steps"]
+    }
+
+
+def test_scope_approval_completes_waiting_owner_node(tmp_path: Path) -> None:
+    source = _project_bundle(tmp_path)
+    repository = WorkflowRepository(tmp_path / "workflow")
+    _, study_id = create_project_discovery_study(
+        repository, source, include_external=False, identity="approval"
+    )
+    scheduler = PersistentDAGScheduler(repository, stage_one_handlers())
+    scheduler.run(study_id)
+    gate = repository.list_gates(study_id)[0]
+    repository.decide_gate(
+        study_id, gate.gate_id, approve=True, decided_by="project_owner"
+    )
+
+    snapshot = scheduler.run(study_id)
+
+    scope_review = next(
+        item for item in snapshot["steps"] if item["step_type"] == "scope_review"
+    )
+    assert scope_review["status"] == "succeeded"
+
+
+def test_scheduler_retries_transient_failure_without_repeating_success(
+    tmp_path: Path,
+) -> None:
+    repository = WorkflowRepository(tmp_path / "workflow")
+    project = repository.create_project("Retry")
+    study = repository.create_study(
+        project.project_id, "Retry", entry_mode=EntryMode.IDEA_TO_PAPER
+    )
+    step = repository.add_step(
+        study.study_id,
+        "transient_probe",
+        Phase.DISCOVERY,
+        ExecutorType.DETERMINISTIC_SERVICE,
+    )
+    attempts = {"count": 0}
+
+    def handler(_context):
+        attempts["count"] += 1
+        if attempts["count"] < 3:
+            raise TransientStepError("temporary")
+        return {"ok": True}
+
+    scheduler = PersistentDAGScheduler(
+        repository, {"transient_probe": handler}, retry_backoff_seconds=0
+    )
+    scheduler.run(study.study_id)
+    completed = repository.load_step(study.study_id, step.step_instance_id)
+    scheduler.run(study.study_id)
+
+    assert completed.status is ExecutionStatus.SUCCEEDED
+    assert completed.attempt == 3
+    assert attempts["count"] == 3
+
+
+def test_paused_study_starts_no_nodes(tmp_path: Path) -> None:
+    source = _project_bundle(tmp_path)
+    repository = WorkflowRepository(tmp_path / "workflow")
+    _, study_id = create_project_discovery_study(
+        repository, source, include_external=False, identity="paused"
+    )
+    repository.pause_study(study_id)
+
+    PersistentDAGScheduler(repository, stage_one_handlers()).run(study_id)
+
+    assert all(
+        step.status is ExecutionStatus.QUEUED
+        for step in repository.list_steps(study_id)
+    )
+
+
+def test_scheduler_recovers_interrupted_step_after_explicit_restart(
+    tmp_path: Path,
+) -> None:
+    repository = WorkflowRepository(tmp_path / "workflow")
+    project = repository.create_project("Restart")
+    study = repository.create_study(
+        project.project_id, "Restart", entry_mode=EntryMode.IDEA_TO_PAPER
+    )
+    step = repository.add_step(
+        study.study_id,
+        "restart_probe",
+        Phase.DISCOVERY,
+        ExecutorType.DETERMINISTIC_SERVICE,
+    )
+    repository.update_step(
+        study.study_id, step.step_instance_id, ExecutionStatus.RUNNING
+    )
+
+    snapshot = PersistentDAGScheduler(
+        repository,
+        {"restart_probe": lambda _context: {"recovered": True}},
+        recover_interrupted=True,
+    ).run(study.study_id)
+
+    recovered = next(
+        item for item in snapshot["steps"] if item["step_type"] == "restart_probe"
+    )
+    assert recovered["status"] == "succeeded"
+    assert recovered["attempt"] == 2
+
+
+def test_unconnected_cross_stage_retrieval_is_blocked_not_faked(
+    tmp_path: Path,
+) -> None:
+    from research_forge.workflow_scheduler import stage_one_handlers
+
+    repository = WorkflowRepository(tmp_path / "workflow")
+    project = repository.create_project("Protocol retrieval")
+    study = repository.create_study(
+        project.project_id,
+        "Protocol retrieval",
+        entry_mode=EntryMode.PROJECT_TO_PAPER,
+    )
+    step = repository.add_step(
+        study.study_id,
+        "execute_protocol_grounding",
+        Phase.PROTOCOL,
+        ExecutorType.RETRIEVAL_SERVICE,
+    )
+
+    PersistentDAGScheduler(repository, stage_one_handlers()).run(study.study_id)
+
+    blocked = repository.load_step(study.study_id, step.step_instance_id)
+    assert blocked.status is ExecutionStatus.BLOCKED
+    assert blocked.blocker and blocked.blocker["kind"] == "not_implemented"

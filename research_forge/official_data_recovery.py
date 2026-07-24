@@ -10,33 +10,62 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import shutil
 from pathlib import Path
-from urllib.request import urlopen
 
 from datasets import DatasetDict, load_dataset
 
 
-def _download(url: str, destination: Path) -> str:
-    with urlopen(url, timeout=120) as response, destination.open("wb") as output:
-        while chunk := response.read(1024 * 1024):
-            output.write(chunk)
+def _stage_gateway_artifact(source: Path, destination: Path) -> str:
+    source = source.resolve()
+    if not source.is_file():
+        raise FileNotFoundError(f"retrieval artifact not found: {source}")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(source, destination)
     return hashlib.sha256(destination.read_bytes()).hexdigest()
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--train-url", required=True)
-    parser.add_argument("--test-url", required=True)
+    parser.add_argument(
+        "--train-artifact",
+        type=Path,
+        required=True,
+        help="Rights-approved local artifact acquired through RetrievalGateway.",
+    )
+    parser.add_argument(
+        "--test-artifact",
+        type=Path,
+        required=True,
+        help="Rights-approved local artifact acquired through RetrievalGateway.",
+    )
     args = parser.parse_args()
     output = args.output.resolve()
     staging = output.parent / (output.name + "-source-parquet")
     staging.mkdir(parents=True, exist_ok=True)
     train_file, test_file = staging / "train.parquet", staging / "test.parquet"
-    hashes = {"train": _download(args.train_url, train_file), "test": _download(args.test_url, test_file)}
+    hashes = {
+        "train": _stage_gateway_artifact(args.train_artifact, train_file),
+        "test": _stage_gateway_artifact(args.test_artifact, test_file),
+    }
     loaded = load_dataset("parquet", data_files={"train": str(train_file), "validation": str(test_file)})
     DatasetDict({"train": loaded["train"], "validation": loaded["validation"]}).save_to_disk(str(output))
-    (output / "official_raw_recovery_manifest.json").write_text(json.dumps({"schema_version": 1, "source": "official-huggingface-parquet", "train_url": args.train_url, "test_url": args.test_url, "sha256": hashes}, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    (output / "official_raw_recovery_manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "source": "retrieval-gateway-artifact",
+                "train_artifact": str(args.train_artifact.resolve()),
+                "test_artifact": str(args.test_artifact.resolve()),
+                "sha256": hashes,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
 
 if __name__ == "__main__":

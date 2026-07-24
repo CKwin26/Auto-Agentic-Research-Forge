@@ -1,0 +1,19 @@
+[
+  {
+    "case_id": "synthetic-provenance",
+    "category": "single_document",
+    "question": "What does evidence-bound evaluation preserve?",
+    "expected_answerable": true,
+    "required_term_groups": [
+      ["provenance"],
+      ["source identity"]
+    ]
+  },
+  {
+    "case_id": "synthetic-unsupported-trial",
+    "category": "single_document",
+    "question": "What phase III clinical trial is reported?",
+    "expected_answerable": false,
+    "required_term_groups": []
+  }
+]

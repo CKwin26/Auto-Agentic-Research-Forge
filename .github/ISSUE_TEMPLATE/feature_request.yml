@@ -1,0 +1,25 @@
+name: Feature request
+description: Propose a reusable Research Forge capability
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Research workflow problem
+      description: Which user or scientific-control problem should this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: authority
+    attributes:
+      label: Authority and evidence implications
+      description: What may change, and what must remain frozen or owner-gated?
+    validations:
+      required: true

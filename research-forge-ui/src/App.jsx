@@ -178,6 +178,333 @@ function GlobalHeader({ connected, tasks, activeTask, onSelectTask }) {
   );
 }
 
+const capabilityNames = {
+  academic_search: "论文检索",
+  github_research: "GitHub",
+  huggingface_research: "Hugging Face",
+  public_web: "公开网页",
+  open_access: "开放全文",
+  institutional_access: "机构资源",
+  evidence_analysis: "全文证据分析",
+};
+
+const institutionPresets = {
+  cmu: {
+    ownerUserId: "",
+    institutionId: "carnegie-mellon-university",
+    targetUrl: "https://www.library.cmu.edu/find",
+  },
+};
+
+const readinessStateNames = {
+  ready: "已验证",
+  degraded: "降级可用",
+  blocked: "已阻止",
+  unavailable: "不可用",
+  not_configured: "未配置",
+};
+
+const readinessStateDescriptions = {
+  ready: "近期真实运行和发布测试均已通过。",
+  degraded: "基础能力存在，但仍缺近期真实运行或发布验收。",
+  blocked: "当前被策略、权限或前置条件阻止。",
+  unavailable: "当前环境不具备运行该能力的必要条件。",
+  not_configured: "当前项目尚未配置该能力。",
+};
+
+function ExternalResearchStatus({ report, workflow }) {
+  const [expanded, setExpanded] = useState(false);
+  const [overview, setOverview] = useState(null);
+  const [panelError, setPanelError] = useState("");
+  const [loopSnapshot, setLoopSnapshot] = useState(null);
+  const [loopBusy, setLoopBusy] = useState(false);
+  const [institution, setInstitution] = useState({
+    ownerUserId: "",
+    institutionId: "",
+    targetUrl: "",
+  });
+  const [session, setSession] = useState(null);
+  const capabilities = (report?.capabilities || []).filter(
+    (item) => item.capability !== "external_research_v1",
+  );
+  const study = workflow?.study;
+  const projectId = study?.project_id;
+  const studyId = study?.study_id;
+  const modeNames = {
+    offline: "离线",
+    academic_read: "学术只读",
+    public_web_read: "公开网页只读",
+    authenticated_read: "授权只读",
+    public_research: "公开研究",
+    public_research_plus_institution: "公开研究 + 机构资源",
+  };
+  const retrievalSteps = (loopSnapshot?.steps || workflow?.steps || []).filter(
+    (item) => item.executor_type === "retrieval_service",
+  );
+  const latestCoverage = [...(overview?.runs || [])]
+    .reverse()
+    .find((item) => item.coverage)?.coverage;
+
+  useEffect(() => {
+    if (!expanded || !projectId || !studyId) return undefined;
+    let cancelled = false;
+    api(
+      `/api/retrieval/overview?project_id=${encodeURIComponent(projectId)}&study_id=${encodeURIComponent(studyId)}`,
+    )
+      .then((payload) => {
+        if (!cancelled) {
+          setOverview(payload);
+          setPanelError("");
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) setPanelError(error.message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [expanded, projectId, studyId]);
+
+  async function prepareExternalLoop(run) {
+    if (!studyId) return;
+    setLoopBusy(true);
+    setPanelError("");
+    try {
+      const payload = await api(
+        `/studies/${encodeURIComponent(studyId)}/retrieval-dags`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            stage: "all",
+            run_key: "ui-public-loop-v1",
+            run,
+          }),
+        },
+      );
+      setLoopSnapshot(payload.snapshot);
+      setExpanded(true);
+    } catch (error) {
+      setPanelError(error.message);
+    } finally {
+      setLoopBusy(false);
+    }
+  }
+
+  async function connectInstitution(event) {
+    event.preventDefault();
+    setPanelError("");
+    try {
+      const created = await api("/institution-sessions", {
+        method: "POST",
+        body: JSON.stringify({
+          owner_user_id: institution.ownerUserId,
+          project_id: projectId,
+          study_id: studyId,
+          institution_id: institution.institutionId,
+          target_url: institution.targetUrl,
+          open_browser: true,
+        }),
+      });
+      setSession(created.session || created);
+    } catch (error) {
+      setPanelError(error.message);
+    }
+  }
+
+  async function confirmInstitution() {
+    try {
+      const confirmed = await api(
+        `/institution-sessions/${encodeURIComponent(session.session_id)}/confirm-authenticated`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            owner_user_id: institution.ownerUserId,
+            user_confirmation: true,
+            duration_minutes: 30,
+          }),
+        },
+      );
+      setSession(confirmed);
+      setPanelError("");
+    } catch (error) {
+      setPanelError(error.message);
+    }
+  }
+
+  if (!report) return null;
+  return (
+    <section className="external-research-strip" aria-label="外部研究能力">
+      <div className="external-research-heading">
+        <div>
+          <p className="eyebrow">外部研究能力</p>
+          <h2>
+            {overview?.policy
+              ? `当前网络模式：${modeNames[overview.policy.mode] || overview.policy.mode}`
+              : "默认网络模式：离线"}
+          </h2>
+        </div>
+        <div className="external-research-actions">
+          <span className={report.public_research_loop_ready ? "external-status-badge is-ready" : "external-status-badge is-degraded"}>
+            {report.public_research_loop_ready
+              ? (report.external_research_v1_ready ? "全部能力可用" : "公共闭环可用")
+              : "按能力降级"}
+          </span>
+          <button type="button" onClick={() => setExpanded((value) => !value)}>
+            {expanded ? "收起" : "查看详情"}
+          </button>
+        </div>
+      </div>
+      <div className="capability-pills">
+        {capabilities.map((item) => (
+          <span key={item.capability} className={`capability-pill is-${item.state}`}>
+            <i />
+            {capabilityNames[item.capability] || item.capability}
+            <small>{readinessStateNames[item.state] || item.state}</small>
+          </span>
+        ))}
+      </div>
+      <p className="external-research-note">
+        网络默认关闭，启用需项目负责人批准。机构资源只打开学校官方登录页，由你本人完成登录和 MFA；这里不会收集密码。
+      </p>
+      {study ? (
+        <div className="external-loop-controls">
+          <div>
+            <strong>四阶段外部检索闭环</strong>
+            <small>先建立持久 DAG；运行时只执行策略允许且前置条件已满足的步骤。</small>
+          </div>
+          <button
+            type="button"
+            disabled={loopBusy}
+            onClick={() => prepareExternalLoop(false)}
+          >
+            {loopBusy ? "处理中…" : "建立闭环"}
+          </button>
+          <button
+            type="button"
+            disabled={loopBusy}
+            onClick={() => prepareExternalLoop(true)}
+          >
+            运行可执行步骤
+          </button>
+        </div>
+      ) : null}
+      {expanded ? (
+        <div className="external-research-details">
+          <div className="capability-detail-grid">
+            {capabilities.map((item) => (
+              <article key={item.capability}>
+                <div className="capability-detail-title">
+                  <strong>{capabilityNames[item.capability] || item.capability}</strong>
+                  <em>{readinessStateNames[item.state] || item.state}</em>
+                </div>
+                <p>{readinessStateDescriptions[item.state] || "状态信息暂不可用。"}</p>
+                <span>Provider：{(item.provider_ids || []).join(" · ") || "无"}</span>
+                {(item.reasons || []).length ? (
+                  <details>
+                    <summary>查看审计信息</summary>
+                    <small>{item.reasons.join("；")}</small>
+                  </details>
+                ) : null}
+              </article>
+            ))}
+          </div>
+          {study ? (
+            <>
+              <div className="retrieval-overview-grid">
+                <article>
+                  <h3>当前检索步骤</h3>
+                  {retrievalSteps.length ? retrievalSteps.map((step) => (
+                    <p key={step.step_instance_id}>
+                      <span>{step.step_type}</span>
+                      <b>{stepStatusLabel[step.status] || step.status}</b>
+                    </p>
+                  )) : <small>当前 Study 尚无外部检索步骤。</small>}
+                </article>
+                <article>
+                  <h3>Provider 与查询目的</h3>
+                  {(overview?.runs || []).length ? overview.runs.slice(-6).map((item) => (
+                    <p key={item.run.run_id}>
+                      <span>
+                        {(item.query_plan.providers || []).join(" · ")}
+                        <small>{item.request.purpose}</small>
+                      </span>
+                      <b>{item.run.execution_status}</b>
+                    </p>
+                  )) : <small>尚无检索运行记录。</small>}
+                </article>
+                <article>
+                  <h3>Coverage</h3>
+                  {latestCoverage ? (
+                    <dl>
+                      <div><dt>原始结果</dt><dd>{latestCoverage.raw_result_count}</dd></div>
+                      <div><dt>去重后</dt><dd>{latestCoverage.deduplicated_result_count}</dd></div>
+                      <div><dt>验证通过</dt><dd>{latestCoverage.verified_result_count}</dd></div>
+                      <div><dt>开放全文</dt><dd>{latestCoverage.full_text_available_count}</dd></div>
+                    </dl>
+                  ) : <small>尚无 Coverage Report。</small>}
+                </article>
+                <article>
+                  <h3>Study 资源</h3>
+                  {(overview?.resources || []).length ? overview.resources.slice(0, 8).map((item) => (
+                    <p key={item.resource_id}>
+                      <span>{item.title}</span>
+                      <b>{item.resource_type}</b>
+                    </p>
+                  )) : <small>尚无已绑定资源。</small>}
+                </article>
+              </div>
+              <form className="institution-connect-form" onSubmit={connectInstitution}>
+                <div>
+                  <h3>连接机构资源</h3>
+                  <p>这里只记录会话范围；账号、密码和 MFA 只在学校官方页面中输入。</p>
+                  <div className="institution-presets" aria-label="机构预设">
+                    <button
+                      type="button"
+                      onClick={() => setInstitution({
+                        ...institutionPresets.cmu,
+                        ownerUserId: institution.ownerUserId,
+                      })}
+                    >
+                      使用 CMU 官方入口
+                    </button>
+                    <small>校外访问建议先连接 vpn.cmu.edu 的 Full VPN。</small>
+                  </div>
+                </div>
+                <label>
+                  本机用户标识
+                  <input required value={institution.ownerUserId} onChange={(event) => setInstitution({ ...institution, ownerUserId: event.target.value })} />
+                </label>
+                <label>
+                  学校或图书馆
+                  <input required value={institution.institutionId} onChange={(event) => setInstitution({ ...institution, institutionId: event.target.value })} />
+                </label>
+                <label>
+                  官方登录页
+                  <input required type="url" placeholder="https://library.example.edu/login" value={institution.targetUrl} onChange={(event) => setInstitution({ ...institution, targetUrl: event.target.value })} />
+                </label>
+                <button type="submit">打开官方登录页</button>
+                {session ? (
+                  <div className="institution-session-state">
+                    <span>会话状态：{session.status}</span>
+                    {session.status === "waiting_for_user" ? (
+                      <button type="button" onClick={confirmInstitution}>我已完成登录与 MFA</button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </form>
+            </>
+          ) : (
+            <p className="external-research-context-note">
+              进入一个 Study 后，这里会显示网络策略、检索步骤、Provider、Coverage、资源和机构连接。
+            </p>
+          )}
+          {panelError ? <p className="external-research-error">{panelError}</p> : null}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function ModeSelector({ mode, onChange, disabled }) {
   return (
     <section className="mode-selector">
@@ -340,7 +667,7 @@ function ProjectIntake({ source, onSource, onChooseFolder, onSubmit, loading }) 
           <button type="button" className="secondary-button" onClick={onChooseFolder} disabled={loading}>选择文件夹</button>
         </div>
         <div className="form-actions">
-          <div className="privacy-note"><LockKey size={16} /><span>只读分析 · 联网检索默认开放 · 密钥和私密文件永不外发</span></div>
+          <div className="privacy-note"><LockKey size={16} /><span>只读分析 · 联网检索默认关闭 · 密钥和私密文件永不外发</span></div>
           <button type="submit" className="primary-button" disabled={loading || !source.trim()}>
             {loading ? <CircleNotch className="spinner" size={18} /> : <ArrowRight size={18} />}
             {loading ? "正在创建分析任务" : "扫描项目"}
@@ -857,10 +1184,15 @@ function diagnosticOwner(owner) {
 export function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [drawerItem, setDrawerItem] = useState(null);
+  const [retrievalReadiness, setRetrievalReadiness] = useState(null);
   const pollRef = useRef(null);
   const directions = useMemo(() => uniqueDirections(state.inspection?.candidates || []), [state.inspection]);
   const selectedDirection = directions.find((item) => item.track_id === state.selectedDirectionId) || directions[0] || null;
   const requestPending = state.request.status === "pending";
+  const activeWorkflow = state.run?.workflow
+    || state.ideaResult?.workflow
+    || state.activeTask?.result?.workflow
+    || null;
 
   useEffect(() => {
     let cancelled = false;
@@ -891,6 +1223,20 @@ export function App() {
       })
       .catch((error) => { if (!cancelled) dispatch({ type: "BOOTSTRAP_ERROR", error: error.message }); });
     return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    api("/retrieval/readiness")
+      .then((report) => {
+        if (!cancelled) setRetrievalReadiness(report);
+      })
+      .catch(() => {
+        if (!cancelled) setRetrievalReadiness(null);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -1099,6 +1445,7 @@ export function App() {
     <div className="app-shell">
       <GlobalHeader connected={state.boot === "ready"} tasks={state.tasks} activeTask={state.activeTask} onSelectTask={selectTask} />
       <main className="workspace">
+        <ExternalResearchStatus report={retrievalReadiness} workflow={activeWorkflow} />
         {state.view === "intake" ? <ModeSelector mode={state.mode} onChange={(mode) => dispatch({ type: "SET_MODE", mode })} disabled={requestPending} /> : null}
         <Notice notice={state.notice} error={state.error} />
         {state.view === "intake" ? <><Hero mode={state.mode} />{state.mode === "project" ? <ProjectIntake source={state.source} onSource={(source) => dispatch({ type: "PATCH", patch: { source } })} onChooseFolder={chooseFolder} onSubmit={inspectProject} loading={requestPending} /> : <IdeaIntake onSubmit={startIdea} loading={requestPending} />}</> : null}

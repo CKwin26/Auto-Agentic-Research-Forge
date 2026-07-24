@@ -84,3 +84,21 @@ hash, and scientific-integrity failures are not automatically retried.
 
 Pausing a Study prevents new step attempts from starting. Completed artifacts
 and all failed attempts remain available for a successor run.
+
+## Forge Retrieval Gateway
+
+External research access is horizontal Workflow v2 infrastructure. New
+handlers declare Project, Study, phase, StepInstance, purpose, policy, contract,
+budget, and idempotency context and call `research_forge.retrieval`; they do not
+call Provider or HTTP clients directly.
+
+The default retrieval mode is `offline`. Discovery now persists explicit DAG
+nodes for query planning, policy evaluation, sanitization, retrieval,
+normalization, deduplication, metadata verification, SourceSet construction,
+Scope review, and SourceSet freezing. Discovery bindings are background or
+attention inputs and cannot directly support a formal verdict.
+
+Protocol, Experimentation, Synthesis, and Repair retrieval StepDefinitions and
+StageProfiles are registered. Until their phase-specific business adapters are
+connected, execution returns `blocked/not_implemented` and does not fabricate
+successful grounding, experiment resources, citation audits, or repairs.

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Auditable, two-channel claim discovery for local project bundles.
 
 External trend signals recommend questions worth testing.  Project-authored
@@ -7,6 +5,8 @@ statements record what the project says it achieved.  Neither channel is
 scientific evidence; evidence eligibility remains owned by later Research
 Forge stages.
 """
+
+from __future__ import annotations
 
 import hashlib
 import json
@@ -115,8 +115,13 @@ class AuthorClaim(StrictModel):
 
 class TrendSignal(StrictModel):
     signal_id: str
-    provider: Literal["redfox_wechat", "semantic_scholar", "crossref"]
-    signal_class: Literal["market_attention", "scholarly_attention"]
+    provider: str = Field(min_length=2, max_length=100)
+    signal_class: Literal[
+        "market_attention",
+        "scholarly_attention",
+        "official_source",
+        "adoption_signal",
+    ]
     query: str
     title: str
     summary: str = ""
@@ -128,6 +133,7 @@ class TrendSignal(StrictModel):
     trend_score: float = Field(ge=0.0, le=1.0)
     scientific_density: float = Field(ge=0.0, le=1.0)
     evidence_role: Literal["attention_only"] = "attention_only"
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class ProjectResearchFingerprint(StrictModel):
@@ -462,35 +468,8 @@ def _query_relevant(query: str, title: str, summary: str) -> bool:
 HttpJson = Callable[[urllib.request.Request], dict[str, Any]]
 
 
-def _http_json(request: urllib.request.Request) -> dict[str, Any]:
-    try:
-        with urllib.request.urlopen(request, timeout=20) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-    except Exception as first_error:
-        # RedFox's TLS edge has occasionally closed stdlib handshakes early on
-        # Windows.  httpx is already a direct Research Forge dependency and is
-        # used only as a transport fallback; request headers are never logged.
-        try:
-            import httpx
-
-            response = httpx.request(
-                request.get_method(),
-                request.full_url,
-                content=request.data,
-                headers=dict(request.header_items()),
-                timeout=20.0,
-            )
-            response.raise_for_status()
-            payload = response.json()
-        except Exception as fallback_error:
-            raise fallback_error from first_error
-    if not isinstance(payload, dict):
-        raise ValueError("provider response must be a JSON object")
-    return payload
-
-
 def fetch_redfox_trends(
-    queries: Sequence[str], *, api_key: str, http_json: HttpJson = _http_json
+    queries: Sequence[str], *, api_key: str, http_json: HttpJson
 ) -> list[TrendSignal]:
     signals: dict[str, TrendSignal] = {}
     now = datetime.now(timezone.utc)
@@ -552,7 +531,7 @@ def fetch_redfox_trends(
 
 
 def fetch_scholarly_trends(
-    queries: Sequence[str], *, api_key: str | None = None, http_json: HttpJson = _http_json
+    queries: Sequence[str], *, api_key: str | None = None, http_json: HttpJson
 ) -> list[TrendSignal]:
     signals: dict[str, TrendSignal] = {}
     current_year = datetime.now(timezone.utc).year
@@ -605,7 +584,7 @@ def fetch_scholarly_trends(
 
 
 def fetch_crossref_trends(
-    queries: Sequence[str], *, http_json: HttpJson = _http_json
+    queries: Sequence[str], *, http_json: HttpJson
 ) -> list[TrendSignal]:
     signals: dict[str, TrendSignal] = {}
     current_year = datetime.now(timezone.utc).year
@@ -753,7 +732,7 @@ def discover_project_claims(
     candidates: Sequence[Any],
     *,
     include_external: bool = True,
-    http_json: HttpJson = _http_json,
+    http_json: HttpJson | None = None,
 ) -> ClaimDiscoveryReport:
     root = Path(source_root).resolve()
     author_claims = extract_author_claims(root, resources)
@@ -769,6 +748,12 @@ def discover_project_claims(
             "crossref": "not_requested",
         }
     else:
+        if http_json is None:
+            raise ValueError(
+                "legacy claim discovery cannot perform direct network access; "
+                "use Workflow v2 RetrievalGateway or inject a provider transport "
+                "for an offline test"
+            )
         redfox_key = _env_value(root / ".env.local", "REDFOX_API_KEY")
         if redfox_key:
             try:

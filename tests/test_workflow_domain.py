@@ -42,7 +42,9 @@ from research_forge.workflow_migration import migrate_bundle_run
 
 def _repository(tmp_path: Path) -> tuple[WorkflowRepository, str]:
     repository = WorkflowRepository(tmp_path / "workflow")
-    project = repository.create_project("Shared project", source_root="C:/research/shared")
+    project = repository.create_project(
+        "Shared project", source_root="C:/research/shared"
+    )
     return repository, project.project_id
 
 
@@ -268,7 +270,9 @@ def test_dependency_impact_invalidates_only_descendants(tmp_path: Path) -> None:
         role=ArtifactRole.LITERATURE_BACKGROUND,
     )
     repository.add_dependency(study.study_id, protocol.artifact_id, output.artifact_id)
-    repository.add_dependency(study.study_id, output.artifact_id, manuscript.artifact_id)
+    repository.add_dependency(
+        study.study_id, output.artifact_id, manuscript.artifact_id
+    )
 
     impact = repository.impact(study.study_id, [output.artifact_id])
 
@@ -291,9 +295,12 @@ def test_publication_ready_requires_system_ai_and_author(tmp_path: Path) -> None
         )
     )
     assert assessment.publication_ready is False
-    assert repository.submit_ai_review(
-        study.study_id, AIReviewStatus.PASSED
-    ).publication_ready is False
+    assert (
+        repository.submit_ai_review(
+            study.study_id, AIReviewStatus.PASSED
+        ).publication_ready
+        is False
+    )
     _, approved = repository.submit_author_approval(
         study.study_id,
         AuthorApprovalStatus.APPROVED,
@@ -336,7 +343,11 @@ def test_network_ledger_blocks_secrets_writes_and_budget_overrun(
     repository = WorkflowRepository(tmp_path / "workflow")
     project = repository.create_project(
         "Network project",
-        network_policy=NetworkPolicy(budget_limit=1.0),
+        network_policy=NetworkPolicy(
+            network_enabled=True,
+            public_read_requests_automatic=True,
+            budget_limit=1.0,
+        ),
     )
     accepted = NetworkAuditEvent(
         event_id=stable_id("network", project.project_id, "first"),
@@ -403,16 +414,24 @@ def test_completion_record_detects_tampering(tmp_path: Path) -> None:
         tmp_path / "completion_record.json",
         seal_completion_record(CompletionRecord.model_validate(record)),
     )
-    assert verify_completion_record(tmp_path / "completion_record.json")["passed"] is True
+    assert (
+        verify_completion_record(tmp_path / "completion_record.json")["passed"] is True
+    )
 
     artifact.write_text('{"value": 2}', encoding="utf-8")
-    assert verify_completion_record(tmp_path / "completion_record.json")["passed"] is False
+    assert (
+        verify_completion_record(tmp_path / "completion_record.json")["passed"] is False
+    )
 
     artifact.write_text('{"value": 1}', encoding="utf-8")
-    tampered = json.loads((tmp_path / "completion_record.json").read_text(encoding="utf-8"))
+    tampered = json.loads(
+        (tmp_path / "completion_record.json").read_text(encoding="utf-8")
+    )
     tampered["issuer_version"] = "tampered"
     write_json_atomic(tmp_path / "completion_record.json", tampered)
-    assert verify_completion_record(tmp_path / "completion_record.json")["passed"] is False
+    assert (
+        verify_completion_record(tmp_path / "completion_record.json")["passed"] is False
+    )
 
 
 def test_legacy_bundle_migration_preserves_certificate_and_creates_v2_record(

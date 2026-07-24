@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """Built-in task operations shared by the CLI and local web application."""
+
+from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
@@ -28,13 +28,15 @@ def _idea_start(payload: dict[str, Any], task: TaskRecord) -> dict[str, Any]:
     )
 
 
-def _bundle_inspect(payload: dict[str, Any], _: TaskRecord) -> dict[str, Any]:
-    from .project_bundle import inspect_project_bundle
+def _bundle_inspect(payload: dict[str, Any], task: TaskRecord) -> dict[str, Any]:
+    from .workflow_scheduler import run_project_discovery
 
-    return inspect_project_bundle(
+    return run_project_discovery(
         _required_text(payload, "source"),
-        discover_claims=bool(payload.get("discover_claims", False)),
-    ).model_dump(mode="json")
+        repository_root=_required_text(payload, "workflow_root"),
+        include_external=bool(payload.get("discover_claims", False)),
+        identity=task.task_id,
+    )
 
 
 def _bundle_close(
@@ -42,7 +44,10 @@ def _bundle_close(
     _: TaskRecord,
     report_progress: Callable[..., None],
 ) -> dict[str, Any]:
-    from .project_bundle import close_project_bundle_loop, verify_project_bundle_completion
+    from .project_bundle import (
+        close_project_bundle_loop,
+        verify_project_bundle_completion,
+    )
     from .workflow_migration import migrate_bundle_run
 
     run_dir = close_project_bundle_loop(
@@ -65,7 +70,10 @@ def _bundle_close(
 
 
 async def _bundle_expand(payload: dict[str, Any], _: TaskRecord) -> dict[str, Any]:
-    from .paper_expansion import expand_project_bundle_paper, verify_project_bundle_paper
+    from .paper_expansion import (
+        expand_project_bundle_paper,
+        verify_project_bundle_paper,
+    )
     from .storage import read_json
     from .workflow_domain import (
         AIReviewStatus,
@@ -88,11 +96,14 @@ async def _bundle_expand(payload: dict[str, Any], _: TaskRecord) -> dict[str, An
             run_dir / "stage_4_synthesis" / "paper_draft_review.json",
         ]
         panel_decisions = [
-            str(read_json(path).get("decision", "")) for path in panel_paths if path.is_file()
+            str(read_json(path).get("decision", ""))
+            for path in panel_paths
+            if path.is_file()
         ]
         ai_status = (
             AIReviewStatus.PASSED
-            if len(panel_decisions) == 2 and all(item == "accept" for item in panel_decisions)
+            if len(panel_decisions) == 2
+            and all(item == "accept" for item in panel_decisions)
             else AIReviewStatus.FAILED
         )
         repository.save_readiness(
@@ -144,7 +155,10 @@ def built_in_operations() -> tuple[OperationDefinition, ...]:
             "idea.start", _idea_start, stage=MacroStage.DISCOVERY, resumable=True
         ),
         OperationDefinition(
-            "bundle.inspect", _bundle_inspect, stage=MacroStage.DISCOVERY, resumable=True
+            "bundle.inspect",
+            _bundle_inspect,
+            stage=MacroStage.DISCOVERY,
+            resumable=True,
         ),
         # close-loop creates an immutable run directory. Until that operation
         # has a stage-level checkpoint protocol, an interrupted attempt is
@@ -153,10 +167,16 @@ def built_in_operations() -> tuple[OperationDefinition, ...]:
             "bundle.close", _bundle_close, stage=MacroStage.SYNTHESIS, resumable=False
         ),
         OperationDefinition(
-            "bundle.expand-paper", _bundle_expand, stage=MacroStage.SYNTHESIS, resumable=True
+            "bundle.expand-paper",
+            _bundle_expand,
+            stage=MacroStage.SYNTHESIS,
+            resumable=True,
         ),
         OperationDefinition(
-            "bundle.remediate", _bundle_remediate, stage=MacroStage.EXPERIMENTATION, resumable=True
+            "bundle.remediate",
+            _bundle_remediate,
+            stage=MacroStage.EXPERIMENTATION,
+            resumable=True,
         ),
     ]
     from .publication_adapters import (

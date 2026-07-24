@@ -11,7 +11,7 @@ import webbrowser
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import parse_qs, unquote, urlparse
 
 from .models import utc_now
@@ -23,6 +23,13 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_RUNS_ROOT = PROJECT_ROOT / "bundle_runs"
 DEFAULT_IDEA_ROOT = PROJECT_ROOT / "idea_runs"
 DEFAULT_STATIC_ROOT = PROJECT_ROOT / "research-forge-ui" / "dist"
+
+
+def _retrieval_freshness(value: Any) -> Literal["cache_only", "live"]:
+    freshness = str(value or "cache_only")
+    if freshness not in {"cache_only", "live"}:
+        raise ValueError("freshness must be cache_only or live")
+    return freshness  # type: ignore[return-value]
 ALLOWED_ARTIFACT_SUFFIXES = {".json", ".md", ".txt"}
 
 
@@ -112,7 +119,15 @@ $owner.Dispose()
     environment["RESEARCH_FORGE_INITIAL_FOLDER"] = initial.strip()
     try:
         completed = subprocess.run(
-            [powershell, "-NoProfile", "-WindowStyle", "Hidden", "-STA", "-Command", script],
+            [
+                powershell,
+                "-NoProfile",
+                "-WindowStyle",
+                "Hidden",
+                "-STA",
+                "-Command",
+                script,
+            ],
             check=False,
             capture_output=True,
             text=True,
@@ -179,8 +194,10 @@ def summarize_run(run_dir: Path) -> dict[str, Any]:
         "name": run_dir.name,
         "path": str(run_dir),
         "source_root": manifest.get("source_root", ""),
-        "track_id": certificate.get("track_id") or manifest.get("selected_track_id", ""),
-        "completed_at": completion_record.get("completed_at") or certificate.get("completed_at", ""),
+        "track_id": certificate.get("track_id")
+        or manifest.get("selected_track_id", ""),
+        "completed_at": completion_record.get("completed_at")
+        or certificate.get("completed_at", ""),
         "idea_status": certificate.get("idea_status", "unverifiable"),
         "idea_validated": bool(certificate.get("idea_validated", False)),
         "pilot_draft_generated": bool(
@@ -217,7 +234,9 @@ def list_bundle_runs(runs_root: str | Path = DEFAULT_RUNS_ROOT) -> list[dict[str
         for path in root.iterdir()
         if path.is_dir() and (path / "completion_certificate.json").is_file()
     ]
-    runs.sort(key=lambda item: (item.get("completed_at", ""), item["name"]), reverse=True)
+    runs.sort(
+        key=lambda item: (item.get("completed_at", ""), item["name"]), reverse=True
+    )
     return runs
 
 
@@ -225,9 +244,15 @@ def load_run_detail(run_dir: str | Path) -> dict[str, Any]:
     root = Path(run_dir).resolve()
     summary = summarize_run(root)
     inspection = _read_json_if_present(root / "inspection.json", {})
-    scope = _read_json_if_present(root / "stage_1_discovery" / "scope_contract.json", {})
-    protocol = _read_json_if_present(root / "stage_2_protocol" / "protocol_lock.json", {})
-    verdict = _read_json_if_present(root / "stage_3_experimentation" / "idea_verdict.json", {})
+    scope = _read_json_if_present(
+        root / "stage_1_discovery" / "scope_contract.json", {}
+    )
+    protocol = _read_json_if_present(
+        root / "stage_2_protocol" / "protocol_lock.json", {}
+    )
+    verdict = _read_json_if_present(
+        root / "stage_3_experimentation" / "idea_verdict.json", {}
+    )
     audit = _read_json_if_present(root / "stage_4_synthesis" / "audit.json", {})
     manuscript_depth = _read_json_if_present(
         root / "stage_4_synthesis" / "manuscript_depth.json", {}
@@ -298,7 +323,9 @@ def load_run_detail(run_dir: str | Path) -> dict[str, Any]:
         "claims": claims.get("claims", []),
         "claim_discovery": claim_discovery,
         "workflow": workflow,
-        "manuscript": _read_text_if_present(root / "stage_4_synthesis" / "manuscript.md"),
+        "manuscript": _read_text_if_present(
+            root / "stage_4_synthesis" / "manuscript.md"
+        ),
         "full_manuscript": _read_text_if_present(
             root / "stage_4_synthesis" / "full_manuscript.md"
         ),
@@ -345,8 +372,14 @@ def initialize_idea_research(
     cleaned_idea = idea.strip()
     if len(cleaned_idea) < 12:
         raise ValueError("研究想法至少需要 12 个字符，以便形成可收敛的问题边界")
-    cleaned_title = title.strip() or cleaned_idea[:28].rstrip("，。；;,. ") or "未命名研究"
-    slug = f"idea-{task_id.removeprefix('task-')}" if task_id else f"idea-{uuid.uuid4().hex[:10]}"
+    cleaned_title = (
+        title.strip() or cleaned_idea[:28].rstrip("，。；;,. ") or "未命名研究"
+    )
+    slug = (
+        f"idea-{task_id.removeprefix('task-')}"
+        if task_id
+        else f"idea-{uuid.uuid4().hex[:10]}"
+    )
     project_path = Path(idea_root).expanduser().resolve() / slug
     intake_path = project_path / "web_intake.json"
     if task_id and intake_path.is_file():
@@ -416,7 +449,11 @@ def initialize_idea_research(
         "stages": [
             {"id": "stage_1_discovery", "title": "发现与收敛", "status": "ready"},
             {"id": "stage_2_protocol", "title": "协议与基线", "status": "pending"},
-            {"id": "stage_3_experimentation", "title": "实验与判定", "status": "pending"},
+            {
+                "id": "stage_3_experimentation",
+                "title": "实验与判定",
+                "status": "pending",
+            },
             {"id": "stage_4_synthesis", "title": "论文与审计", "status": "pending"},
         ],
     }
@@ -491,13 +528,21 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
             )
         relative = unquote(request_path).lstrip("/") or "index.html"
         candidate = (self.server.static_root / relative).resolve()
-        if self.server.static_root not in candidate.parents and candidate != self.server.static_root:
+        if (
+            self.server.static_root not in candidate.parents
+            and candidate != self.server.static_root
+        ):
             raise FileNotFoundError("static asset not found")
         if not candidate.is_file():
             candidate = self.server.static_root / "index.html"
         content = candidate.read_bytes()
-        mime_type = mimetypes.guess_type(candidate.name)[0] or "application/octet-stream"
-        if mime_type.startswith("text/") or mime_type in {"application/javascript", "application/json"}:
+        mime_type = (
+            mimetypes.guess_type(candidate.name)[0] or "application/octet-stream"
+        )
+        if mime_type.startswith("text/") or mime_type in {
+            "application/javascript",
+            "application/json",
+        }:
             mime_type += "; charset=utf-8"
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", mime_type)
@@ -509,11 +554,112 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         try:
+            path_parts = [item for item in parsed.path.split("/") if item]
+            if parsed.path == "/retrieval/readiness":
+                from .retrieval.interfaces.readiness import ReadinessService
+                from .retrieval.interfaces.service import RetrievalGateway
+
+                gateway = RetrievalGateway(str(self.server.workflow_root))
+                self._send_json(
+                    ReadinessService(
+                        gateway.repository, gateway.providers
+                    ).evaluate().model_dump(mode="json")
+                )
+                return
+            if (
+                len(path_parts) == 3
+                and path_parts[0] == "projects"
+                and path_parts[2] == "retrieval-policy"
+            ):
+                from .retrieval.interfaces.service import RetrievalGateway
+
+                self._send_json(
+                    RetrievalGateway(
+                        str(self.server.workflow_root)
+                    ).get_policy(path_parts[1]).model_dump(mode="json")
+                )
+                return
+            if len(path_parts) >= 2 and path_parts[0] == "retrieval-runs":
+                from .retrieval.interfaces.service import RetrievalGateway
+
+                gateway = RetrievalGateway(str(self.server.workflow_root))
+                run = gateway.repository.load_run(path_parts[1])
+                if len(path_parts) == 3 and path_parts[2] == "coverage":
+                    if not run.coverage_report_id:
+                        raise FileNotFoundError("retrieval run has no coverage report")
+                    self._send_json(
+                        gateway.repository.load_coverage(
+                            run.coverage_report_id
+                        ).model_dump(mode="json")
+                    )
+                else:
+                    self._send_json(run.model_dump(mode="json"))
+                return
+            if (
+                len(path_parts) == 3
+                and path_parts[0] == "studies"
+                and path_parts[2] == "resources"
+            ):
+                from .retrieval.interfaces.service import RetrievalGateway
+
+                gateway = RetrievalGateway(str(self.server.workflow_root))
+                bindings = gateway.repository.list_bindings(path_parts[1])
+                allowed = {item.resource_id for item in bindings}
+                self._send_json(
+                    {
+                        "resources": [
+                            item.model_dump(mode="json")
+                            for item in gateway.repository.list_resources()
+                            if item.resource_id in allowed
+                        ],
+                        "bindings": [
+                            item.model_dump(mode="json") for item in bindings
+                        ],
+                    }
+                )
+                return
+            if len(path_parts) >= 2 and path_parts[0] == "resources":
+                from .retrieval.interfaces.service import RetrievalGateway
+
+                gateway = RetrievalGateway(str(self.server.workflow_root))
+                if len(path_parts) == 3 and path_parts[2] == "relations":
+                    self._send_json(
+                        {
+                            "relations": [
+                                item.model_dump(mode="json")
+                                for item in gateway.repository.list_resource_relations(
+                                    path_parts[1]
+                                )
+                            ]
+                        }
+                    )
+                else:
+                    self._send_json(
+                        gateway.repository.load_resource(path_parts[1]).model_dump(
+                            mode="json"
+                        )
+                    )
+                return
+            if len(path_parts) == 2 and path_parts[0] == "institution-sessions":
+                from .retrieval.institution import InstitutionSessionBroker
+
+                query = parse_qs(parsed.query)
+                self._send_json(
+                    InstitutionSessionBroker(self.server.workflow_root)
+                    .load(
+                        path_parts[1],
+                        owner_user_id=query.get("owner_user_id", [""])[0],
+                    )
+                    .model_dump(mode="json")
+                )
+                return
             if parsed.path == "/api/health":
                 self._send_json({"ok": True, "service": "research-forge-web"})
                 return
             if parsed.path == "/api/bootstrap":
-                self._send_json(bootstrap_payload(self.server.runs_root, self.server.idea_root))
+                self._send_json(
+                    bootstrap_payload(self.server.runs_root, self.server.idea_root)
+                )
                 return
             if parsed.path == "/api/runs":
                 self._send_json({"runs": list_bundle_runs(self.server.runs_root)})
@@ -523,7 +669,11 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
 
                 orchestrator = create_workflow_orchestrator(self.server.task_root)
                 self._send_json(
-                    {"tasks": [item.model_dump(mode="json") for item in orchestrator.list()]}
+                    {
+                        "tasks": [
+                            item.model_dump(mode="json") for item in orchestrator.list()
+                        ]
+                    }
                 )
                 return
             if parsed.path == "/api/projects":
@@ -577,12 +727,171 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
                     WorkflowRepository(self.server.workflow_root).snapshot(study_id)
                 )
                 return
+            if parsed.path.startswith("/api/retrieval/"):
+                from .retrieval.interfaces.service import RetrievalGateway
+
+                gateway = RetrievalGateway(str(self.server.workflow_root))
+                query = parse_qs(parsed.query)
+                if parsed.path == "/api/retrieval/policy":
+                    self._send_json(
+                        gateway.get_policy(query.get("project_id", [""])[0]).model_dump(
+                            mode="json"
+                        )
+                    )
+                    return
+                if parsed.path == "/api/retrieval/readiness":
+                    from .retrieval.interfaces.readiness import ReadinessService
+
+                    refresh = query.get("refresh", ["false"])[0].casefold() == "true"
+                    service = ReadinessService(
+                        gateway.repository, gateway.providers
+                    )
+                    report = (
+                        service.evaluate()
+                        if refresh
+                        else gateway.repository.latest_readiness_report()
+                        or service.evaluate()
+                    )
+                    self._send_json(report.model_dump(mode="json"))
+                    return
+                if parsed.path == "/api/retrieval/overview":
+                    study_id = query.get("study_id", [""])[0]
+                    project_id = query.get("project_id", [""])[0]
+                    if not study_id or not project_id:
+                        raise ValueError(
+                            "project_id and study_id are required"
+                        )
+                    runs = gateway.repository.list_runs(study_id)
+                    run_rows = []
+                    for run in runs:
+                        request = gateway.repository.load_request(run.request_id)
+                        plan = gateway.repository.load_query_plan(
+                            request.query_plan_id
+                        )
+                        coverage = (
+                            gateway.repository.load_coverage(
+                                run.coverage_report_id
+                            )
+                            if run.coverage_report_id
+                            else None
+                        )
+                        run_rows.append(
+                            {
+                                "run": run.model_dump(mode="json"),
+                                "request": request.model_dump(mode="json"),
+                                "query_plan": plan.model_dump(mode="json"),
+                                "coverage": (
+                                    coverage.model_dump(mode="json")
+                                    if coverage
+                                    else None
+                                ),
+                            }
+                        )
+                    bindings = gateway.repository.list_bindings(study_id)
+                    resource_ids = {item.resource_id for item in bindings}
+                    self._send_json(
+                        {
+                            "policy": gateway.get_policy(
+                                project_id
+                            ).model_dump(mode="json"),
+                            "runs": run_rows,
+                            "resources": [
+                                item.model_dump(mode="json")
+                                for item in gateway.repository.list_resources()
+                                if item.resource_id in resource_ids
+                            ],
+                            "bindings": [
+                                item.model_dump(mode="json")
+                                for item in bindings
+                            ],
+                            "resource_sets": [
+                                item.model_dump(mode="json")
+                                for item in gateway.repository.list_resource_sets(
+                                    study_id
+                                )
+                            ],
+                        }
+                    )
+                    return
+                if parsed.path == "/api/retrieval/status":
+                    self._send_json(
+                        gateway.repository.load_run(
+                            query.get("run_id", [""])[0]
+                        ).model_dump(mode="json")
+                    )
+                    return
+                if parsed.path == "/api/retrieval/resources":
+                    study_id = query.get("study_id", [""])[0] or None
+                    bindings = gateway.repository.list_bindings(study_id)
+                    allowed = {item.resource_id for item in bindings}
+                    resources = gateway.repository.list_resources()
+                    if study_id:
+                        resources = [
+                            item for item in resources if item.resource_id in allowed
+                        ]
+                    self._send_json(
+                        {
+                            "resources": [
+                                item.model_dump(mode="json") for item in resources
+                            ],
+                            "bindings": [
+                                item.model_dump(mode="json") for item in bindings
+                            ],
+                        }
+                    )
+                    return
+                if parsed.path == "/api/retrieval/snapshots":
+                    resource_id = query.get("resource_id", [""])[0] or None
+                    self._send_json(
+                        {
+                            "snapshots": [
+                                item.model_dump(mode="json")
+                                for item in gateway.repository.list_snapshots(
+                                    resource_id
+                                )
+                            ]
+                        }
+                    )
+                    return
+                if parsed.path == "/api/retrieval/bindings":
+                    study_id = query.get("study_id", [""])[0] or None
+                    self._send_json(
+                        {
+                            "bindings": [
+                                item.model_dump(mode="json")
+                                for item in gateway.repository.list_bindings(study_id)
+                            ]
+                        }
+                    )
+                    return
+                if parsed.path == "/api/retrieval/coverage":
+                    self._send_json(
+                        gateway.repository.load_coverage(
+                            query.get("id", [""])[0]
+                        ).model_dump(mode="json")
+                    )
+                    return
+                if parsed.path == "/api/retrieval/resource-sets":
+                    study_id = query.get("study_id", [""])[0] or None
+                    self._send_json(
+                        {
+                            "resource_sets": [
+                                item.model_dump(mode="json")
+                                for item in gateway.repository.list_resource_sets(
+                                    study_id
+                                )
+                            ]
+                        }
+                    )
+                    return
             if parsed.path == "/api/task":
                 from .workflow_tasks import create_workflow_orchestrator
 
                 query = parse_qs(parsed.query)
                 task_id = query.get("id", [""])[0]
-                record = create_workflow_orchestrator(self.server.task_root).load(task_id)
+                record = create_workflow_orchestrator(self.server.task_root).load(
+                    task_id
+                )
                 self._send_json(record.model_dump(mode="json"))
                 return
             if parsed.path == "/api/task/events":
@@ -609,11 +918,15 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
             if parsed.path == "/api/run":
                 query = parse_qs(parsed.query)
                 name = query.get("name", [""])[0]
-                self._send_json(load_run_detail(_safe_run_dir(self.server.runs_root, name)))
+                self._send_json(
+                    load_run_detail(_safe_run_dir(self.server.runs_root, name))
+                )
                 return
             if parsed.path == "/api/artifact":
                 query = parse_qs(parsed.query)
-                run_dir = _safe_run_dir(self.server.runs_root, query.get("name", [""])[0])
+                run_dir = _safe_run_dir(
+                    self.server.runs_root, query.get("name", [""])[0]
+                )
                 artifact = _safe_artifact_path(run_dir, query.get("path", [""])[0])
                 self._send_json(
                     {
@@ -627,10 +940,454 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
         except Exception as exc:  # pragma: no cover - exercised through HTTP tests
             self._send_error_json(exc)
 
+    def do_PUT(self) -> None:  # noqa: N802
+        parsed = urlparse(self.path)
+        try:
+            payload = self._request_json()
+            parts = [item for item in parsed.path.split("/") if item]
+            if (
+                len(parts) == 3
+                and parts[0] == "projects"
+                and parts[2] == "retrieval-policy"
+            ):
+                from .retrieval.interfaces.service import RetrievalGateway
+                from .retrieval.policy.engine import RetrievalNetworkPolicy
+
+                policy = RetrievalNetworkPolicy.model_validate(
+                    payload.get("policy") or payload
+                )
+                self._send_json(
+                    RetrievalGateway(str(self.server.workflow_root))
+                    .set_policy(parts[1], policy)
+                    .model_dump(mode="json")
+                )
+                return
+            self._send_json({"error": "not_found"}, HTTPStatus.NOT_FOUND)
+        except Exception as exc:  # noqa: BLE001
+            self._send_error_json(exc)
+
+    def do_DELETE(self) -> None:  # noqa: N802
+        parsed = urlparse(self.path)
+        try:
+            parts = [item for item in parsed.path.split("/") if item]
+            if len(parts) == 2 and parts[0] == "institution-sessions":
+                from .retrieval.institution import InstitutionSessionBroker
+
+                query = parse_qs(parsed.query)
+                session = InstitutionSessionBroker(
+                    self.server.workflow_root
+                ).revoke(
+                    parts[1],
+                    owner_user_id=query.get("owner_user_id", [""])[0],
+                )
+                self._send_json(session.model_dump(mode="json"))
+                return
+            self._send_json({"error": "not_found"}, HTTPStatus.NOT_FOUND)
+        except Exception as exc:  # noqa: BLE001
+            self._send_error_json(exc)
+
     def do_POST(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         try:
             payload = self._request_json()
+            path_parts = [item for item in parsed.path.split("/") if item]
+            if (
+                len(path_parts) == 3
+                and path_parts[0] == "studies"
+                and path_parts[2] == "retrieval-dags"
+            ):
+                from .retrieval.workflow import (
+                    append_external_research_dag,
+                    append_external_research_loop,
+                )
+                from .workflow_domain import WorkflowRepository
+                from .workflow_scheduler import (
+                    PersistentDAGScheduler,
+                    stage_one_handlers,
+                )
+
+                repository = WorkflowRepository(self.server.workflow_root)
+                stage = str(payload.get("stage", "all"))
+                dependencies = [
+                    str(item) for item in payload.get("depends_on", [])
+                ]
+                if stage == "all":
+                    steps = append_external_research_loop(
+                        repository,
+                        path_parts[1],
+                        depends_on=dependencies,
+                        run_key=str(payload.get("run_key", "v1")),
+                        include_repair=bool(payload.get("include_repair", False)),
+                    )
+                else:
+                    steps = append_external_research_dag(
+                        repository,
+                        path_parts[1],
+                        stage,
+                        depends_on=dependencies,
+                        run_key=str(payload.get("run_key", "v1")),
+                    )
+                snapshot = (
+                    PersistentDAGScheduler(
+                        repository,
+                        stage_one_handlers(),
+                        recover_interrupted=True,
+                    ).run(path_parts[1])
+                    if bool(payload.get("run", True))
+                    else repository.snapshot(path_parts[1])
+                )
+                self._send_json(
+                    {
+                        "study_id": path_parts[1],
+                        "created_step_ids": [
+                            item.step_instance_id for item in steps
+                        ],
+                        "snapshot": snapshot,
+                    },
+                    HTTPStatus.CREATED,
+                )
+                return
+            if (
+                len(path_parts) == 3
+                and path_parts[0] == "studies"
+                and path_parts[2] == "retrieval-runs"
+            ):
+                from .retrieval.domain.models import (
+                    ContractRef,
+                    ResourceType,
+                    RetrievalBudget,
+                    RetrievalPhase,
+                )
+                from .retrieval.interfaces.service import RetrievalGateway
+
+                gateway = RetrievalGateway(str(self.server.workflow_root))
+                request = gateway.plan(
+                    project_id=str(payload.get("project_id", "")),
+                    study_id=path_parts[1],
+                    phase=RetrievalPhase(str(payload.get("phase", ""))),
+                    step_instance_id=str(payload.get("step_instance_id", "")),
+                    purpose=str(payload.get("purpose", "")),
+                    queries=[str(item) for item in payload.get("queries", [])],
+                    providers=[str(item) for item in payload.get("providers", [])],
+                    resource_types=[
+                        ResourceType(str(item))
+                        for item in payload.get("resource_types", [])
+                    ],
+                    usage_role=str(payload.get("usage_role", "")),
+                    budget=RetrievalBudget.model_validate(
+                        payload.get("budget") or {}
+                    ),
+                    idempotency_key=str(payload.get("idempotency_key", "")),
+                    contract_refs=[
+                        ContractRef.model_validate(item)
+                        for item in payload.get("contract_refs", [])
+                    ],
+                    freshness=_retrieval_freshness(payload.get("freshness")),
+                    allowed_domains=[
+                        str(item) for item in payload.get("allowed_domains", [])
+                    ],
+                    blocked_domains=[
+                        str(item) for item in payload.get("blocked_domains", [])
+                    ],
+                )
+                self._send_json(
+                    gateway.run(request.request_id).model_dump(),
+                    HTTPStatus.CREATED,
+                )
+                return
+            if parsed.path == "/institution-sessions":
+                from .retrieval.institution import InstitutionSessionBroker
+
+                broker = InstitutionSessionBroker(self.server.workflow_root)
+                session = broker.create(
+                    owner_user_id=str(payload.get("owner_user_id", "")),
+                    project_id=str(payload.get("project_id", "")),
+                    study_id=str(payload.get("study_id", "")),
+                    institution_id=str(payload.get("institution_id", "")),
+                    target_url=str(payload.get("target_url", "")),
+                    extra=payload,
+                )
+                response = session.model_dump(mode="json")
+                if bool(payload.get("open_browser", False)):
+                    session, launch = broker.open_browser(
+                        session.session_id,
+                        owner_user_id=session.owner_user_id,
+                    )
+                    response = {
+                        "session": session.model_dump(mode="json"),
+                        "browser": {
+                            "process_id": launch.process_id,
+                            "browser": launch.browser,
+                            "storage_security": launch.storage_security,
+                        },
+                    }
+                self._send_json(response, HTTPStatus.CREATED)
+                return
+            if (
+                len(path_parts) == 3
+                and path_parts[0] == "institution-sessions"
+                and path_parts[2] == "open"
+            ):
+                from .retrieval.institution import InstitutionSessionBroker
+
+                session, launch = InstitutionSessionBroker(
+                    self.server.workflow_root
+                ).open_browser(
+                    path_parts[1],
+                    owner_user_id=str(payload.get("owner_user_id", "")),
+                )
+                self._send_json(
+                    {
+                        "session": session.model_dump(mode="json"),
+                        "browser": {
+                            "process_id": launch.process_id,
+                            "browser": launch.browser,
+                            "storage_security": launch.storage_security,
+                        },
+                    }
+                )
+                return
+            if (
+                len(path_parts) == 3
+                and path_parts[0] == "institution-sessions"
+                and path_parts[2] == "confirm-authenticated"
+            ):
+                from .retrieval.institution import InstitutionSessionBroker
+
+                session = InstitutionSessionBroker(
+                    self.server.workflow_root
+                ).confirm_authenticated(
+                    path_parts[1],
+                    owner_user_id=str(payload.get("owner_user_id", "")),
+                    user_confirmation=bool(payload.get("user_confirmation", False)),
+                    duration_minutes=int(payload.get("duration_minutes", 60)),
+                )
+                self._send_json(session.model_dump(mode="json"))
+                return
+            if (
+                len(path_parts) == 3
+                and path_parts[0] == "institution-sessions"
+                and path_parts[2] == "documents"
+            ):
+                from .retrieval.institution import InstitutionSessionBroker
+
+                result = InstitutionSessionBroker(
+                    self.server.workflow_root
+                ).register_authorized_document(
+                    path_parts[1],
+                    owner_user_id=str(payload.get("owner_user_id", "")),
+                    file_path=str(payload.get("file_path", "")),
+                    step_instance_id=str(payload.get("step_instance_id", "")),
+                    model_processing_approved=bool(
+                        payload.get("model_processing_approved", False)
+                    ),
+                    resource_id=(
+                        str(payload["resource_id"])
+                        if payload.get("resource_id")
+                        else None
+                    ),
+                )
+                self._send_json(result, HTTPStatus.CREATED)
+                return
+            if (
+                len(path_parts) == 3
+                and path_parts[0] == "institution-sessions"
+                and path_parts[2] == "reauthenticate"
+            ):
+                from .retrieval.institution import InstitutionSessionBroker
+
+                session = InstitutionSessionBroker(
+                    self.server.workflow_root
+                ).reauthenticate(
+                    path_parts[1],
+                    owner_user_id=str(payload.get("owner_user_id", "")),
+                )
+                self._send_json(session.model_dump(mode="json"))
+                return
+            if parsed.path == "/corpora":
+                from .retrieval.domain.external_models import CorpusDocument
+                from .retrieval.domain.models import RetrievalPhase
+                from .retrieval.evidence import PaperQAEvidenceService
+                from .retrieval.interfaces.service import RetrievalGateway
+
+                gateway = RetrievalGateway(str(self.server.workflow_root))
+                corpus = PaperQAEvidenceService(gateway.repository).build_corpus(
+                    study_id=str(payload.get("study_id", "")),
+                    phase=RetrievalPhase(str(payload.get("phase", ""))),
+                    documents=[
+                        CorpusDocument.model_validate(item)
+                        for item in payload.get("documents", [])
+                    ],
+                    parser_version=str(payload.get("parser_version", "")),
+                    embedding_model_hash=str(
+                        payload.get("embedding_model_hash", "")
+                    ),
+                    llm_config_hash=str(payload.get("llm_config_hash", "")),
+                )
+                self._send_json(
+                    corpus.model_dump(mode="json"), HTTPStatus.CREATED
+                )
+                return
+            if (
+                len(path_parts) == 3
+                and path_parts[0] == "corpora"
+                and path_parts[2] == "index"
+            ):
+                from .retrieval.evidence import PaperQAEvidenceService
+                from .retrieval.interfaces.service import RetrievalGateway
+
+                gateway = RetrievalGateway(str(self.server.workflow_root))
+                corpus = PaperQAEvidenceService(gateway.repository).index(
+                    path_parts[1]
+                )
+                self._send_json(corpus.model_dump(mode="json"))
+                return
+            if (
+                len(path_parts) == 3
+                and path_parts[0] == "corpora"
+                and path_parts[2] == "query"
+            ):
+                from .retrieval.evidence import PaperQAEvidenceService
+                from .retrieval.interfaces.service import RetrievalGateway
+
+                gateway = RetrievalGateway(str(self.server.workflow_root))
+                service = PaperQAEvidenceService(gateway.repository)
+                if isinstance(payload.get("questions"), list):
+                    results = service.query_evidence_batch(
+                        path_parts[1],
+                        [
+                            {
+                                "question_id": str(
+                                    item.get("question_id") or ""
+                                ),
+                                "question": str(item.get("question") or ""),
+                            }
+                            for item in payload["questions"]
+                            if isinstance(item, dict)
+                        ],
+                    )
+                    self._send_json(
+                        {
+                            "answers": [
+                                item.model_dump(mode="json") for item in results
+                            ]
+                        }
+                    )
+                else:
+                    result = service.ask(
+                        path_parts[1], str(payload.get("question", ""))
+                    )
+                    self._send_json(result.model_dump(mode="json"))
+                return
+            if parsed.path.startswith("/api/retrieval/"):
+                from .retrieval.domain.models import (
+                    ContractRef,
+                    ResourceType,
+                    RetrievalBudget,
+                    RetrievalPhase,
+                )
+                from .retrieval.interfaces.service import RetrievalGateway
+                from .retrieval.policy.engine import RetrievalNetworkPolicy
+
+                gateway = RetrievalGateway(str(self.server.workflow_root))
+                if parsed.path == "/api/retrieval/policy":
+                    policy_payload = payload.get("policy") or {}
+                    if not isinstance(policy_payload, dict):
+                        raise ValueError("policy must be an object")
+                    policy = RetrievalNetworkPolicy.model_validate(policy_payload)
+                    self._send_json(
+                        gateway.set_policy(
+                            str(payload.get("project_id", "")).strip(),
+                            policy,
+                        ).model_dump(mode="json")
+                    )
+                    return
+                if parsed.path == "/api/retrieval/plan":
+                    request = gateway.plan(
+                        project_id=str(payload.get("project_id", "")).strip(),
+                        study_id=str(payload.get("study_id", "")).strip(),
+                        phase=RetrievalPhase(str(payload.get("phase", ""))),
+                        step_instance_id=str(
+                            payload.get("step_instance_id", "")
+                        ).strip(),
+                        purpose=str(payload.get("purpose", "")).strip(),
+                        queries=[str(item) for item in payload.get("queries", [])],
+                        providers=[str(item) for item in payload.get("providers", [])],
+                        resource_types=[
+                            ResourceType(str(item))
+                            for item in payload.get("resource_types", [])
+                        ],
+                        usage_role=str(payload.get("usage_role", "")).strip(),
+                        budget=RetrievalBudget.model_validate(
+                            payload.get("budget") or {}
+                        ),
+                        idempotency_key=str(payload.get("idempotency_key", "")).strip(),
+                        contract_refs=[
+                            ContractRef.model_validate(item)
+                            for item in payload.get("contract_refs", [])
+                        ],
+                        internal_identifiers=[
+                            str(item)
+                            for item in payload.get("internal_identifiers", [])
+                        ],
+                        research_need=str(payload.get("research_need", "")).strip()
+                        or None,
+                        freshness=_retrieval_freshness(payload.get("freshness")),
+                        allowed_domains=[
+                            str(item) for item in payload.get("allowed_domains", [])
+                        ],
+                        blocked_domains=[
+                            str(item) for item in payload.get("blocked_domains", [])
+                        ],
+                        require_search_execution=bool(
+                            payload.get("require_search_execution", True)
+                        ),
+                    )
+                    self._send_json(request.model_dump(mode="json"), HTTPStatus.CREATED)
+                    return
+                if parsed.path == "/api/retrieval/run":
+                    self._send_json(
+                        gateway.run(
+                            str(payload.get("request_id", "")).strip()
+                        ).model_dump()
+                    )
+                    return
+                if parsed.path == "/api/retrieval/freeze":
+                    self._send_json(
+                        gateway.freeze_resource_set(
+                            str(payload.get("resource_set_id", "")).strip()
+                        ).model_dump(mode="json")
+                    )
+                    return
+                if parsed.path == "/api/retrieval/promote":
+                    self._send_json(
+                        gateway.promote_binding(
+                            str(payload.get("binding_id", "")).strip(),
+                            target_phase=RetrievalPhase(
+                                str(payload.get("target_phase", ""))
+                            ),
+                            step_instance_id=str(
+                                payload.get("step_instance_id", "")
+                            ).strip(),
+                            purpose=str(payload.get("purpose", "")).strip(),
+                            usage_role=str(payload.get("usage_role", "")).strip(),
+                            target_type=str(payload.get("target_type", "")).strip(),
+                            target_id=str(payload.get("target_id", "")).strip(),
+                            target_field=str(payload.get("target_field", "")).strip(),
+                            contract_refs=[
+                                ContractRef.model_validate(item)
+                                for item in payload.get("contract_refs", [])
+                            ],
+                        ).model_dump(mode="json")
+                    )
+                    return
+                if parsed.path == "/api/retrieval/retry":
+                    self._send_json(
+                        gateway.retry(
+                            str(payload.get("run_id", "")).strip()
+                        ).model_dump()
+                    )
+                    return
             if parsed.path == "/api/projects/create":
                 from .workflow_domain import NetworkPolicy, WorkflowRepository
 
@@ -668,15 +1425,24 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
                 return
             if parsed.path == "/api/studies/gates/decide":
                 from .workflow_domain import WorkflowRepository
+                from .workflow_scheduler import (
+                    PersistentDAGScheduler,
+                    stage_one_handlers,
+                )
 
-                gate = WorkflowRepository(self.server.workflow_root).decide_gate(
-                    str(payload.get("study_id", "")).strip(),
+                repository = WorkflowRepository(self.server.workflow_root)
+                study_id = str(payload.get("study_id", "")).strip()
+                gate = repository.decide_gate(
+                    study_id,
                     str(payload.get("gate_id", "")).strip(),
                     approve=bool(payload.get("approve", False)),
                     decided_by=str(payload.get("decided_by", "project_owner")).strip(),
                     reason=str(payload.get("reason", "")).strip() or None,
                 )
-                self._send_json(gate.model_dump(mode="json"))
+                workflow = PersistentDAGScheduler(repository, stage_one_handlers()).run(
+                    study_id
+                )
+                self._send_json({**gate.model_dump(mode="json"), "workflow": workflow})
                 return
             if parsed.path == "/api/studies/gates/create":
                 from .workflow_domain import (
@@ -695,9 +1461,7 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
                         if payload.get("subject_version") is not None
                         else None
                     ),
-                    status=GateStatus(
-                        str(payload.get("status", "awaiting_user"))
-                    ),
+                    status=GateStatus(str(payload.get("status", "awaiting_user"))),
                 )
                 self._send_json(gate.model_dump(mode="json"), HTTPStatus.CREATED)
                 return
@@ -844,15 +1608,39 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
                     study = repository.pause_study(study_id)
                 elif parsed.path.endswith("/resume"):
                     study = repository.resume_study(study_id)
+                    from .workflow_scheduler import (
+                        PersistentDAGScheduler,
+                        stage_one_handlers,
+                    )
+
+                    workflow = PersistentDAGScheduler(
+                        repository,
+                        stage_one_handlers(),
+                        recover_interrupted=True,
+                    ).run(study_id)
+                    self._send_json(workflow)
+                    return
                 elif parsed.path.endswith("/cancel"):
-                    study = repository.finish_study(
-                        study_id, StudyLifecycle.CANCELLED
-                    )
+                    study = repository.finish_study(study_id, StudyLifecycle.CANCELLED)
                 else:
-                    study = repository.finish_study(
-                        study_id, StudyLifecycle.ARCHIVED
-                    )
+                    study = repository.finish_study(study_id, StudyLifecycle.ARCHIVED)
                 self._send_json(study.model_dump(mode="json"))
+                return
+            if parsed.path in {"/api/studies/run", "/api/studies/retry-step"}:
+                from .workflow_domain import WorkflowRepository
+                from .workflow_scheduler import (
+                    PersistentDAGScheduler,
+                    stage_one_handlers,
+                )
+
+                repository = WorkflowRepository(self.server.workflow_root)
+                study_id = str(payload.get("study_id", "")).strip()
+                scheduler = PersistentDAGScheduler(repository, stage_one_handlers())
+                if parsed.path.endswith("/retry-step"):
+                    scheduler.retry_step(
+                        study_id, str(payload.get("step_id", "")).strip()
+                    )
+                self._send_json(scheduler.run(study_id))
                 return
             if parsed.path == "/api/studies/impact":
                 from .workflow_domain import WorkflowRepository
@@ -889,9 +1677,7 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
                 ).submit_author_approval(
                     str(payload.get("study_id", "")).strip(),
                     AuthorApprovalStatus(str(payload.get("status", "pending"))),
-                    decided_by=str(
-                        payload.get("decided_by", "project_owner")
-                    ).strip(),
+                    decided_by=str(payload.get("decided_by", "project_owner")).strip(),
                     reason=str(payload.get("reason", "")).strip() or None,
                 )
                 self._send_json(
@@ -972,26 +1758,33 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
                     self.server.runs_root / ".remediation",
                     run_name,
                     [str(item) for item in selected],
-                    confirm_contract_revision=bool(payload.get("confirm_contract_revision", False)),
+                    confirm_contract_revision=bool(
+                        payload.get("confirm_contract_revision", False)
+                    ),
                 )
                 response: dict[str, Any] = {
                     "plan": plan.model_dump(mode="json"),
                     "requires_contract_confirmation": (
-                        plan.contract_confirmation_required and not plan.contract_confirmed
+                        plan.contract_confirmation_required
+                        and not plan.contract_confirmed
                     ),
                 }
                 if plan.status == "approved":
                     orchestrator = create_workflow_orchestrator(self.server.task_root)
-                    record = orchestrator.submit(TaskRequest(
-                        operation="bundle.remediate",
-                        payload={
-                            "source_run_name": run_name,
-                            "plan_id": plan.plan_id,
-                            "remediation_root": str(self.server.runs_root / ".remediation"),
-                            "output_root": str(self.server.runs_root),
-                        },
-                        idempotency_key=f"remediation:{plan.plan_id}",
-                    ))
+                    record = orchestrator.submit(
+                        TaskRequest(
+                            operation="bundle.remediate",
+                            payload={
+                                "source_run_name": run_name,
+                                "plan_id": plan.plan_id,
+                                "remediation_root": str(
+                                    self.server.runs_root / ".remediation"
+                                ),
+                                "output_root": str(self.server.runs_root),
+                            },
+                            idempotency_key=f"remediation:{plan.plan_id}",
+                        )
+                    )
                     if record.status.value == "pending":
                         threading.Thread(
                             target=orchestrator.run_sync,
@@ -1024,10 +1817,14 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
                             "title": str(payload.get("title", "")),
                             "idea_root": str(self.server.idea_root),
                         },
-                        idempotency_key=str(payload.get("request_id", "")).strip() or None,
+                        idempotency_key=str(payload.get("request_id", "")).strip()
+                        or None,
                     )
                 )
-                result = {**(record.result or {}), "_task": record.model_dump(mode="json")}
+                result = {
+                    **(record.result or {}),
+                    "_task": record.model_dump(mode="json"),
+                }
                 self._send_json(result, HTTPStatus.CREATED)
                 return
             if parsed.path == "/api/select-folder":
@@ -1044,34 +1841,50 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
                         operation="bundle.inspect",
                         payload={
                             "source": str(payload.get("source", "")).strip(),
-                            "discover_claims": bool(payload.get("discover_claims", False)),
+                            "discover_claims": bool(
+                                payload.get("discover_claims", False)
+                            ),
+                            "workflow_root": str(self.server.workflow_root),
                         },
-                        idempotency_key=str(payload.get("request_id", "")).strip() or None,
+                        idempotency_key=str(payload.get("request_id", "")).strip()
+                        or None,
                     )
                 )
-                self._send_json({**(record.result or {}), "_task": record.model_dump(mode="json")})
+                self._send_json(
+                    {**(record.result or {}), "_task": record.model_dump(mode="json")}
+                )
                 return
             if parsed.path == "/api/close-loop":
                 from .orchestration import TaskRequest
                 from .workflow_tasks import create_workflow_orchestrator
 
                 source = str(payload.get("source", "")).strip()
-                record = create_workflow_orchestrator(self.server.task_root).execute_sync(
+                record = create_workflow_orchestrator(
+                    self.server.task_root
+                ).execute_sync(
                     TaskRequest(
                         operation="bundle.close",
                         payload={
                             "source": source,
                             "output_root": str(self.server.runs_root),
-                            "name": str(payload.get("name", "")).strip() or Path(source).name,
-                            "track_id": str(payload.get("track_id", "auto")).strip() or "auto",
-                            "discover_claims": bool(payload.get("discover_claims", False)),
+                            "name": str(payload.get("name", "")).strip()
+                            or Path(source).name,
+                            "track_id": str(payload.get("track_id", "auto")).strip()
+                            or "auto",
+                            "discover_claims": bool(
+                                payload.get("discover_claims", False)
+                            ),
                         },
-                        idempotency_key=str(payload.get("request_id", "")).strip() or None,
+                        idempotency_key=str(payload.get("request_id", "")).strip()
+                        or None,
                     )
                 )
                 run_dir = Path(str((record.result or {})["run_dir"]))
                 self._send_json(
-                    {**load_run_detail(run_dir), "_task": record.model_dump(mode="json")},
+                    {
+                        **load_run_detail(run_dir),
+                        "_task": record.model_dump(mode="json"),
+                    },
                     HTTPStatus.CREATED,
                 )
                 return
@@ -1082,15 +1895,21 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
                 run_dir = _safe_run_dir(
                     self.server.runs_root, str(payload.get("name", ""))
                 )
-                record = create_workflow_orchestrator(self.server.task_root).execute_sync(
+                record = create_workflow_orchestrator(
+                    self.server.task_root
+                ).execute_sync(
                     TaskRequest(
                         operation="bundle.expand-paper",
                         payload={"run_dir": str(run_dir)},
-                        idempotency_key=str(payload.get("request_id", "")).strip() or None,
+                        idempotency_key=str(payload.get("request_id", "")).strip()
+                        or None,
                     )
                 )
                 self._send_json(
-                    {**load_run_detail(run_dir), "_task": record.model_dump(mode="json")},
+                    {
+                        **load_run_detail(run_dir),
+                        "_task": record.model_dump(mode="json"),
+                    },
                     HTTPStatus.CREATED,
                 )
                 return
@@ -1107,26 +1926,24 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
                     daemon=True,
                     name=f"research-forge-resume-{task_id}",
                 ).start()
-                self._send_json(
-                    record.model_dump(mode="json"), HTTPStatus.ACCEPTED
-                )
+                self._send_json(record.model_dump(mode="json"), HTTPStatus.ACCEPTED)
                 return
             if parsed.path == "/api/tasks/pause":
                 from .workflow_tasks import create_workflow_orchestrator
 
                 task_id = str(payload.get("task_id", "")).strip()
-                record = create_workflow_orchestrator(self.server.task_root).request_pause(
-                    task_id
-                )
+                record = create_workflow_orchestrator(
+                    self.server.task_root
+                ).request_pause(task_id)
                 self._send_json(record.model_dump(mode="json"))
                 return
             if parsed.path == "/api/tasks/cancel":
                 from .workflow_tasks import create_workflow_orchestrator
 
                 task_id = str(payload.get("task_id", "")).strip()
-                record = create_workflow_orchestrator(
-                    self.server.task_root
-                ).cancel(task_id)
+                record = create_workflow_orchestrator(self.server.task_root).cancel(
+                    task_id
+                )
                 self._send_json(record.model_dump(mode="json"))
                 return
             if parsed.path == "/api/tasks/requirements/resolve":
@@ -1172,7 +1989,9 @@ def create_server(
         (host, port),
         runs_root=resolved_runs_root,
         idea_root=Path(idea_root),
-        task_root=Path(task_root) if task_root is not None else resolved_runs_root / ".orchestration",
+        task_root=Path(task_root)
+        if task_root is not None
+        else resolved_runs_root / ".orchestration",
         workflow_root=(
             Path(workflow_root)
             if workflow_root is not None
@@ -1182,7 +2001,9 @@ def create_server(
     )
 
 
-def run_web_app(host: str = "127.0.0.1", port: int = 8765, *, open_browser: bool = False) -> None:
+def run_web_app(
+    host: str = "127.0.0.1", port: int = 8765, *, open_browser: bool = False
+) -> None:
     server = create_server(host, port)
     url = f"http://{host}:{server.server_port}/"
     print(f"Research Forge web app: {url}")

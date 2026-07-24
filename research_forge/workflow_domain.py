@@ -1,10 +1,10 @@
-from __future__ import annotations
-
 """Versioned Study workflow domain for Research Forge.
 
 This module is the source of truth for the v2 workflow model.  The legacy
 ``models.Stage`` enum remains a read-only compatibility projection.
 """
+
+from __future__ import annotations
 
 import hashlib
 import json
@@ -187,8 +187,10 @@ class RunKind(StrEnum):
 
 class NetworkPolicy(StrictModel):
     schema_version: int = 1
-    network_enabled: bool = True
-    public_read_requests_automatic: bool = True
+    mode: str = "offline"
+    retrieval_policy_id: str | None = None
+    network_enabled: bool = False
+    public_read_requests_automatic: bool = False
     external_writes_require_approval: bool = True
     secret_guard_required: Literal[True] = True
     audit_all_requests: Literal[True] = True
@@ -212,7 +214,9 @@ class NetworkAuditEvent(StrictModel):
 
     @model_validator(mode="after")
     def enforce_secret_guard(self) -> "NetworkAuditEvent":
-        secret_paths = [path for path in self.request_file_paths if is_secret_path(path)]
+        secret_paths = [
+            path for path in self.request_file_paths if is_secret_path(path)
+        ]
         if secret_paths:
             raise ValueError("secret or credential files cannot enter network requests")
         if self.method not in {"GET", "HEAD"} and not self.external_write_approved:
@@ -249,6 +253,7 @@ class StudyRecord(StrictModel):
     latest_study_verdict_id: str | None = None
     predecessor_study_id: str | None = None
     successor_study_id: str | None = None
+    settings: dict[str, Any] = Field(default_factory=dict)
     created_at: str = Field(default_factory=utc_now)
     updated_at: str = Field(default_factory=utc_now)
 
@@ -260,11 +265,16 @@ class StudyRecord(StrictModel):
         if self.phase is Phase.DISCOVERY:
             return "plan_review" if self.active_scope_version else "scoping"
         if self.phase is Phase.PROTOCOL:
-            return "contract_frozen" if self.active_contract_version else "baseline_pending"
+            return (
+                "contract_frozen"
+                if self.active_contract_version
+                else "baseline_pending"
+            )
         if self.phase is Phase.EXPERIMENT:
             return (
                 "experiment_running"
-                if self.execution_status in {ExecutionStatus.RUNNING, ExecutionStatus.RETRYING}
+                if self.execution_status
+                in {ExecutionStatus.RUNNING, ExecutionStatus.RETRYING}
                 else "result_review"
             )
         return "synthesis"
@@ -371,7 +381,9 @@ class ResearchContractVersion(StrictModel):
     @model_validator(mode="after")
     def has_primary_hypothesis(self) -> "ResearchContractVersion":
         if not any(item.role is HypothesisRole.PRIMARY for item in self.hypotheses):
-            raise ValueError("research contract requires at least one primary hypothesis")
+            raise ValueError(
+                "research contract requires at least one primary hypothesis"
+            )
         if len(self.seeds) != len(set(self.seeds)):
             raise ValueError("research contract seeds must be unique")
         return self
@@ -452,7 +464,9 @@ class EvidenceChain(StrictModel):
     verified_checks: dict[str, bool] = Field(default_factory=dict)
 
     def verdict_eligible(self) -> bool:
-        return self.level is EvidenceChainLevel.VERIFIED and bool(self.output_artifact_ids)
+        return self.level is EvidenceChainLevel.VERIFIED and bool(
+            self.output_artifact_ids
+        )
 
 
 class HypothesisVerdict(StrictModel):
@@ -474,7 +488,9 @@ class HypothesisVerdict(StrictModel):
             in {HypothesisVerdictStatus.SUPPORTED, HypothesisVerdictStatus.REFUTED}
             and not self.eligible_evidence
         ):
-            raise ValueError("supported/refuted verdict requires eligible verified evidence")
+            raise ValueError(
+                "supported/refuted verdict requires eligible verified evidence"
+            )
         return self
 
 
@@ -601,9 +617,7 @@ class CompletionRecord(StrictModel):
     artifact_hashes: dict[str, str] = Field(min_length=1)
     verification_command: str
     legacy_certificate_path: str | None = None
-    record_sha256: str = Field(
-        default="0" * 64, pattern=r"^[a-f0-9]{64}$"
-    )
+    record_sha256: str = Field(default="0" * 64, pattern=r"^[a-f0-9]{64}$")
     publication_ready: bool = False
 
     @model_validator(mode="after")
@@ -782,6 +796,12 @@ class WorkflowRepository:
     def load_project(self, project_id: str) -> ProjectRecord:
         return ProjectRecord.model_validate(read_json(self._project_path(project_id)))
 
+    def save_project(self, project: ProjectRecord) -> ProjectRecord:
+        self.load_project(project.project_id)
+        updated = project.model_copy(update={"updated_at": utc_now()})
+        write_json_atomic(self._project_path(project.project_id), updated)
+        return updated
+
     def list_projects(self) -> list[ProjectRecord]:
         return [
             ProjectRecord.model_validate(read_json(path))
@@ -790,6 +810,8 @@ class WorkflowRepository:
 
     def record_network_request(self, event: NetworkAuditEvent) -> NetworkAuditEvent:
         project = self.load_project(event.project_id)
+        if not project.network_policy.network_enabled:
+            raise ValueError("project network policy is offline")
         if event.study_id:
             study = self.load_study(event.study_id)
             if study.project_id != event.project_id:
@@ -803,7 +825,9 @@ class WorkflowRepository:
             if event.study_id:
                 study = self.load_study(event.study_id)
                 self.save_study(
-                    study.model_copy(update={"execution_status": ExecutionStatus.BLOCKED}),
+                    study.model_copy(
+                        update={"execution_status": ExecutionStatus.BLOCKED}
+                    ),
                     "network_budget_blocked",
                 )
             raise ValueError("project network budget exceeded")
@@ -819,6 +843,7 @@ class WorkflowRepository:
         research_type: str = "computational",
         study_id: str | None = None,
         predecessor_study_id: str | None = None,
+        settings: dict[str, Any] | None = None,
     ) -> StudyRecord:
         self.load_project(project_id)
         identity = study_id or stable_id(
@@ -835,6 +860,7 @@ class WorkflowRepository:
             research_type=research_type,
             support_level=research_support_level(research_type),
             predecessor_study_id=predecessor_study_id,
+            settings=settings or {},
         )
         write_json_atomic(path, study)
         self._event(identity, "study_created")
@@ -845,7 +871,9 @@ class WorkflowRepository:
             read_json(self._study_dir(study_id) / "study.json")
         )
 
-    def save_study(self, study: StudyRecord, event: str = "study_updated") -> StudyRecord:
+    def save_study(
+        self, study: StudyRecord, event: str = "study_updated"
+    ) -> StudyRecord:
         updated = study.model_copy(update={"updated_at": utc_now()})
         write_json_atomic(self._study_dir(study.study_id) / "study.json", updated)
         self._event(study.study_id, event)
@@ -908,8 +936,36 @@ class WorkflowRepository:
         self.load_study(study_id)
         return [
             StepInstance.model_validate(read_json(path))
-            for path in sorted((self._study_dir(study_id) / "steps").glob("step-*.json"))
+            for path in sorted(
+                (self._study_dir(study_id) / "steps").glob("step-*.json")
+            )
         ]
+
+    def save_step_result(
+        self, study_id: str, step_id: str, result: dict[str, Any]
+    ) -> ArtifactRecord:
+        """Persist a node result and register it as a first-class DAG artifact."""
+        self.load_step(study_id, step_id)
+        path = self._study_dir(study_id) / "step_results" / f"{step_id}.json"
+        write_json_atomic(path, result)
+        artifact = self.register_artifact(
+            study_id,
+            str(path),
+            sha256_file(path),
+            kind="step_result",
+            role=ArtifactRole.OTHER,
+        )
+        self._event(
+            study_id,
+            "step_result_written",
+            step_instance_id=step_id,
+            artifact_id=artifact.artifact_id,
+        )
+        return artifact
+
+    def load_step_result(self, study_id: str, step_id: str) -> dict[str, Any]:
+        self.load_step(study_id, step_id)
+        return read_json(self._study_dir(study_id) / "step_results" / f"{step_id}.json")
 
     def _assert_acyclic(self, study_id: str) -> None:
         steps = self.list_steps(study_id)
@@ -952,12 +1008,16 @@ class WorkflowRepository:
                 is not ExecutionStatus.SUCCEEDED
             ]
             if unfinished:
-                raise ValueError("step dependencies are not complete: " + ", ".join(unfinished))
+                raise ValueError(
+                    "step dependencies are not complete: " + ", ".join(unfinished)
+                )
         update: dict[str, Any] = {
             "status": status,
             "updated_at": utc_now(),
             "blocker": blocker,
         }
+        if status is ExecutionStatus.QUEUED:
+            update["completed_at"] = None
         if status in {ExecutionStatus.RUNNING, ExecutionStatus.RETRYING}:
             update["attempt"] = step.attempt + 1
             update["started_at"] = step.started_at or utc_now()
@@ -1037,7 +1097,9 @@ class WorkflowRepository:
             else ExecutionStatus.CANCELLED
         )
         return self.save_study(
-            study.model_copy(update={"lifecycle": lifecycle, "execution_status": status}),
+            study.model_copy(
+                update={"lifecycle": lifecycle, "execution_status": status}
+            ),
             f"study_{lifecycle.value}",
         )
 
@@ -1102,7 +1164,9 @@ class WorkflowRepository:
     def list_gates(self, study_id: str) -> list[GateRecord]:
         return [
             GateRecord.model_validate(read_json(path))
-            for path in sorted((self._study_dir(study_id) / "gates").glob("gate-*.json"))
+            for path in sorted(
+                (self._study_dir(study_id) / "gates").glob("gate-*.json")
+            )
         ]
 
     def save_scope_contract(
@@ -1147,6 +1211,30 @@ class WorkflowRepository:
         )
         return contract
 
+    def load_scope_contract(
+        self, study_id: str, version: int
+    ) -> ScopeContractVersion:
+        return ScopeContractVersion.model_validate(
+            read_json(
+                self._study_dir(study_id)
+                / "contracts"
+                / f"scope-v{version}.json"
+            )
+        )
+
+    def latest_scope_contract(
+        self, study_id: str
+    ) -> ScopeContractVersion | None:
+        paths = sorted(
+            (self._study_dir(study_id) / "contracts").glob("scope-v*.json"),
+            key=lambda item: int(item.stem.rsplit("v", 1)[-1]),
+        )
+        return (
+            ScopeContractVersion.model_validate(read_json(paths[-1]))
+            if paths
+            else None
+        )
+
     def save_research_contract(
         self, contract: ResearchContractVersion
     ) -> ResearchContractVersion:
@@ -1160,7 +1248,9 @@ class WorkflowRepository:
             existing = ResearchContractVersion.model_validate(read_json(path))
             if existing.status is ArtifactStatus.FROZEN:
                 if existing.model_dump(mode="json") != contract.model_dump(mode="json"):
-                    raise ValueError("a frozen research contract requires a new version")
+                    raise ValueError(
+                        "a frozen research contract requires a new version"
+                    )
                 return existing
             if contract.status is ArtifactStatus.FROZEN and not self._gate_approved(
                 contract.study_id,
@@ -1168,7 +1258,9 @@ class WorkflowRepository:
                 "research_contract",
                 contract.version,
             ):
-                raise ValueError("research contract cannot freeze before owner approval")
+                raise ValueError(
+                    "research contract cannot freeze before owner approval"
+                )
         elif contract.status is ArtifactStatus.FROZEN and not self._gate_approved(
             contract.study_id,
             GateType.RESEARCH_CONTRACT,
@@ -1188,6 +1280,30 @@ class WorkflowRepository:
             "research_contract_saved",
         )
         return contract
+
+    def load_research_contract(
+        self, study_id: str, version: int
+    ) -> ResearchContractVersion:
+        return ResearchContractVersion.model_validate(
+            read_json(
+                self._study_dir(study_id)
+                / "contracts"
+                / f"research-v{version}.json"
+            )
+        )
+
+    def latest_research_contract(
+        self, study_id: str
+    ) -> ResearchContractVersion | None:
+        paths = sorted(
+            (self._study_dir(study_id) / "contracts").glob("research-v*.json"),
+            key=lambda item: int(item.stem.rsplit("v", 1)[-1]),
+        )
+        return (
+            ResearchContractVersion.model_validate(read_json(paths[-1]))
+            if paths
+            else None
+        )
 
     def _gate_approved(
         self,
@@ -1220,7 +1336,9 @@ class WorkflowRepository:
         )
         self._event(
             verification.study_id,
-            "baseline_verified" if verification.baseline_verified else "baseline_blocked",
+            "baseline_verified"
+            if verification.baseline_verified
+            else "baseline_blocked",
             run_id=verification.run_id,
         )
         return verification
@@ -1271,9 +1389,7 @@ class WorkflowRepository:
             )
         ]
 
-    def save_hypothesis_verdict(
-        self, verdict: HypothesisVerdict
-    ) -> HypothesisVerdict:
+    def save_hypothesis_verdict(self, verdict: HypothesisVerdict) -> HypothesisVerdict:
         self.load_study(verdict.study_id)
         write_json_atomic(
             self._study_dir(verdict.study_id)
@@ -1297,9 +1413,7 @@ class WorkflowRepository:
         )
         return verdict
 
-    def save_adjudication(
-        self, adjudication: AdjudicationRecord
-    ) -> AdjudicationRecord:
+    def save_adjudication(self, adjudication: AdjudicationRecord) -> AdjudicationRecord:
         self.load_study(adjudication.study_id)
         write_json_atomic(
             self._study_dir(adjudication.study_id)
@@ -1317,9 +1431,7 @@ class WorkflowRepository:
     def save_nli_alert(self, alert: NLIRiskAlert) -> NLIRiskAlert:
         self.load_study(alert.study_id)
         write_json_atomic(
-            self._study_dir(alert.study_id)
-            / "nli_alerts"
-            / f"{alert.alert_id}.json",
+            self._study_dir(alert.study_id) / "nli_alerts" / f"{alert.alert_id}.json",
             alert,
         )
         self._event(
@@ -1333,9 +1445,7 @@ class WorkflowRepository:
     def save_repair_contract(self, repair: RepairContract) -> RepairContract:
         self.load_study(repair.study_id)
         write_json_atomic(
-            self._study_dir(repair.study_id)
-            / "repairs"
-            / f"{repair.repair_id}.json",
+            self._study_dir(repair.study_id) / "repairs" / f"{repair.repair_id}.json",
             repair,
         )
         study = self.load_study(repair.study_id)
@@ -1344,6 +1454,25 @@ class WorkflowRepository:
             "repair_contract_saved",
         )
         return repair
+
+    def load_repair_contract(
+        self, study_id: str, repair_id: str
+    ) -> RepairContract:
+        return RepairContract.model_validate(
+            read_json(
+                self._study_dir(study_id)
+                / "repairs"
+                / f"{repair_id}.json"
+            )
+        )
+
+    def list_repair_contracts(self, study_id: str) -> list[RepairContract]:
+        return [
+            RepairContract.model_validate(read_json(path))
+            for path in sorted(
+                (self._study_dir(study_id) / "repairs").glob("repair-*.json")
+            )
+        ]
 
     def propose_repair(
         self,
@@ -1357,9 +1486,7 @@ class WorkflowRepository:
         predecessor_run_id: str | None = None,
     ) -> RepairContract:
         impact = self.impact(study_id, changed_artifact_ids)
-        existing = sorted(
-            (self._study_dir(study_id) / "repairs").glob("repair-*.json")
-        )
+        existing = sorted((self._study_dir(study_id) / "repairs").glob("repair-*.json"))
         version = len(existing) + 1
         repair = RepairContract(
             repair_id=stable_id("repair", study_id, version, *changed_artifact_ids),
@@ -1427,9 +1554,7 @@ class WorkflowRepository:
             predecessor_artifact_id=predecessor_artifact_id,
         )
         write_json_atomic(
-            self._study_dir(study_id)
-            / "artifacts"
-            / f"{artifact.artifact_id}.json",
+            self._study_dir(study_id) / "artifacts" / f"{artifact.artifact_id}.json",
             artifact,
         )
         return artifact
@@ -1467,9 +1592,7 @@ class WorkflowRepository:
             relation=relation,
         )
         write_json_atomic(
-            self._study_dir(study_id)
-            / "dependencies"
-            / f"{edge.dependency_id}.json",
+            self._study_dir(study_id) / "dependencies" / f"{edge.dependency_id}.json",
             edge,
         )
         return edge
@@ -1482,7 +1605,9 @@ class WorkflowRepository:
             )
         ]
 
-    def impact(self, study_id: str, changed_artifact_ids: list[str]) -> dict[str, list[str]]:
+    def impact(
+        self, study_id: str, changed_artifact_ids: list[str]
+    ) -> dict[str, list[str]]:
         all_artifacts = {item.artifact_id for item in self.list_artifacts(study_id)}
         unknown = sorted(set(changed_artifact_ids).difference(all_artifacts))
         if unknown:
@@ -1504,7 +1629,9 @@ class WorkflowRepository:
         write_json_atomic(
             self._study_dir(assessment.study_id) / "readiness.json", assessment
         )
-        completion_path = self._study_dir(assessment.study_id) / "completion_record.json"
+        completion_path = (
+            self._study_dir(assessment.study_id) / "completion_record.json"
+        )
         if completion_path.is_file():
             completion = CompletionRecord.model_validate(read_json(completion_path))
             write_json_atomic(
@@ -1587,7 +1714,9 @@ class WorkflowRepository:
                 "legacy_stage": study.legacy_stage(),
             },
             "steps": [item.model_dump(mode="json") for item in steps],
-            "gates": [item.model_dump(mode="json") for item in self.list_gates(study_id)],
+            "gates": [
+                item.model_dump(mode="json") for item in self.list_gates(study_id)
+            ],
             "artifacts": [
                 item.model_dump(mode="json") for item in self.list_artifacts(study_id)
             ],

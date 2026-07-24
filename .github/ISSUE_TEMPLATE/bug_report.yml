@@ -1,0 +1,45 @@
+name: Bug report
+description: Report a reproducible Research Forge defect
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened, and what should have happened?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Provide the smallest safe reproduction without credentials or private data.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+    validations:
+      required: true
+  - type: dropdown
+    id: authority
+    attributes:
+      label: Affected boundary
+      options:
+        - Retrieval or network policy
+        - Workflow or gates
+        - Evidence or scientific verdict
+        - Paper synthesis
+        - Frontend
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed credentials, private datasets and unpublished project contents.
+          required: true

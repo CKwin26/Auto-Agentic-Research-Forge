@@ -12,7 +12,7 @@
 
 <p align="center">
   <img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white">
-  <img alt="132 tests passing" src="https://img.shields.io/badge/tests-132%20passing-2EA043?style=flat-square">
+  <a href="https://github.com/CKwin26/Auto-Agentic-Research-Forge/actions/workflows/ci.yml"><img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/CKwin26/Auto-Agentic-Research-Forge/ci.yml?branch=main&style=flat-square&label=tests"></a>
   <img alt="Codex default backend" src="https://img.shields.io/badge/backend-Codex-111827?style=flat-square">
   <a href="https://github.com/CKwin26/Auto-Agentic-Research-Forge/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/CKwin26/Auto-Agentic-Research-Forge?style=flat-square&color=0A7B83"></a>
 </p>
@@ -20,6 +20,7 @@
 <p align="center">
   <a href="#why-research-forge">Why Research Forge</a> ·
   <a href="#four-stage-closed-loop">How it works</a> ·
+  <a href="#external-research-engine">External research</a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="docs/project-bundle-workflow.md">Project bundles</a> ·
   <a href="docs/benchmark.md">RF-Bench</a>
@@ -50,6 +51,7 @@ $py = ".\.venv\Scripts\python.exe"
 |---|---|
 | **Use your real project bundle** | Read-only ingestion turns selected local code, datasets, protocols, tests, and reports into the explicit research boundary. |
 | **Dual-channel claim discovery** | Hashed author statements are matched with RedFox and scholarly attention signals to recommend validation targets; trends rank opportunities but never count as scientific evidence. |
+| **Closed-loop external research** | Policy-controlled academic, web, code, model and dataset retrieval is normalized, rights-checked, frozen, synthesized and citation-audited across the same four phases. |
 | **Idea-to-paper and project-to-paper** | Both entry points use the same governed research workspace instead of separate demo flows. |
 | **Evidence before prose** | Idea verdicts, protocol-output binding, numeric results, and frozen literature remain independent from manuscript generation. |
 | **Scientist-panel review** | The bundled [Nuwa Scientist Panel](skills/nuwa-scientist-panel/SKILL.md) runs blinded Feynman-, Tukey-, Shannon-, and Popper-inspired reviews with deterministic veto and abstention rules. |
@@ -160,6 +162,40 @@ mindmap
 </p>
 
 The paper is downstream of the research verdict. Stage 4 can report that an idea is unsupported or that evidence is incomplete; it cannot rewrite Stage 3 into a success. See [the four-stage contract](docs/four-stage-closed-loop.md).
+
+## External research engine
+
+External retrieval is shared infrastructure—not a fifth phase. One persistent
+DAG connects policy-controlled search, metadata and license checks, lawful
+full-text acquisition, immutable snapshots, evidence-bound synthesis, citation
+auditing and bounded repair.
+
+```mermaid
+flowchart LR
+    A["Plan + sanitize"] --> B["Search in parallel"]
+    B --> C["Normalize + verify"]
+    C --> D["Rights-aware acquisition"]
+    D --> E["Freeze snapshots"]
+    E --> F["Evidence synthesis"]
+    F --> G["Citation + coverage audit"]
+    G -. "diagnosed blocker" .-> H["Repair successor"]
+```
+
+Supported public sources include scholarly metadata/search, Codex-native web
+search, GitHub, Hugging Face and open-access resolution. The default network
+policy is offline; enabling providers requires explicit owner approval.
+Discovery signals and search rankings can propose directions but never decide
+the scientific verdict.
+
+For an existing Workflow v2 Study:
+
+```powershell
+research-forge --workflow-root .rfab/workflow-v2 retrieval workflow-run `
+  --study-id <study-id> --stage all --run-key public-loop-v1 --plan-only
+```
+
+The complete design, policy command, resume semantics and verification steps
+are documented in the [External Research closed loop](docs/external-research-closed-loop.md).
 
 ## Review, diagnosis, and rollback
 
@@ -633,12 +669,22 @@ workspaces/<project>/
   synthesis/claims.json        # structured claim-to-run/source bindings
   synthesis/manuscript.md      # deterministic evidence-bound draft
   synthesis/audit.json         # integrity and publication-readiness checks
-  completion_certificate.json  # hashes the completed four-stage artifact set
+  completion_record.json       # verifies the completed four-stage artifact set
+  completion_certificate.json  # legacy read-compatible record
 ```
 
 ## Current boundary
 
-This is a runnable MVP, not yet a universal autonomous scientist. Stage 1 now queries real Crossref and Semantic Scholar metadata, verifies canonical identifiers, records raw responses, performs bounded semantic screening, and creates a source-bound novelty map. It does not treat metadata/abstract review as full-paper review or proof of novelty, and it cannot approve its own shortlist. It deliberately does not let an agent install packages, launch an application-owned shell, change evaluators, or mutate literature records directly. The next safe expansions are full-text acquisition and extraction, dataset adapters, GPU/process monitoring, statistical comparison policies, and bounded prose generation whose claims remain subordinate to the claim registry.
+This is a runnable research-control platform, not a universal autonomous
+scientist. The external-research path now supports policy-controlled scholarly,
+web, GitHub and Hugging Face retrieval; rights-aware full-text acquisition;
+hash-bound PaperQA indexing; stateless evidence synthesis; and citation,
+retraction and coverage audits. It still does not treat metadata review as
+full-paper review or proof of novelty, cannot approve its own Scope, and cannot
+promote search attention into scientific evidence. Observational, interview,
+questionnaire and wet-lab studies may be scoped and diagnosed, but Research
+Forge does not claim to have automatically executed their external human or
+physical experiments.
 
 The local Windows runtime is **not an OS sandbox**. Use it only for trusted fixtures or development. The Docker runtime is the unattended boundary for tasks with a separate evaluator, but it is still a local benchmark harness rather than the official AIRS RAD/aira-dojo harness; Docker isolation alone never makes an AIRS-lite result a leaderboard result. The state store is designed for one local CLI process at a time and must not be run concurrently; it does not yet use a cross-process file lock. Post-run consistency gates reject proposal-journal/file mismatches if an external launcher violates this rule.
 
