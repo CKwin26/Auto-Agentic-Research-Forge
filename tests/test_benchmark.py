@@ -190,7 +190,7 @@ logging_info:
     dataset_python.write_text("fixture", encoding="utf-8")
 
     def fake_export(command: list[str], **_: object) -> subprocess.CompletedProcess[str]:
-        if Path(command[0]).name.lower() == "docker.exe":
+        if Path(command[0]).name.lower() in {"docker", "docker.exe"}:
             return subprocess.CompletedProcess(command, 1, stdout="", stderr="docker unavailable")
         if "-c" in command:
             return subprocess.CompletedProcess(command, 0, stdout="3.6.0\n", stderr="")
