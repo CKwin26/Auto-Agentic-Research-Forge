@@ -208,6 +208,9 @@ button:disabled { cursor: not-allowed; opacity: 0.52; }
 .direction-copy dl div { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px; font-size: 10px; }
 .direction-copy dt { color: var(--ink-faint); }
 .direction-copy dd { margin: 0; font-weight: 600; }
+.direction-dimensions { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; }
+.direction-dimensions span { padding: 6px 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-soft); color: var(--ink-faint); font-size: 9px; }
+.direction-dimensions b { margin-left: 4px; color: var(--ink-soft); font-weight: 700; }
 .direction-warning { margin-top: 15px; color: var(--orange); display: flex; align-items: center; gap: 7px; font-size: 10px; }
 .select-indicator { width: 24px; height: 24px; border: 1px solid var(--line-strong); border-radius: 50%; display: grid; place-items: center; }
 .direction-card.is-selected .select-indicator { border-color: var(--blue); background: var(--blue); color: #fff; }

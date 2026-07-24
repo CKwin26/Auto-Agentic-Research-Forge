@@ -3,6 +3,14 @@ import json
 from pathlib import Path
 
 from research_forge.claim_discovery import (
+    AuthorClaim,
+    ClaimDiscoveryReport,
+    ProjectResearchFingerprint,
+    RecommendedClaim,
+    SourceSpan,
+    TrendSignal,
+    build_discovery_portfolio,
+    build_discovery_query_intents,
     discover_project_claims,
     extract_author_claims,
     recommend_claims,
@@ -143,3 +151,135 @@ def test_author_only_claim_remains_recommended_when_providers_are_unavailable(
     assert recommended[0].origin == "author_asserted"
     assert "external_trend_match" in recommended[0].missing_context
     assert recommended[0].scientific_evidence_status == "not_yet_validated"
+
+
+def test_local_fingerprint_produces_auditable_multi_purpose_query_matrix() -> None:
+    fingerprint = ProjectResearchFingerprint(
+        domains=["量化投资"],
+        problems=["灵活退出", "最大回撤"],
+        methods=["排序模型"],
+        metrics=["return", "drawdown"],
+        terms=["flexible_exit", "drawdown", "portfolio"],
+    )
+    claim = AuthorClaim(
+        claim_id="author-claim-test",
+        statement="灵活退出机制降低最大回撤并保持组合收益。",
+        claim_type="comparative",
+        source_spans=[
+            SourceSpan(path="reports/result.md", sha256="a" * 64, line=8)
+        ],
+    )
+
+    intents = build_discovery_query_intents(fingerprint, [claim])
+
+    assert {item.purpose for item in intents} == {
+        "closest_prior_work",
+        "method_and_baseline",
+        "contradicting_evidence",
+        "recent_trend",
+        "dataset_and_model",
+    }
+    contradiction = next(
+        item for item in intents if item.purpose == "contradicting_evidence"
+    )
+    assert contradiction.source_claim_ids == [claim.claim_id]
+    assert "negative results" in contradiction.query
+
+
+def test_discovery_portfolio_binds_local_claims_to_external_sources_without_verdict_authority() -> None:
+    fingerprint = ProjectResearchFingerprint(
+        domains=["量化投资"],
+        problems=["灵活退出", "最大回撤"],
+        methods=["排序模型"],
+        metrics=["return", "drawdown"],
+        terms=["flexible_exit", "drawdown", "portfolio"],
+        evidence_assets=["protocols/exit.json", "outputs/exit.json"],
+        source_track_ids=["flexible-exit-v1"],
+    )
+    signal = TrendSignal(
+        signal_id="signal-prior-work",
+        provider="semantic_scholar",
+        signal_class="scholarly_attention",
+        query="flexible exit drawdown",
+        title="Adaptive portfolio exit rules and drawdown",
+        summary="A benchmark study of flexible exit methods and portfolio drawdown.",
+        url="https://example.org/paper",
+        terms=["flexible_exit", "drawdown", "portfolio", "benchmark"],
+        trend_score=0.7,
+        scientific_density=0.9,
+    )
+    recommendation = RecommendedClaim(
+        claim_id="recommended-claim-test",
+        statement="灵活退出机制降低最大回撤并保持组合收益。",
+        origin="trend_and_author",
+        recommendation_score=80,
+        trend_score=70,
+        project_match_score=75,
+        evidence_readiness_score=75,
+        matched_signal_ids=[signal.signal_id],
+        source_claim_ids=["author-claim-test"],
+        match_reasons=["项目主张与外部来源具有共同研究概念"],
+        local_evidence_paths=["protocols/exit.json", "outputs/exit.json"],
+    )
+    report = ClaimDiscoveryReport(
+        generated_at="2026-07-24T00:00:00+00:00",
+        source_root="C:/project",
+        fingerprint=fingerprint,
+        author_claims=[],
+        trend_signals=[signal],
+        recommended_claims=[recommendation],
+        provider_status={"semantic_scholar": "ok:1"},
+    )
+    candidate = {
+        "track_id": "flexible-exit-v1",
+        "display_title": "灵活退出与最大回撤",
+        "novelty_seed": recommendation.statement,
+        "protocol_path": "protocols/exit.json",
+        "output_path": "outputs/exit.json",
+        "report_path": "reports/exit.md",
+        "artifact_chain_complete": True,
+        "protocol_bound_to_output": True,
+        "closure_input_ready": True,
+        "paperability_score": 90,
+        "blockers": [],
+    }
+    intents = build_discovery_query_intents(fingerprint, [])
+
+    portfolio = build_discovery_portfolio(
+        fingerprint,
+        [candidate],
+        report,
+        intents,
+        query_plan_id="query-plan-test",
+        resource_set_ids=["resource-set-test"],
+        coverage={"verified_result_count": 1},
+    )
+
+    assert portfolio.status == "ready_for_scope_selection"
+    assert portfolio.recommended_direction_id == portfolio.directions[0].direction_id
+    direction = portfolio.directions[0]
+    assert direction.primary_track_id == "flexible-exit-v1"
+    assert direction.evidence_chain_level == "verified_chain"
+    assert direction.closest_prior_work_ids == [signal.signal_id]
+    assert direction.scientific_evidence_status == "discovery_only"
+    assert portfolio.claim_source_matches[0].verdict_authority is False
+
+    unmatched_report = report.model_copy(
+        update={
+            "recommended_claims": [
+                recommendation.model_copy(update={"matched_signal_ids": []})
+            ]
+        }
+    )
+    unmatched = build_discovery_portfolio(
+        fingerprint,
+        [candidate],
+        unmatched_report,
+        intents,
+        query_plan_id="query-plan-unmatched",
+        resource_set_ids=["resource-set-unmatched"],
+        coverage={"verified_result_count": 40},
+    )
+
+    assert unmatched.status == "external_grounding_incomplete"
+    assert unmatched.directions[0].external_source_ids == []

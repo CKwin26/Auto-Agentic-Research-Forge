@@ -570,7 +570,9 @@ const executorLabel = {
 const stepTitle = {
   project_scan: "扫描项目资源",
   evidence_chain_detection: "识别证据链",
+  discovery_portfolio: "形成候选方向组合",
   scope_review: "确认研究边界",
+  freeze_scope_contract: "冻结研究边界",
   scope_freeze: "冻结 Scope Contract",
   scope_drafting: "起草研究边界",
   protocol_drafting: "起草 Research Contract",
@@ -830,7 +832,10 @@ function RunningState({ task, events = [], onPause, onResume }) {
 }
 
 function DirectionSelect({ inspection, selectedId, onSelect, onBack, onContinue }) {
-  const directions = useMemo(() => uniqueDirections(inspection?.candidates || []), [inspection]);
+  const directions = useMemo(
+    () => uniqueDirections(inspection?.candidates || [], inspection?.discovery_portfolio),
+    [inspection],
+  );
   const discovery = inspection?.claim_discovery;
   const signals = discovery?.trend_signals || [];
   const wechatSignals = signals.filter((item) => item.provider === "redfox_wechat").length;
@@ -857,9 +862,10 @@ function DirectionSelect({ inspection, selectedId, onSelect, onBack, onContinue 
       </div>
       <div className="direction-list">
         {directions.map((direction, index) => {
-          const selected = direction.track_id === selectedId;
+          const directionId = direction.topic_id || direction.direction_id || direction.track_id;
+          const selected = directionId === selectedId;
           return (
-            <button key={direction.track_id} type="button" className={`direction-card ${selected ? "is-selected" : ""}`} onClick={() => onSelect(direction.track_id)}>
+            <button key={directionId} type="button" className={`direction-card ${selected ? "is-selected" : ""}`} onClick={() => onSelect(directionId)}>
               <span className="direction-index">{String(index + 1).padStart(2, "0")}</span>
               <div className="direction-copy">
                 <div><h2>{paperTopicTitle(direction)}</h2>{index === 0 ? <em>推荐</em> : null}</div>
@@ -868,7 +874,16 @@ function DirectionSelect({ inspection, selectedId, onSelect, onBack, onContinue 
                   <div><dt>候选贡献</dt><dd>{direction.contribution}</dd></div>
                   <div><dt>研究范围</dt><dd>{direction.scope}</dd></div>
                   <div><dt>证据基础</dt><dd>{direction.evidence_chain_count || 0} 条完整验证链</dd></div>
+                  {direction.relation_to_prior_work ? <div><dt>已有工作</dt><dd>{direction.relation_to_prior_work}</dd></div> : null}
                 </dl>
+                {direction.novelty_grounding ? (
+                  <div className="direction-dimensions" aria-label="候选方向质量维度">
+                    <span>新颖性依据 <b>{direction.novelty_grounding}</b></span>
+                    <span>证据成熟度 <b>{direction.evidence_readiness}</b></span>
+                    <span>实施可行性 <b>{direction.feasibility}</b></span>
+                    <span>外部关注度 <b>{direction.external_attention}</b></span>
+                  </div>
+                ) : null}
                 {direction.blockers?.length ? <div className="direction-warning"><WarningCircle size={16} weight="fill" /><span>{blockerText(direction.blockers[0])}</span></div> : null}
               </div>
               <span className="select-indicator">{selected ? <Check size={16} weight="bold" /> : null}</span>
@@ -1186,8 +1201,13 @@ export function App() {
   const [drawerItem, setDrawerItem] = useState(null);
   const [retrievalReadiness, setRetrievalReadiness] = useState(null);
   const pollRef = useRef(null);
-  const directions = useMemo(() => uniqueDirections(state.inspection?.candidates || []), [state.inspection]);
-  const selectedDirection = directions.find((item) => item.track_id === state.selectedDirectionId) || directions[0] || null;
+  const directions = useMemo(
+    () => uniqueDirections(state.inspection?.candidates || [], state.inspection?.discovery_portfolio),
+    [state.inspection],
+  );
+  const selectedDirection = directions.find(
+    (item) => (item.topic_id || item.direction_id || item.track_id) === state.selectedDirectionId,
+  ) || directions[0] || null;
   const requestPending = state.request.status === "pending";
   const activeWorkflow = state.run?.workflow
     || state.ideaResult?.workflow
@@ -1278,9 +1298,14 @@ export function App() {
     const nextView = taskUiState(task);
     if (nextView === "directions") {
       const inspection = task.result || {};
-      const nextDirections = uniqueDirections(inspection.candidates || []);
-      const recommendedTopic = nextDirections.find((topic) => topic.supporting_track_ids?.includes(inspection.recommended_track_id)) || nextDirections[0];
-      dispatch({ type: "PATCH", patch: { view: "directions", inspection, selectedDirectionId: recommendedTopic?.track_id || "", notice: "项目扫描完成。请先确认一个可以独立成文的候选选题。" } });
+      const nextDirections = uniqueDirections(inspection.candidates || [], inspection.discovery_portfolio);
+      const recommendedId = inspection.discovery_portfolio?.recommended_direction_id;
+      const recommendedTopic = nextDirections.find(
+        (topic) => (topic.topic_id || topic.direction_id) === recommendedId,
+      ) || nextDirections.find(
+        (topic) => topic.supporting_track_ids?.includes(inspection.recommended_track_id),
+      ) || nextDirections[0];
+      dispatch({ type: "PATCH", patch: { view: "directions", inspection, selectedDirectionId: recommendedTopic?.topic_id || recommendedTopic?.direction_id || recommendedTopic?.track_id || "", notice: "项目扫描完成。请先确认一个可以独立成文的候选选题。" } });
     } else if (nextView === "idea_ready") {
       dispatch({ type: "PATCH", patch: { view: "idea_ready", ideaResult: task.result || {}, notice: "研究边界已创建，并进入发现阶段。" } });
     } else if (nextView === "attention") {
@@ -1336,6 +1361,28 @@ export function App() {
   async function confirmContract() {
     dispatch({ type: "REQUEST", name: "close", status: "pending" });
     try {
+      const directionId = selectedDirection?.direction_id || selectedDirection?.topic_id;
+      if (state.inspection?.study_id && directionId?.startsWith("discovery-direction-")) {
+        const approval = await api("/api/studies/discovery/select", {
+          method: "POST",
+          body: JSON.stringify({
+            study_id: state.inspection.study_id,
+            direction_id: directionId,
+            decided_by: "project_owner",
+            reason: "负责人在 Discovery Portfolio 中选择该方向并批准 Scope v1。",
+          }),
+        });
+        dispatch({
+          type: "PATCH",
+          patch: {
+            inspection: {
+              ...state.inspection,
+              workflow: approval.workflow,
+              scope_contract: approval.scope_contract,
+            },
+          },
+        });
+      }
       await submitTask("bundle.close", { source: state.source, output_root: state.runsRoot, name: `${paperTopicTitle(selectedDirection)}-web`, track_id: selectedDirection.track_id, discover_claims: true }, "close");
     } catch (error) {
       // The server owns the canonical run root. Fall back to the compatibility endpoint when not supplied.
@@ -1450,7 +1497,7 @@ export function App() {
         <Notice notice={state.notice} error={state.error} />
         {state.view === "intake" ? <><Hero mode={state.mode} />{state.mode === "project" ? <ProjectIntake source={state.source} onSource={(source) => dispatch({ type: "PATCH", patch: { source } })} onChooseFolder={chooseFolder} onSubmit={inspectProject} loading={requestPending} /> : <IdeaIntake onSubmit={startIdea} loading={requestPending} />}</> : null}
         {state.view === "running" ? <RunningState task={state.activeTask} events={state.taskEvents} onPause={pauseTask} onResume={resumeTask} /> : null}
-        {state.view === "directions" ? <DirectionSelect inspection={state.inspection} selectedId={state.selectedDirectionId || selectedDirection?.track_id} onSelect={(selectedDirectionId) => dispatch({ type: "PATCH", patch: { selectedDirectionId } })} onBack={() => dispatch({ type: "RESET" })} onContinue={() => dispatch({ type: "PATCH", patch: { view: "contract" } })} /> : null}
+        {state.view === "directions" ? <DirectionSelect inspection={state.inspection} selectedId={state.selectedDirectionId || selectedDirection?.topic_id || selectedDirection?.direction_id || selectedDirection?.track_id} onSelect={(selectedDirectionId) => dispatch({ type: "PATCH", patch: { selectedDirectionId } })} onBack={() => dispatch({ type: "RESET" })} onContinue={() => dispatch({ type: "PATCH", patch: { view: "contract" } })} /> : null}
         {state.view === "contract" ? <ContractReview direction={selectedDirection} source={state.source} onBack={() => dispatch({ type: "PATCH", patch: { view: "directions" } })} onConfirm={confirmContract} loading={requestPending} /> : null}
         {state.view === "attention" ? <AttentionState task={state.activeTask} onResolve={resolveRequirement} onResume={resumeTask} onBackToContract={() => dispatch({ type: "PATCH", patch: { view: "contract" } })} /> : null}
         {state.view === "idea_ready" ? <IdeaReady result={state.ideaResult} onOpenPath={openPath} onNew={() => dispatch({ type: "RESET" })} /> : null}

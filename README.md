@@ -187,6 +187,12 @@ policy is offline; enabling providers requires explicit owner approval.
 Discovery signals and search rankings can propose directions but never decide
 the scientific verdict.
 
+Stage 1 is project-grounded: it extracts hashed local Claims and a structured
+Research Fingerprint before generating purpose-specific literature and trend
+queries. External sources are matched back to individual Claims, and the
+backend produces a comparable Discovery Portfolio before the owner selects and
+freezes Scope. See [Stage 1 project-grounded discovery](docs/stage-1-discovery-portfolio.md).
+
 For an existing Workflow v2 Study:
 
 ```powershell

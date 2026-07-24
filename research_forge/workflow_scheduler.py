@@ -18,10 +18,13 @@ from typing import Any, Callable, Literal, cast
 from .claim_discovery import (
     AuthorClaim,
     ClaimDiscoveryReport,
+    DiscoveryPortfolio,
+    DiscoveryQueryIntent,
     ProjectResearchFingerprint,
     TrendSignal,
-    _project_queries,
-    _scholarly_queries,
+    _terms,
+    build_discovery_portfolio,
+    build_discovery_query_intents,
     build_project_fingerprint,
     extract_author_claims,
     recommend_claims,
@@ -35,6 +38,7 @@ from .project_bundle import (
     inventory_project_bundle,
 )
 from .workflow_domain import (
+    ArtifactStatus,
     ArtifactRole,
     EntryMode,
     ExecutionStatus,
@@ -46,6 +50,7 @@ from .workflow_domain import (
     StudyLifecycle,
     WorkflowRepository,
     stable_id,
+    utc_now,
 )
 from .retrieval.domain.models import (
     NetworkMode,
@@ -468,11 +473,11 @@ def _draft_discovery_query_plan(context: StepContext) -> dict[str, Any]:
     fingerprint = ProjectResearchFingerprint.model_validate(
         context.result("project_fingerprint")["fingerprint"]
     )
-    project_queries = _project_queries(fingerprint)
-    scholarly_queries = _scholarly_queries(fingerprint) or project_queries[:4]
-    all_queries = list(dict.fromkeys([*project_queries, *scholarly_queries]))[:8]
-    if not all_queries:
-        all_queries = ["autonomous research agent evidence verification"]
+    claims = _models(
+        context.result("author_claim_extraction")["author_claims"], AuthorClaim
+    )
+    query_intents = build_discovery_query_intents(fingerprint, claims)
+    all_queries = [item.query for item in query_intents]
     study = context.repository.load_study(context.study_id)
     project = context.repository.load_project(study.project_id)
     execute_step = next(
@@ -543,6 +548,9 @@ def _draft_discovery_query_plan(context: StepContext) -> dict[str, Any]:
         "request_id": request.request_id,
         "query_plan_id": request.query_plan_id,
         "network_policy_id": request.network_policy_id,
+        "query_intents": [
+            item.model_dump(mode="json") for item in query_intents
+        ],
     }
 
 
@@ -661,6 +669,13 @@ def _normalize_external_resources(context: StepContext) -> dict[str, Any]:
     for resource in resources:
         metadata = resource.metadata
         provider = resource.providers[0]
+        summary = str(metadata.get("summary", ""))
+        source_terms = sorted(
+            {
+                *[str(item) for item in (metadata.get("terms") or [])],
+                *_terms(f"{resource.title} {summary}"),
+            }
+        )[:100]
         signal_class_value = str(
             metadata.get("signal_class")
             or (
@@ -700,14 +715,14 @@ def _normalize_external_resources(context: StepContext) -> dict[str, Any]:
                 signal_class=signal_class,
                 query="gateway-normalized",
                 title=resource.title,
-                summary=str(metadata.get("summary", "")),
+                summary=summary,
                 url=resource.url or resource.canonical_identifier,
                 published_at=resource.publication_or_release_date or "",
                 source_name=(
                     resource.authors_or_owners[0] if resource.authors_or_owners else ""
                 ),
                 engagement=metadata.get("attention") or {},
-                terms=metadata.get("terms") or [],
+                terms=source_terms,
                 trend_score=float(metadata.get("attention_score", 0)),
                 scientific_density=float(metadata.get("scientific_density", 0)),
                 metadata={
@@ -838,36 +853,65 @@ def _evidence_chain_detection(context: StepContext) -> dict[str, Any]:
     return {"chains": chains}
 
 
-def _scope_drafting(context: StepContext) -> dict[str, Any]:
+def _discovery_portfolio(context: StepContext) -> dict[str, Any]:
+    fingerprint = ProjectResearchFingerprint.model_validate(
+        context.result("project_fingerprint")["fingerprint"]
+    )
     candidates = context.result("candidate_discovery")["candidates"]
-    claim_report = context.result("claim_recommendation")["claim_discovery"]
-    recommendations = claim_report["recommended_claims"]
-    selected = recommendations[0] if recommendations else None
-    candidate = candidates[0] if candidates else None
-    direction = (
-        str(selected["statement"])
-        if selected
-        else str((candidate or {}).get("display_title") or "Project-derived study")
+    claim_report = ClaimDiscoveryReport.model_validate(
+        context.result("claim_recommendation")["claim_discovery"]
     )
-    contribution = (
-        str((candidate or {}).get("novelty_seed"))
-        if candidate
-        else "A project-grounded research direction requiring additional evidence."
+    query_plan = context.result("draft_discovery_query_plan")
+    query_intents = _models(
+        query_plan.get("query_intents", []), DiscoveryQueryIntent
     )
+    source_set = context.result("build_discovery_source_set")
+    resource_set = source_set.get("resource_set") or {}
+    resource_set_ids = [
+        str(resource_set["resource_set_id"])
+    ] if resource_set.get("resource_set_id") else []
+    portfolio = build_discovery_portfolio(
+        fingerprint,
+        candidates,
+        claim_report,
+        query_intents,
+        query_plan_id=str(query_plan.get("query_plan_id") or "") or None,
+        resource_set_ids=resource_set_ids,
+        coverage=source_set.get("coverage") or {},
+    )
+    return {"discovery_portfolio": portfolio.model_dump(mode="json")}
+
+
+def _scope_drafting(context: StepContext) -> dict[str, Any]:
+    portfolio = DiscoveryPortfolio.model_validate(
+        context.result("discovery_portfolio")["discovery_portfolio"]
+    )
+    selected = next(
+        (
+            item
+            for item in portfolio.directions
+            if item.direction_id == portfolio.recommended_direction_id
+        ),
+        portfolio.directions[0] if portfolio.directions else None,
+    )
+    if selected is None:
+        raise BlockedStepError(
+            "Discovery Portfolio contains no viable direction.",
+            kind="no_viable_direction",
+        )
     contract = ScopeContractVersion(
         study_id=context.study_id,
         version=1,
-        direction=direction[:300],
-        research_question=f"Can the project evidence support: {direction[:700]}?",
-        scope_in=["read-only project resources", "machine-readable project evidence"],
-        scope_out=[
-            "claims not bound to project artifacts",
-            "external human experiments",
-        ],
-        candidate_contribution=contribution[:2000],
-        project_resource_ids=[
-            str(path) for path in (selected or {}).get("local_evidence_paths", [])
-        ],
+        direction=selected.title[:300],
+        research_question=selected.research_question[:1200],
+        scope_in=selected.scope_in,
+        scope_out=selected.scope_out,
+        candidate_contribution=selected.candidate_contribution[:2000],
+        project_resource_ids=selected.local_evidence_paths,
+        literature_set_id=(
+            portfolio.resource_set_ids[0] if portfolio.resource_set_ids else None
+        ),
+        field_diff={"selected_direction_id": selected.direction_id},
     )
     context.repository.save_scope_contract(contract)
     existing = [
@@ -889,8 +933,24 @@ def _scope_drafting(context: StepContext) -> dict[str, Any]:
     )
     return {
         "scope_contract": contract.model_dump(mode="json"),
+        "selected_direction_id": selected.direction_id,
         "gate": gate.model_dump(mode="json"),
     }
+
+
+def _freeze_scope_contract(context: StepContext) -> dict[str, Any]:
+    draft = ScopeContractVersion.model_validate(
+        context.result("scope_drafting")["scope_contract"]
+    )
+    frozen = context.repository.save_scope_contract(
+        draft.model_copy(
+            update={
+                "status": ArtifactStatus.FROZEN,
+                "frozen_at": utc_now(),
+            }
+        )
+    )
+    return {"scope_contract": frozen.model_dump(mode="json")}
 
 
 def stage_one_handlers() -> dict[str, StepHandler]:
@@ -910,7 +970,9 @@ def stage_one_handlers() -> dict[str, StepHandler]:
         "freeze_discovery_source_set": _freeze_discovery_source_set,
         "claim_recommendation": _recommendation,
         "evidence_chain_detection": _evidence_chain_detection,
+        "discovery_portfolio": _discovery_portfolio,
         "scope_drafting": _scope_drafting,
+        "freeze_scope_contract": _freeze_scope_contract,
     }
     handlers.update(external_research_handlers())
     for step_type in UNCONNECTED_RETRIEVAL_STEPS:
@@ -954,7 +1016,48 @@ def create_project_discovery_study(
         study_id=stable_id("study", project.project_id, "discovery", suffix),
         settings={"include_external_discovery": include_external},
     )
-    if repository.list_steps(study.study_id):
+    existing_steps = repository.list_steps(study.study_id)
+    if existing_steps:
+        by_type = {item.step_type: item for item in existing_steps}
+        if (
+            "discovery_portfolio" not in by_type
+            and {
+                "claim_recommendation",
+                "evidence_chain_detection",
+                "build_discovery_source_set",
+                "draft_discovery_query_plan",
+            }.issubset(by_type)
+        ):
+            repository.add_step(
+                study.study_id,
+                "discovery_portfolio",
+                Phase.DISCOVERY,
+                ExecutorType.DETERMINISTIC_SERVICE,
+                depends_on=[
+                    by_type["claim_recommendation"].step_instance_id,
+                    by_type["evidence_chain_detection"].step_instance_id,
+                    by_type["build_discovery_source_set"].step_instance_id,
+                    by_type["draft_discovery_query_plan"].step_instance_id,
+                ],
+                expected_output=(
+                    "Compatibility-generated Discovery Portfolio for a pre-portfolio Study"
+                ),
+            )
+        if (
+            "freeze_scope_contract" not in by_type
+            and {"scope_review", "scope_drafting"}.issubset(by_type)
+        ):
+            repository.add_step(
+                study.study_id,
+                "freeze_scope_contract",
+                Phase.DISCOVERY,
+                ExecutorType.DETERMINISTIC_SERVICE,
+                depends_on=[
+                    by_type["scope_review"].step_instance_id,
+                    by_type["scope_drafting"].step_instance_id,
+                ],
+                expected_output="Owner-approved frozen Scope Contract v1",
+            )
         return project.project_id, study.study_id
 
     scan = repository.add_step(
@@ -1069,16 +1172,27 @@ def create_project_discovery_study(
         ExecutorType.DETERMINISTIC_SERVICE,
         depends_on=[candidates.step_instance_id],
     )
+    portfolio = repository.add_step(
+        study.study_id,
+        "discovery_portfolio",
+        Phase.DISCOVERY,
+        ExecutorType.DETERMINISTIC_SERVICE,
+        depends_on=[
+            recommendation.step_instance_id,
+            evidence.step_instance_id,
+            source_set.step_instance_id,
+            query_plan.step_instance_id,
+        ],
+        expected_output=(
+            "Candidate-specific Claim–Source matches and comparable research directions"
+        ),
+    )
     scope = repository.add_step(
         study.study_id,
         "scope_drafting",
         Phase.DISCOVERY,
         ExecutorType.CODEX,
-        depends_on=[
-            recommendation.step_instance_id,
-            evidence.step_instance_id,
-            source_set.step_instance_id,
-        ],
+        depends_on=[portfolio.step_instance_id],
     )
     review = repository.add_step(
         study.study_id,
@@ -1088,12 +1202,20 @@ def create_project_discovery_study(
         depends_on=[scope.step_instance_id],
         expected_output="Owner decision on Scope Contract v1",
     )
+    frozen_scope = repository.add_step(
+        study.study_id,
+        "freeze_scope_contract",
+        Phase.DISCOVERY,
+        ExecutorType.DETERMINISTIC_SERVICE,
+        depends_on=[review.step_instance_id, scope.step_instance_id],
+        expected_output="Owner-approved frozen Scope Contract v1",
+    )
     repository.add_step(
         study.study_id,
         "freeze_discovery_source_set",
         Phase.DISCOVERY,
         ExecutorType.DETERMINISTIC_SERVICE,
-        depends_on=[review.step_instance_id, source_set.step_instance_id],
+        depends_on=[frozen_scope.step_instance_id, source_set.step_instance_id],
         task_group="retrieval_gateway",
         expected_output="Frozen discovery ResourceSet or explicit evidence gap",
     )
@@ -1134,9 +1256,19 @@ def run_project_discovery(
         for item in repository.list_steps(study_id)
         if item.step_type == "claim_recommendation"
     )
+    portfolio_step = next(
+        item
+        for item in repository.list_steps(study_id)
+        if item.step_type == "discovery_portfolio"
+    )
     if any(
         item.status is not ExecutionStatus.SUCCEEDED
-        for item in (scan_step, candidate_step, recommendation_step)
+        for item in (
+            scan_step,
+            candidate_step,
+            recommendation_step,
+            portfolio_step,
+        )
     ):
         return {"project_id": project_id, "study_id": study_id, "workflow": snapshot}
     scan = repository.load_step_result(study_id, scan_step.step_instance_id)
@@ -1146,6 +1278,9 @@ def run_project_discovery(
     claim_discovery = repository.load_step_result(
         study_id, recommendation_step.step_instance_id
     )["claim_discovery"]
+    discovery_portfolio = repository.load_step_result(
+        study_id, portfolio_step.step_instance_id
+    )["discovery_portfolio"]
     candidates = _models(candidates_payload, NoveltyCandidate)
     inspection = BundleInspection(
         source_root=scan["source_root"],
@@ -1154,10 +1289,109 @@ def run_project_discovery(
         candidates=candidates,
         recommended_track_id=candidates[0].track_id if candidates else None,
         claim_discovery=ClaimDiscoveryReport.model_validate(claim_discovery),
+        discovery_portfolio=DiscoveryPortfolio.model_validate(
+            discovery_portfolio
+        ),
     )
     return {
         **inspection.model_dump(mode="json"),
         "project_id": project_id,
         "study_id": study_id,
         "workflow": snapshot,
+    }
+
+
+def approve_discovery_direction(
+    repository: WorkflowRepository,
+    study_id: str,
+    direction_id: str,
+    *,
+    decided_by: str = "project_owner",
+    reason: str | None = None,
+) -> dict[str, Any]:
+    """Select one portfolio direction, approve Scope v1, and resume the DAG."""
+
+    portfolio_step = next(
+        (
+            item
+            for item in repository.list_steps(study_id)
+            if item.step_type == "discovery_portfolio"
+            and item.status is ExecutionStatus.SUCCEEDED
+        ),
+        None,
+    )
+    if portfolio_step is None:
+        raise ValueError("the Study has no completed Discovery Portfolio")
+    portfolio = DiscoveryPortfolio.model_validate(
+        repository.load_step_result(
+            study_id, portfolio_step.step_instance_id
+        )["discovery_portfolio"]
+    )
+    selected = next(
+        (item for item in portfolio.directions if item.direction_id == direction_id),
+        None,
+    )
+    if selected is None:
+        raise ValueError("direction_id does not belong to the Discovery Portfolio")
+
+    current = repository.latest_scope_contract(study_id)
+    if current is None:
+        raise ValueError("the Study has no draft Scope Contract")
+    if current.status is ArtifactStatus.FROZEN:
+        selected_id = str(current.field_diff.get("selected_direction_id", ""))
+        if selected_id != direction_id:
+            raise ValueError("a different frozen Scope requires Scope vNext")
+        return {
+            "scope_contract": current.model_dump(mode="json"),
+            "workflow": repository.snapshot(study_id),
+        }
+
+    updated = current.model_copy(
+        update={
+            "direction": selected.title[:300],
+            "research_question": selected.research_question[:1200],
+            "scope_in": selected.scope_in,
+            "scope_out": selected.scope_out,
+            "candidate_contribution": selected.candidate_contribution[:2000],
+            "project_resource_ids": selected.local_evidence_paths,
+            "literature_set_id": (
+                portfolio.resource_set_ids[0]
+                if portfolio.resource_set_ids
+                else None
+            ),
+            "field_diff": {
+                **current.field_diff,
+                "selected_direction_id": selected.direction_id,
+                "selected_primary_track_id": selected.primary_track_id,
+            },
+            "created_by": decided_by,
+        }
+    )
+    repository.save_scope_contract(updated)
+    gate = next(
+        (
+            item
+            for item in repository.list_gates(study_id)
+            if item.gate_type is GateType.SCOPE_APPROVAL
+            and item.subject_version == updated.version
+        ),
+        None,
+    )
+    if gate is None:
+        raise ValueError("the Study has no Scope approval Gate")
+    decided = repository.decide_gate(
+        study_id,
+        gate.gate_id,
+        approve=True,
+        decided_by=decided_by,
+        reason=reason or f"Selected Discovery direction {direction_id}.",
+    )
+    workflow = PersistentDAGScheduler(repository, stage_one_handlers()).run(study_id)
+    frozen = repository.latest_scope_contract(study_id)
+    return {
+        "scope_contract": (
+            frozen.model_dump(mode="json") if frozen is not None else None
+        ),
+        "gate": decided.model_dump(mode="json"),
+        "workflow": workflow,
     }

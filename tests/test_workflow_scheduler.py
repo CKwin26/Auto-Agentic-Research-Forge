@@ -13,6 +13,7 @@ from research_forge.workflow_domain import (
 from research_forge.workflow_scheduler import (
     PersistentDAGScheduler,
     TransientStepError,
+    approve_discovery_direction,
     create_project_discovery_study,
     run_project_discovery,
     stage_one_handlers,
@@ -73,7 +74,9 @@ def test_stage_one_runs_as_persisted_dag_and_stops_at_scope_gate(
     ):
         assert steps[step_type]["status"] == "succeeded"
     assert steps["scope_drafting"]["status"] == "succeeded"
+    assert steps["discovery_portfolio"]["status"] == "succeeded"
     assert steps["scope_review"]["status"] == "waiting_for_user"
+    assert steps["freeze_scope_contract"]["status"] == "queued"
     assert steps["freeze_discovery_source_set"]["status"] == "queued"
     assert result["workflow"]["task_groups"]["retrieval_gateway"] == {
         "completed": 8,
@@ -92,6 +95,8 @@ def test_stage_one_runs_as_persisted_dag_and_stops_at_scope_gate(
         "semantic_scholar",
         "crossref",
     }.issubset(result["claim_discovery"]["provider_status"])
+    assert result["discovery_portfolio"]["directions"]
+    assert result["discovery_portfolio"]["query_intents"]
 
     # A process restart resumes from persisted state and does not duplicate nodes.
     repeated = run_project_discovery(
@@ -114,17 +119,35 @@ def test_scope_approval_completes_waiting_owner_node(tmp_path: Path) -> None:
     )
     scheduler = PersistentDAGScheduler(repository, stage_one_handlers())
     scheduler.run(study_id)
-    gate = repository.list_gates(study_id)[0]
-    repository.decide_gate(
-        study_id, gate.gate_id, approve=True, decided_by="project_owner"
+    portfolio_step = next(
+        item
+        for item in repository.list_steps(study_id)
+        if item.step_type == "discovery_portfolio"
     )
-
-    snapshot = scheduler.run(study_id)
+    portfolio = repository.load_step_result(
+        study_id, portfolio_step.step_instance_id
+    )["discovery_portfolio"]
+    snapshot = approve_discovery_direction(
+        repository,
+        study_id,
+        portfolio["recommended_direction_id"],
+        decided_by="project_owner",
+    )["workflow"]
 
     scope_review = next(
         item for item in snapshot["steps"] if item["step_type"] == "scope_review"
     )
     assert scope_review["status"] == "succeeded"
+    freeze_scope = next(
+        item for item in snapshot["steps"] if item["step_type"] == "freeze_scope_contract"
+    )
+    assert freeze_scope["status"] == "succeeded"
+    contract = repository.latest_scope_contract(study_id)
+    assert contract is not None
+    assert contract.status.value == "frozen"
+    assert contract.field_diff["selected_direction_id"] == portfolio[
+        "recommended_direction_id"
+    ]
 
 
 def test_scheduler_retries_transient_failure_without_repeating_success(

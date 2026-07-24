@@ -178,6 +178,90 @@ class ClaimDiscoveryReport(StrictModel):
     )
 
 
+class DiscoveryQueryIntent(StrictModel):
+    query_id: str
+    purpose: Literal[
+        "closest_prior_work",
+        "method_and_baseline",
+        "contradicting_evidence",
+        "recent_trend",
+        "dataset_and_model",
+    ]
+    query: str = Field(min_length=3, max_length=800)
+    source_claim_ids: list[str] = Field(default_factory=list)
+    terms: list[str] = Field(default_factory=list)
+
+
+class ClaimSourceMatch(StrictModel):
+    match_id: str
+    claim_id: str
+    source_signal_id: str
+    relation: Literal[
+        "closest_prior_work",
+        "method_or_baseline",
+        "conflicting_context",
+        "supporting_context",
+        "attention_signal",
+    ]
+    match_score: int = Field(ge=0, le=100)
+    reasons: list[str] = Field(default_factory=list)
+    evidence_role: Literal["background_only", "attention_only"]
+    verdict_authority: Literal[False] = False
+
+
+_DISCOVERY_STRENGTH = Literal["strong", "moderate", "limited", "unassessed"]
+
+
+class DiscoveryDirection(StrictModel):
+    direction_id: str
+    title: str
+    research_question: str
+    falsifiable_hypothesis: str
+    candidate_contribution: str
+    scope_in: list[str] = Field(min_length=1)
+    scope_out: list[str] = Field(min_length=1)
+    source_claim_ids: list[str] = Field(default_factory=list)
+    supporting_track_ids: list[str] = Field(default_factory=list)
+    primary_track_id: str | None = None
+    local_evidence_paths: list[str] = Field(default_factory=list)
+    external_source_ids: list[str] = Field(default_factory=list)
+    closest_prior_work_ids: list[str] = Field(default_factory=list)
+    conflicting_source_ids: list[str] = Field(default_factory=list)
+    trend_signal_ids: list[str] = Field(default_factory=list)
+    relation_to_prior_work: str
+    novelty_grounding: _DISCOVERY_STRENGTH
+    evidence_readiness: _DISCOVERY_STRENGTH
+    feasibility: _DISCOVERY_STRENGTH
+    external_attention: _DISCOVERY_STRENGTH
+    evidence_chain_level: Literal["verified_chain", "inferred_chain"]
+    recommendation_reasons: list[str] = Field(default_factory=list)
+    blockers: list[str] = Field(default_factory=list)
+    prohibited_claims: list[str] = Field(default_factory=list)
+    scientific_evidence_status: Literal["discovery_only"] = "discovery_only"
+
+
+class DiscoveryPortfolio(StrictModel):
+    schema_version: int = 1
+    generated_at: str
+    fingerprint: ProjectResearchFingerprint
+    query_plan_id: str | None = None
+    query_intents: list[DiscoveryQueryIntent]
+    claim_source_matches: list[ClaimSourceMatch]
+    directions: list[DiscoveryDirection]
+    recommended_direction_id: str | None = None
+    resource_set_ids: list[str] = Field(default_factory=list)
+    coverage: dict[str, Any] = Field(default_factory=dict)
+    status: Literal[
+        "ready_for_scope_selection",
+        "external_grounding_incomplete",
+        "no_viable_direction",
+    ]
+    integrity_rule: str = (
+        "External literature and trend signals ground and rank discovery "
+        "directions; they cannot decide a scientific verdict."
+    )
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -374,7 +458,13 @@ def build_project_fingerprint(
     )
     claim_text = " ".join(item.statement for item in author_claims)
     all_text = f"{candidate_text} {claim_text}"
-    terms = sorted(_terms(all_text), key=lambda item: (-all_text.casefold().count(item.casefold()), item))[:80]
+    discovered_terms = _terms(all_text)
+    canonical_terms = sorted(discovered_terms & _CANONICAL_CONCEPTS)
+    ranked_terms = sorted(
+        discovered_terms - _CANONICAL_CONCEPTS,
+        key=lambda item: (-all_text.casefold().count(item.casefold()), item),
+    )
+    terms = [*canonical_terms, *ranked_terms[: 80 - len(canonical_terms)]]
     methods = [item for item in terms if any(cue in item for cue in ("exit", "filter", "model", "gate", "退出", "筛选", "门控", "识别"))][:20]
     metrics = [item for item in terms if any(cue in item for cue in ("accuracy", "return", "drawdown", "rate", "auc", "收益", "回撤", "准确"))][:20]
     problems = [
@@ -647,6 +737,150 @@ def _match_score(left: Iterable[str], right: Iterable[str]) -> float:
     return min(1.0, 0.65 * len(overlap) / min(len(left_set), len(right_set)) + 0.35 * len(overlap) / len(left_set | right_set))
 
 
+def build_discovery_query_intents(
+    fingerprint: ProjectResearchFingerprint,
+    author_claims: Sequence[AuthorClaim],
+) -> list[DiscoveryQueryIntent]:
+    """Turn the local project fingerprint into an auditable query matrix."""
+
+    canonical = [
+        item.replace("_", " ")
+        for item in fingerprint.terms
+        if item in _CANONICAL_CONCEPTS
+    ]
+    short_project_terms = [
+        item.strip()
+        for item in [
+            *fingerprint.domains,
+            *fingerprint.problems,
+            *fingerprint.methods,
+            *fingerprint.metrics,
+        ]
+        if 2 <= len(item.strip()) <= 32
+        and not any(mark in item for mark in ("。", "？", "?", ":", "：", "\n"))
+    ]
+    ignored_track_tokens = {
+        "research",
+        "report",
+        "validation",
+        "implementation",
+        "freeze",
+        "study",
+        "test",
+        "model",
+        "baseline",
+    }
+    topic_seeds: list[str] = []
+    topic_signatures: set[tuple[str, ...]] = set()
+    for track_id in fingerprint.source_track_ids:
+        tokens = [
+            item
+            for item in re.split(r"[-_\s]+", track_id.casefold())
+            if item
+            and item not in ignored_track_tokens
+            and not re.fullmatch(r"v?\d+", item)
+            and not re.search(r"\d", item)
+            and len(item) > 1
+        ]
+        seed = " ".join(tokens[:5]).strip()
+        if not seed:
+            continue
+        signature = tuple(tokens[:2])
+        if signature in topic_signatures:
+            continue
+        seed_terms = set(seed.split())
+        if any(
+            _match_score(seed_terms, set(existing.split())) >= 0.7
+            for existing in topic_seeds
+        ):
+            continue
+        topic_seeds.append(seed)
+        topic_signatures.add(signature)
+        if len(topic_seeds) >= 3:
+            break
+    if not topic_seeds:
+        topic_seeds = list(dict.fromkeys([*canonical, *short_project_terms]))[:3]
+    if not topic_seeds:
+        topic_seeds = ["project evidence verification"]
+
+    context_terms = [
+        item
+        for item in canonical
+        if item in {"portfolio", "return", "robustness", "drawdown"}
+        if item not in " ".join(topic_seeds)
+    ][:2]
+    rows: list[tuple[str, str, list[str]]] = [
+        (
+            "closest_prior_work",
+            " ".join([seed, *context_terms, "empirical study"]).strip(),
+            [],
+        )
+        for seed in topic_seeds
+    ]
+    primary = topic_seeds[0]
+    rows.extend(
+        [
+            ("method_and_baseline", f"{primary} benchmark baseline", []),
+            (
+                "recent_trend",
+                f"{primary} recent research trends",
+                [],
+            ),
+            (
+                "dataset_and_model",
+                f"{primary} reproducible dataset model",
+                [],
+            ),
+        ]
+    )
+    eligible_claims = [
+        item
+        for item in author_claims
+        if item.claim_type
+        in {"research_question", "result", "comparative", "robustness", "novelty"}
+        and "sha-256" not in item.statement.casefold()
+        and not re.search(r"\b[a-f0-9]{32,}\b", item.statement.casefold())
+    ]
+    remaining = max(0, 8 - len(rows))
+    for claim in eligible_claims[:remaining]:
+        statement = _clean_statement(claim.statement)
+        if not statement:
+            continue
+        claim_terms = [
+            item.replace("_", " ")
+            for item in sorted(_terms(statement))
+            if item in _CANONICAL_CONCEPTS
+            or re.fullmatch(r"[a-z][a-z0-9-]{3,}", item)
+        ]
+        claim_query = " ".join(claim_terms[:8]).strip() or statement[:120]
+        rows.append(
+            (
+                "contradicting_evidence",
+                f"{claim_query} limitations negative results failure",
+                [claim.claim_id],
+            )
+        )
+
+    intents: list[DiscoveryQueryIntent] = []
+    seen: set[str] = set()
+    for purpose, query, claim_ids in rows:
+        normalized = re.sub(r"\s+", " ", query).strip()[:800]
+        key = normalized.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        intents.append(
+            DiscoveryQueryIntent(
+                query_id=_stable_id("discovery-query", f"{purpose}:{key}"),
+                purpose=purpose,  # type: ignore[arg-type]
+                query=normalized,
+                source_claim_ids=claim_ids,
+                terms=sorted(_terms(normalized))[:80],
+            )
+        )
+    return intents[:8]
+
+
 def recommend_claims(
     fingerprint: ProjectResearchFingerprint,
     author_claims: Sequence[AuthorClaim],
@@ -724,6 +958,382 @@ def recommend_claims(
         )
     recommendations.sort(key=lambda item: (-item.recommendation_score, item.claim_id))
     return recommendations[:30]
+
+
+def _discovery_strength(
+    value: float,
+) -> Literal["strong", "moderate", "limited", "unassessed"]:
+    if value >= 0.75:
+        return "strong"
+    if value >= 0.45:
+        return "moderate"
+    if value > 0:
+        return "limited"
+    return "unassessed"
+
+
+def _candidate_terms(candidate: Any) -> set[str]:
+    return _terms(
+        " ".join(
+            str(_candidate_value(candidate, field, "") or "")
+            for field in (
+                "track_id",
+                "display_title",
+                "novelty_seed",
+                "conclusion_excerpt",
+            )
+        )
+    )
+
+
+def _match_relation(signal: TrendSignal) -> str:
+    if signal.signal_class in {"market_attention", "adoption_signal"}:
+        return "attention_signal"
+    lower = f"{signal.title} {signal.summary}".casefold()
+    if any(
+        cue in lower
+        for cue in (
+            "limitation",
+            "negative result",
+            "failure",
+            "does not",
+            "cannot",
+            "局限",
+            "失败",
+            "无显著",
+        )
+    ):
+        return "conflicting_context"
+    if any(
+        cue in lower
+        for cue in ("benchmark", "baseline", "dataset", "method", "protocol", "基线", "数据集")
+    ):
+        return "method_or_baseline"
+    return "closest_prior_work"
+
+
+def build_discovery_portfolio(
+    fingerprint: ProjectResearchFingerprint,
+    candidates: Sequence[Any],
+    claim_report: ClaimDiscoveryReport,
+    query_intents: Sequence[DiscoveryQueryIntent],
+    *,
+    query_plan_id: str | None = None,
+    resource_set_ids: Sequence[str] = (),
+    coverage: dict[str, Any] | None = None,
+) -> DiscoveryPortfolio:
+    """Build candidate-specific discovery directions without verdict authority."""
+
+    signals = {item.signal_id: item for item in claim_report.trend_signals}
+    author_claims = {item.claim_id: item for item in claim_report.author_claims}
+    candidate_rows = list(candidates)
+    candidate_term_rows = [
+        (candidate, _candidate_terms(candidate)) for candidate in candidate_rows
+    ]
+    claim_source_matches: list[ClaimSourceMatch] = []
+    directions: list[DiscoveryDirection] = []
+    accepted_terms: list[set[str]] = []
+
+    for recommendation in claim_report.recommended_claims:
+        source_claims = [
+            author_claims[claim_id]
+            for claim_id in recommendation.source_claim_ids
+            if claim_id in author_claims
+        ]
+        if source_claims and not any(
+            item.claim_type
+            in {
+                "research_question",
+                "result",
+                "comparative",
+                "robustness",
+                "novelty",
+            }
+            for item in source_claims
+        ):
+            continue
+        if (
+            "sha-256" in recommendation.statement.casefold()
+            or re.search(
+                r"\b[a-f0-9]{32,}\b", recommendation.statement.casefold()
+            )
+        ):
+            continue
+        statement_terms = _terms(recommendation.statement)
+        if any(
+            _match_score(statement_terms, existing) >= 0.62
+            for existing in accepted_terms
+        ):
+            continue
+        accepted_terms.append(statement_terms)
+
+        source_paths = {
+            span.path for claim in source_claims for span in claim.source_spans
+        }
+        exact_candidates = [
+            candidate
+            for candidate in candidate_rows
+            if source_paths
+            & {
+                str(_candidate_value(candidate, "protocol_path", "") or ""),
+                str(_candidate_value(candidate, "output_path", "") or ""),
+                str(_candidate_value(candidate, "report_path", "") or ""),
+            }
+        ]
+        ranked_candidates = sorted(
+            candidate_term_rows,
+            key=lambda item: (
+                -_match_score(statement_terms, item[1]),
+                -int(bool(_candidate_value(item[0], "closure_input_ready", False))),
+                -int(_candidate_value(item[0], "paperability_score", 0) or 0),
+            ),
+        )
+        statement_concepts = statement_terms & _CANONICAL_CONCEPTS
+
+        def candidate_is_related(item: tuple[Any, set[str]]) -> bool:
+            _, terms = item
+            score = _match_score(statement_terms, terms)
+            concept_overlap = statement_concepts & (terms & _CANONICAL_CONCEPTS)
+            return score >= 0.35 or (score >= 0.20 and bool(concept_overlap))
+
+        primary = (
+            exact_candidates[0]
+            if exact_candidates
+            else ranked_candidates[0][0]
+            if ranked_candidates
+            and candidate_is_related(ranked_candidates[0])
+            else None
+        )
+        related_candidates = list(exact_candidates)
+        if not related_candidates:
+            related_candidates.extend(
+                item
+                for item, terms in ranked_candidates
+                if candidate_is_related((item, terms))
+            )
+        related_candidates = related_candidates[:2]
+        if not related_candidates and primary is not None:
+            related_candidates = [primary]
+
+        matched_signals = [
+            signals[signal_id]
+            for signal_id in recommendation.matched_signal_ids
+            if signal_id in signals
+        ]
+        relations: dict[str, list[str]] = {
+            "closest_prior_work": [],
+            "method_or_baseline": [],
+            "conflicting_context": [],
+            "supporting_context": [],
+            "attention_signal": [],
+        }
+        for signal in matched_signals:
+            relation = _match_relation(signal)
+            relations[relation].append(signal.signal_id)
+            evidence_role = (
+                "attention_only"
+                if relation == "attention_signal"
+                else "background_only"
+            )
+            score = round(
+                100
+                * _match_score(
+                    statement_terms | set(fingerprint.terms),
+                    set(signal.terms) or _terms(f"{signal.title} {signal.summary}"),
+                )
+            )
+            claim_source_matches.append(
+                ClaimSourceMatch(
+                    match_id=_stable_id(
+                        "claim-source-match",
+                        f"{recommendation.claim_id}:{signal.signal_id}:{relation}",
+                    ),
+                    claim_id=recommendation.claim_id,
+                    source_signal_id=signal.signal_id,
+                    relation=relation,  # type: ignore[arg-type]
+                    match_score=max(0, min(100, score)),
+                    reasons=[
+                        "The source shares project and claim concepts.",
+                        (
+                            "This is an attention signal, not scientific evidence."
+                            if evidence_role == "attention_only"
+                            else "This source is discovery background only."
+                        ),
+                    ],
+                    evidence_role=evidence_role,  # type: ignore[arg-type]
+                )
+            )
+
+        verified = any(
+            bool(_candidate_value(item, "artifact_chain_complete", False))
+            and bool(_candidate_value(item, "protocol_bound_to_output", False))
+            for item in related_candidates
+        )
+        local_paths = list(
+            dict.fromkeys(
+                [
+                    *sorted(source_paths),
+                    *[
+                        str(path)
+                        for item in related_candidates
+                        for path in (
+                            _candidate_value(item, "protocol_path", ""),
+                            _candidate_value(item, "output_path", ""),
+                            _candidate_value(item, "report_path", ""),
+                        )
+                        if path
+                    ],
+                ]
+            )
+        )[:30]
+        blockers = list(
+            dict.fromkeys(
+                [
+                    *recommendation.missing_context,
+                    *[
+                        str(blocker)
+                        for item in related_candidates
+                        for blocker in _candidate_value(item, "blockers", [])
+                    ],
+                ]
+            )
+        )
+        external_ids = [item.signal_id for item in matched_signals]
+        scholarly_count = sum(
+            item.signal_class in {"scholarly_attention", "official_source"}
+            for item in matched_signals
+        )
+        attention_count = sum(
+            item.signal_class in {"market_attention", "adoption_signal"}
+            for item in matched_signals
+        )
+        title = (
+            str(_candidate_value(primary, "display_title", "") or "").strip()
+            if primary is not None
+            else ""
+        ) or recommendation.statement[:140].rstrip("。.")
+        question = recommendation.statement.strip()
+        if not question.endswith(("?", "？")):
+            question = (
+                "在冻结的项目资源与评价口径下，是否能够验证："
+                + question.rstrip("。.;；")
+                + "？"
+            )
+        contribution = (
+            str(_candidate_value(primary, "novelty_seed", "") or "").strip()
+            if primary is not None
+            else ""
+        ) or recommendation.statement
+        prior_relation = (
+            f"已匹配 {scholarly_count} 条相关学术或官方来源；"
+            "它们用于界定最近工作，不直接支持项目结论。"
+            if scholarly_count
+            else "尚未获得足够的最近工作匹配，不能声称新颖性。"
+        )
+        track_ids = [
+            str(_candidate_value(item, "track_id", ""))
+            for item in related_candidates
+            if str(_candidate_value(item, "track_id", "")).strip()
+        ]
+        direction = DiscoveryDirection(
+            direction_id=_stable_id(
+                "discovery-direction",
+                f"{recommendation.claim_id}:{recommendation.statement.casefold()}",
+            ),
+            title=title[:240],
+            research_question=question[:1200],
+            falsifiable_hypothesis=recommendation.statement[:2000],
+            candidate_contribution=contribution[:2000],
+            scope_in=[
+                "read-only project resources bound to this direction",
+                "frozen external discovery sources",
+                "a prospective test under a later Research Contract",
+            ],
+            scope_out=[
+                "claims not bound to project artifacts",
+                "treating attention signals as scientific evidence",
+                "claiming novelty before closest-prior-work review",
+            ],
+            source_claim_ids=recommendation.source_claim_ids,
+            supporting_track_ids=track_ids,
+            primary_track_id=track_ids[0] if track_ids else None,
+            local_evidence_paths=local_paths,
+            external_source_ids=external_ids,
+            closest_prior_work_ids=[
+                *relations["closest_prior_work"],
+                *relations["method_or_baseline"],
+            ],
+            conflicting_source_ids=relations["conflicting_context"],
+            trend_signal_ids=relations["attention_signal"],
+            relation_to_prior_work=prior_relation,
+            novelty_grounding=_discovery_strength(min(1.0, scholarly_count / 3)),
+            evidence_readiness=(
+                "strong"
+                if verified
+                else "moderate"
+                if local_paths
+                else "limited"
+            ),
+            feasibility=(
+                "strong"
+                if primary is not None
+                and bool(_candidate_value(primary, "closure_input_ready", False))
+                else "moderate"
+                if primary is not None
+                else "limited"
+            ),
+            external_attention=_discovery_strength(min(1.0, attention_count / 3)),
+            evidence_chain_level=(
+                "verified_chain" if verified else "inferred_chain"
+            ),
+            recommendation_reasons=recommendation.match_reasons,
+            blockers=blockers,
+            prohibited_claims=[
+                "Do not treat discovery sources as experiment evidence.",
+                "Do not claim exhaustive literature coverage.",
+                "Do not claim novelty without an explicit closest-work comparison.",
+            ],
+        )
+        directions.append(direction)
+
+    directions.sort(
+        key=lambda item: (
+            item.evidence_readiness != "strong",
+            item.feasibility != "strong",
+            item.novelty_grounding not in {"strong", "moderate"},
+            bool(item.blockers),
+            item.direction_id,
+        )
+    )
+    directions = directions[:5]
+    external_complete = any(
+        item.external_source_ids for item in directions
+    )
+    status: Literal[
+        "ready_for_scope_selection",
+        "external_grounding_incomplete",
+        "no_viable_direction",
+    ]
+    if not directions:
+        status = "no_viable_direction"
+    elif external_complete:
+        status = "ready_for_scope_selection"
+    else:
+        status = "external_grounding_incomplete"
+    return DiscoveryPortfolio(
+        generated_at=_now(),
+        fingerprint=fingerprint,
+        query_plan_id=query_plan_id,
+        query_intents=list(query_intents),
+        claim_source_matches=claim_source_matches,
+        directions=directions,
+        recommended_direction_id=(
+            directions[0].direction_id if directions else None
+        ),
+        resource_set_ids=list(dict.fromkeys(resource_set_ids)),
+        coverage=coverage or {},
+        status=status,
+    )
 
 
 def discover_project_claims(

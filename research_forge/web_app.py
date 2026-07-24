@@ -1423,6 +1423,21 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
                 )
                 self._send_json(study.model_dump(mode="json"), HTTPStatus.CREATED)
                 return
+            if parsed.path == "/api/studies/discovery/select":
+                from .workflow_domain import WorkflowRepository
+                from .workflow_scheduler import approve_discovery_direction
+
+                result = approve_discovery_direction(
+                    WorkflowRepository(self.server.workflow_root),
+                    str(payload.get("study_id", "")).strip(),
+                    str(payload.get("direction_id", "")).strip(),
+                    decided_by=str(
+                        payload.get("decided_by", "project_owner")
+                    ).strip(),
+                    reason=str(payload.get("reason", "")).strip() or None,
+                )
+                self._send_json(result)
+                return
             if parsed.path == "/api/studies/gates/decide":
                 from .workflow_domain import WorkflowRepository
                 from .workflow_scheduler import (

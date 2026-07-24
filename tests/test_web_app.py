@@ -182,6 +182,92 @@ def test_health_endpoint(tmp_path: Path) -> None:
         thread.join(timeout=5)
 
 
+def test_discovery_selection_endpoint_freezes_the_selected_scope(
+    tmp_path: Path,
+) -> None:
+    from research_forge.workflow_domain import WorkflowRepository
+    from research_forge.workflow_scheduler import run_project_discovery
+
+    source = tmp_path / "bundle"
+    (source / "protocols").mkdir(parents=True)
+    (source / "outputs").mkdir()
+    (source / "reports").mkdir()
+    _write_json(
+        source / "protocols" / "demo.json",
+        {
+            "version": "demo",
+            "hypothesis": "The candidate improves accuracy.",
+            "metric": "accuracy",
+        },
+    )
+    _write_json(
+        source / "outputs" / "demo.json",
+        {"accuracy": 0.81, "valid": True},
+    )
+    (source / "reports" / "demo.md").write_text(
+        "# Contributions\n\nThe paired evaluation improves accuracy to 0.81.\n",
+        encoding="utf-8",
+    )
+    workflow_root = tmp_path / "workflow"
+    discovery = run_project_discovery(
+        source,
+        repository_root=workflow_root,
+        include_external=False,
+        identity="web-selection",
+    )
+    direction_id = discovery["discovery_portfolio"][
+        "recommended_direction_id"
+    ]
+
+    static = tmp_path / "dist"
+    static.mkdir()
+    (static / "index.html").write_text("ok", encoding="utf-8")
+    server = create_server(
+        "127.0.0.1",
+        0,
+        runs_root=tmp_path / "runs",
+        static_root=static,
+        workflow_root=workflow_root,
+    )
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        request = Request(
+            f"http://127.0.0.1:{server.server_port}/api/studies/discovery/select",
+            data=json.dumps(
+                {
+                    "study_id": discovery["study_id"],
+                    "direction_id": direction_id,
+                    "decided_by": "project_owner",
+                }
+            ).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(request) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        assert result["scope_contract"]["status"] == "frozen"
+        assert result["scope_contract"]["field_diff"][
+            "selected_direction_id"
+        ] == direction_id
+        assert result["gate"]["status"] == "approved"
+        assert next(
+            item
+            for item in result["workflow"]["steps"]
+            if item["step_type"] == "freeze_scope_contract"
+        )["status"] == "succeeded"
+        assert (
+            WorkflowRepository(workflow_root)
+            .latest_scope_contract(discovery["study_id"])
+            .status.value
+            == "frozen"
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
 def test_retrieval_api_defaults_offline_and_returns_blocked_run(
     tmp_path: Path,
 ) -> None:

@@ -10,7 +10,11 @@ from typing import Any, Callable, Iterable, Literal
 
 from pydantic import Field, model_validator
 
-from .claim_discovery import ClaimDiscoveryReport, discover_project_claims
+from .claim_discovery import (
+    ClaimDiscoveryReport,
+    DiscoveryPortfolio,
+    discover_project_claims,
+)
 from .manuscript_depth import audit_manuscript_depth
 from .models import StrictModel
 from .storage import read_json, sha256_file, slugify, write_json_atomic
@@ -132,6 +136,7 @@ class BundleInspection(StrictModel):
     candidates: list[NoveltyCandidate]
     recommended_track_id: str | None = None
     claim_discovery: ClaimDiscoveryReport | None = None
+    discovery_portfolio: DiscoveryPortfolio | None = None
 
 
 class StageResourceUse(StrictModel):
