@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "case_id": "stock-disclosure-extractor-real-project-v1",
+  "source_files": [
+    "backend/tech_radar/__init__.py",
+    "backend/tech_radar/disclosure_extractor.py",
+    "tests_py/test_disclosure_extractor.py"
+  ],
+  "container_image": "python:3.12-slim",
+  "command": [
+    "python",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests_py",
+    "-p",
+    "test_disclosure_extractor.py",
+    "-v"
+  ],
+  "parser": "unittest_v1",
+  "result_path": null,
+  "expected_metrics": {
+    "tests_run": 5,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "pass_rate": 1
+  },
+  "metric_tolerances": {},
+  "timeout_seconds": 120,
+  "clean_replays": 2
+}

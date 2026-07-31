@@ -12,7 +12,9 @@ from research_forge.agent_runtime import (
     _codex_process_env,
     _codex_retry_delay,
     _is_transient_codex_error,
+    _load_local_runtime_env,
     _parse_structured_output,
+    _runtime_request_fragments,
     _strict_output_schema,
     agent_telemetry_summary,
     backend_name,
@@ -21,7 +23,11 @@ from research_forge.agent_runtime import (
     model_name,
 )
 from research_forge.models import MacroStage
-from research_forge.pipeline_contracts import PromptEnvelope, PromptFragment
+from research_forge.pipeline_contracts import (
+    MAX_PROMPT_FRAGMENT_CHARACTERS,
+    PromptEnvelope,
+    PromptFragment,
+)
 from research_forge.models import ExperimentProposal, ParameterOverride
 
 
@@ -40,6 +46,37 @@ def test_codex_is_the_default_backend(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("CODEX_HOME", raising=False)
     assert backend_name() == "codex"
     assert model_name() == "codex:gpt-5.6-terra"
+
+
+def test_large_runtime_request_is_split_without_losing_text() -> None:
+    prompt = "x" * (MAX_PROMPT_FRAGMENT_CHARACTERS + 1_337)
+    fragments = _runtime_request_fragments(prompt)
+
+    assert len(fragments) == 2
+    assert "".join(item.text for item in fragments) == prompt
+    assert all(
+        len(item.text) <= MAX_PROMPT_FRAGMENT_CHARACTERS
+        for item in fragments
+    )
+
+
+def test_local_provider_env_can_be_explicitly_skipped(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "research_forge.agent_runtime.ROOT",
+        tmp_path,
+    )
+    (tmp_path / ".env.local").write_text(
+        "RESEARCH_FORGE_BACKEND=api\n",
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("RESEARCH_FORGE_BACKEND", raising=False)
+    monkeypatch.setenv("RESEARCH_FORGE_SKIP_LOCAL_ENV", "1")
+
+    _load_local_runtime_env()
+
+    assert "RESEARCH_FORGE_BACKEND" not in __import__("os").environ
 
 
 def test_isolated_codex_provider_binding_is_hash_bound(
@@ -68,6 +105,7 @@ def test_isolated_codex_provider_binding_is_hash_bound(
     assert binding["provider_model"] == "gpt-5.5"
     assert len(binding["provider_config_hash"]) == 64
     assert _codex_process_env()["CODEX_HOME"] == str(home.resolve())
+    assert _codex_process_env()["OPENAI_BASE_URL"] == ""
     assert model_name() == "codex:gpt-5.5"
 
 

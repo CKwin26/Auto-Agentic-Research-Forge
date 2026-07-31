@@ -161,6 +161,34 @@ ENGLISH_SHORT_REPORT = DepthProfile(
     abstract_maximum=350,
 )
 
+CHINESE_SHORT_REPORT = DepthProfile(
+    profile_id="short-report-zh-v1",
+    minimum_total=6_000,
+    section_minimums={
+        "abstract": 180,
+        "introduction": 700,
+        "related_work": 650,
+        "methods": 1400,
+        "results": 1100,
+        "discussion": 1100,
+        "conclusion": 180,
+    },
+    paragraph_minimums={
+        "introduction": 3,
+        "related_work": 3,
+        "methods": 5,
+        "results": 4,
+        "discussion": 4,
+        "conclusion": 1,
+    },
+    subsection_minimums={"methods": 3, "results": 2, "discussion": 2},
+    minimum_references=8,
+    minimum_related_work_citations=4,
+    minimum_result_numbers=8,
+    abstract_maximum=500,
+    unit="han_chars",
+)
+
 
 @dataclass
 class SectionMetrics:
@@ -355,7 +383,7 @@ def _profile(name: str, language: str) -> DepthProfile:
     if normalized == "short-report" and language == "en":
         return ENGLISH_SHORT_REPORT
     if normalized == "short-report" and language == "zh":
-        raise ValueError("short-report is currently defined only for English manuscripts")
+        return CHINESE_SHORT_REPORT
     raise ValueError(f"unknown manuscript depth profile: {name}")
 
 

@@ -23,9 +23,11 @@ from research_forge.workflow_domain import (
     HypothesisRole,
     HypothesisVerdict,
     HypothesisVerdictStatus,
+    IntegrityGateStatus,
     NetworkAuditEvent,
     NetworkPolicy,
     Phase,
+    PublicationIntegrityGates,
     ReadinessAssessment,
     ScopeContractVersion,
     StudyVerdictStatus,
@@ -292,6 +294,12 @@ def test_publication_ready_requires_system_ai_and_author(tmp_path: Path) -> None
         ReadinessAssessment(
             study_id=study.study_id,
             system_publication_readiness=SystemReadiness.CONDITIONS_MET,
+            integrity_gates=PublicationIntegrityGates(
+                scientific_integrity=IntegrityGateStatus.PASSED,
+                narrative_integrity=IntegrityGateStatus.PASSED,
+                humanization_integrity=IntegrityGateStatus.PASSED,
+                visual_integrity=IntegrityGateStatus.PASSED,
+            ),
         )
     )
     assert assessment.publication_ready is False
@@ -494,7 +502,16 @@ def test_legacy_bundle_migration_preserves_certificate_and_creates_v2_record(
 
     assert (run / "completion_certificate.json").is_file()
     assert (run / "completion_record.json").is_file()
-    assert snapshot["study"]["legacy_stage"] == "completed"
+    assert snapshot["study"]["legacy_stage"] == "synthesis"
+    assert snapshot["study"]["lifecycle"] == "active"
+    assert snapshot["study"]["execution_status"] == "blocked"
+    assert snapshot["study"]["settings"]["workflow_origin"] == "legacy_bundle_import"
+    assert snapshot["study"]["settings"]["live_stage_execution"] is False
     assert snapshot["study"]["support_level"] == "formal"
     assert len(snapshot["steps"]) == 14
+    assert all(
+        step["parameters"]["execution_provenance"] == "legacy_bundle_import"
+        and step["parameters"]["live_execution"] is False
+        for step in snapshot["steps"]
+    )
     assert snapshot["evidence_chains"][0]["level"] == "verified_chain"

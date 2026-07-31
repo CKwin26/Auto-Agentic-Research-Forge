@@ -8,6 +8,7 @@ import pytest
 from research_forge.experiment_execution import (
     ExperimentArtifactSpec,
     ExperimentPaused,
+    ExperimentProcessError,
     ExperimentSpec,
     load_project_experiment_manifest,
     run_declared_experiment,
@@ -93,3 +94,37 @@ def test_artifact_path_cannot_escape_isolated_execution_directory(tmp_path: Path
             network_authorized=False,
             report_progress=lambda **_: None,
         )
+
+
+def test_nonzero_process_exit_preserves_return_code_for_stage3_classification(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "fail.py").write_text(
+        "import sys\nsys.exit(23)\n",
+        encoding="utf-8",
+    )
+    evidence = tmp_path / "execution"
+    spec = ExperimentSpec(
+        experiment_id="process-failure-test",
+        action_ids=["action-independent-evaluation"],
+        title="Process failure classification",
+        command=["{python}", "fail.py"],
+        artifacts=[ExperimentArtifactSpec(path="result.json", format="json")],
+    )
+
+    with pytest.raises(ExperimentProcessError) as captured:
+        run_declared_experiment(
+            spec,
+            source_root=source,
+            evidence_dir=evidence,
+            action_id="action-independent-evaluation",
+            plan_id="remediation-000000000000",
+            network_authorized=False,
+            report_progress=lambda **_: None,
+        )
+
+    assert captured.value.returncode == 23
+    assert captured.value.stderr_path == evidence / "stderr.log"
+    assert read_json(evidence / "execution.json")["returncode"] == 23

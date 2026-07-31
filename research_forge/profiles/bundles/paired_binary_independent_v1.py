@@ -1,0 +1,36 @@
+from ..base import ExperimentProfileBundle, ProfileCertificationStatus
+from ...workflow_domain import Stage3Profile
+
+BUNDLE = ExperimentProfileBundle(
+    profile_id=Stage3Profile.PAIRED_BINARY_INDEPENDENT_V1,
+    profile_version="1.0.0",
+    certification_status=ProfileCertificationStatus.CERTIFIED,
+    design_id="paired_two_arm_v1",
+    outcome_id="binary_outcome_v1",
+    estimand_id="paired_risk_difference_v1",
+    estimator_id="paired_proportion_difference_v1",
+    inference_id="exact_mcnemar_v1",
+    missingness_id="block_on_missing_pair_v1",
+    multiplicity_id="single_primary_hypothesis_v1",
+    verdict_policy_id="superiority_threshold_v1",
+    contract_schema_id="paired_binary_independent_contract_v1",
+    run_plan_compiler_id="paired_binary_compiler_v1",
+    candidate_schema_id="paired_binary_sample_v1",
+    analysis_table_id="paired_binary_2x2_table_v1",
+    qualification_id="paired_binary_independent_qualification_v1",
+    evaluator_id="paired_binary_evaluator_v1",
+    claim_envelope_id="paired_binary_claim_envelope_v1",
+    repair_policy_id="paired_binary_successor_v1",
+    reproduction_comparator_id="paired_binary_independent_v1",
+    assurance_suite_id="paired_binary_independent_assurance_v1",
+    frontend_renderer_id="paired_binary_table_v1",
+    required_contract_fields=(
+        "pairing_key",
+        "success_definition",
+        "effect_threshold",
+        "variance_unit",
+    ),
+    supported_data_types=("jsonl", "csv", "parquet"),
+    builder_plugins=("paired_binary_builder_v1",),
+    notes=("Exact McNemar inference requires independent paired units.",),
+)

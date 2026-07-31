@@ -47,6 +47,18 @@ class ExperimentSpec(StrictModel):
     timeout_seconds: int = Field(default=3600, ge=1, le=604_800)
     required_env: list[str] = Field(default_factory=list)
     required_inputs: list[str] = Field(default_factory=list)
+    smoke_command: list[str] | None = None
+    smoke_required_inputs: list[str] = Field(default_factory=list)
+    execution_backend: Literal[
+        "controlled_local",
+        "isolated_candidate_evaluator",
+    ] = "controlled_local"
+    container_image: str | None = None
+    candidate_code_paths: list[str] = Field(default_factory=list)
+    evaluator_command: list[str] | None = None
+    evaluator_code_paths: list[str] = Field(default_factory=list)
+    evaluator_required_inputs: list[str] = Field(default_factory=list)
+    prediction_artifact_path: str | None = None
     network_access: bool = False
     artifacts: list[ExperimentArtifactSpec] = Field(min_length=1)
 
@@ -56,6 +68,44 @@ class ExperimentSpec(StrictModel):
             raise ValueError("experiment action_ids must be remediation action IDs")
         if any(not item or "\x00" in item for item in self.command):
             raise ValueError("experiment command contains an empty or invalid argument")
+        if self.smoke_command is not None and any(
+            not item or "\x00" in item for item in self.smoke_command
+        ):
+            raise ValueError("experiment smoke_command contains an invalid argument")
+        if self.evaluator_command is not None and any(
+            not item or "\x00" in item for item in self.evaluator_command
+        ):
+            raise ValueError(
+                "experiment evaluator_command contains an invalid argument"
+            )
+        if self.execution_backend == "isolated_candidate_evaluator":
+            missing = [
+                name
+                for name, value in (
+                    ("container_image", self.container_image),
+                    ("candidate_code_paths", self.candidate_code_paths),
+                    ("evaluator_command", self.evaluator_command),
+                    ("evaluator_code_paths", self.evaluator_code_paths),
+                    (
+                        "evaluator_required_inputs",
+                        self.evaluator_required_inputs,
+                    ),
+                    (
+                        "prediction_artifact_path",
+                        self.prediction_artifact_path,
+                    ),
+                )
+                if not value
+            ]
+            if missing:
+                raise ValueError(
+                    "isolated candidate/evaluator experiment is missing: "
+                    + ", ".join(missing)
+                )
+            if self.network_access:
+                raise ValueError(
+                    "generated isolated experiments cannot request network"
+                )
         for name in self.required_env:
             if not name.replace("_", "a").isalnum() or not name[0].isalpha():
                 raise ValueError(f"invalid environment variable name: {name}")
@@ -76,6 +126,18 @@ class ExperimentPreflightError(RuntimeError):
 
 class ExperimentPaused(RuntimeError):
     """The process was terminated at the user's requested pause checkpoint."""
+
+
+class ExperimentProcessError(RuntimeError):
+    """A declared experiment process exited before producing valid artifacts."""
+
+    def __init__(self, returncode: int, stderr_path: Path) -> None:
+        self.returncode = returncode
+        self.stderr_path = stderr_path
+        super().__init__(
+            f"experiment process exited with {returncode}; "
+            f"inspect {stderr_path}"
+        )
 
 
 def find_experiment_manifest(source_root: str | Path, explicit_path: str | None = None) -> Path | None:
@@ -183,6 +245,8 @@ def preflight_experiment(
     action_id: str,
     plan_id: str,
     network_authorized: bool,
+    run_variables: dict[str, str] | None = None,
+    use_smoke: bool = False,
 ) -> dict[str, Any]:
     root = Path(source_root).resolve()
     evidence = Path(evidence_dir).resolve()
@@ -200,8 +264,28 @@ def preflight_experiment(
         "metrics_file": str(evidence / "metrics.json"),
         "project_dir": str(root),
     }
+    allowed_run_variables = {
+        "task_id",
+        "split_id",
+        "arm_id",
+        "seed",
+        "replicate",
+        "run_cell_id",
+    }
+    supplied = dict(run_variables or {})
+    unknown = sorted(set(supplied).difference(allowed_run_variables))
+    if unknown:
+        raise ValueError(
+            "unsupported experiment run variables: " + ", ".join(unknown)
+        )
+    variables.update({key: str(value) for key, value in supplied.items()})
     cwd = _resolve_working_directory(root, spec.cwd, variables)
-    command = [_render(item, variables) for item in spec.command]
+    declared_command = (
+        spec.smoke_command
+        if use_smoke and spec.smoke_command is not None
+        else spec.command
+    )
+    command = [_render(item, variables) for item in declared_command]
     executable = command[0]
     executable_path = Path(executable)
     if executable_path.is_absolute():
@@ -216,19 +300,56 @@ def preflight_experiment(
     if missing_env:
         raise ExperimentPreflightError("environment", [f"环境变量 {name}" for name in missing_env])
     missing_inputs: list[str] = []
-    for item in spec.required_inputs:
+    required_inputs: list[Path] = []
+    declared_inputs = (
+        spec.smoke_required_inputs
+        if use_smoke and spec.smoke_required_inputs
+        else spec.required_inputs
+    )
+    for item in declared_inputs:
         rendered = _render(item, variables)
         candidate = Path(rendered)
         candidate = candidate.resolve() if candidate.is_absolute() else (root / candidate).resolve()
         ensure_within(root, candidate)
         if not candidate.exists():
             missing_inputs.append(rendered)
+        else:
+            required_inputs.append(candidate)
     if missing_inputs:
         raise ExperimentPreflightError("dataset", missing_inputs)
     if spec.network_access and not network_authorized:
         raise ExperimentPreflightError("permission", ["该实验声明需要访问网络"])
     artifacts = [_artifact_path(root, item, variables) for item in spec.artifacts]
-    return {"cwd": cwd, "command": command, "artifacts": artifacts, "variables": variables}
+    return {
+        "cwd": cwd,
+        "command": command,
+        "artifacts": artifacts,
+        "variables": variables,
+        "required_inputs": required_inputs,
+    }
+
+
+def _snapshot_required_input(path: Path, source_root: Path) -> dict[str, Any]:
+    relative_path = path.resolve().relative_to(source_root.resolve()).as_posix()
+    if path.is_file():
+        return {
+            "path": str(path),
+            "relative_path": relative_path,
+            "kind": "file",
+            "sha256": sha256_file(path),
+            "size_bytes": path.stat().st_size,
+        }
+    return {
+        "path": str(path),
+        "relative_path": relative_path,
+        "kind": "directory",
+        "sha256": None,
+        "size_bytes": None,
+        "verification": (
+            "unverifiable_directory_input; declare content-addressed files "
+            "or a manifest for formal binding"
+        ),
+    }
 
 
 def _verify_artifact(path: Path, spec: ExperimentArtifactSpec) -> dict[str, Any]:
@@ -272,6 +393,8 @@ def run_declared_experiment(
     network_authorized: bool,
     report_progress: Callable[..., None],
     control_status: Callable[[], str] | None = None,
+    run_variables: dict[str, str] | None = None,
+    use_smoke: bool = False,
 ) -> dict[str, Any]:
     root = Path(source_root).resolve()
     evidence = Path(evidence_dir).resolve()
@@ -283,7 +406,13 @@ def run_declared_experiment(
         action_id=action_id,
         plan_id=plan_id,
         network_authorized=network_authorized,
+        run_variables=run_variables,
+        use_smoke=use_smoke,
     )
+    required_inputs_before = [
+        _snapshot_required_input(path, root)
+        for path in prepared["required_inputs"]
+    ]
     execution_path = evidence / "execution.json"
     stdout_path = evidence / "stdout.log"
     stderr_path = evidence / "stderr.log"
@@ -361,13 +490,41 @@ def run_declared_experiment(
         for thread in threads:
             thread.join(timeout=2)
         if process.returncode != 0:
-            raise RuntimeError(
-                f"实验命令退出码为 {process.returncode}；请查看 {stderr_path}"
+            write_json_atomic(
+                execution_path,
+                {
+                    **read_json(execution_path),
+                    "status": "failed",
+                    "finished_at": utc_now(),
+                    "returncode": process.returncode,
+                    "stderr_log": str(stderr_path),
+                },
+            )
+            raise ExperimentProcessError(
+                process.returncode,
+                stderr_path,
             )
         artifacts = [
             _verify_artifact(path, artifact)
             for path, artifact in zip(prepared["artifacts"], spec.artifacts, strict=True)
         ]
+        required_inputs_after = [
+            _snapshot_required_input(path, root)
+            for path in prepared["required_inputs"]
+        ]
+        input_binding_valid = bool(
+            len(required_inputs_before) == len(required_inputs_after)
+            and all(
+                before["kind"] == "file"
+                and before["sha256"]
+                and before["sha256"] == after["sha256"]
+                for before, after in zip(
+                    required_inputs_before,
+                    required_inputs_after,
+                    strict=True,
+                )
+            )
+        )
         report = {
             **read_json(execution_path),
             "status": "completed",
@@ -376,6 +533,9 @@ def run_declared_experiment(
             "stdout_log": str(stdout_path),
             "stderr_log": str(stderr_path),
             "artifacts": artifacts,
+            "required_inputs_before": required_inputs_before,
+            "required_inputs_after": required_inputs_after,
+            "input_binding_valid": input_binding_valid,
         }
         write_json_atomic(execution_path, report)
         write_json_atomic(evidence / "artifact_manifest.json", {
@@ -408,6 +568,7 @@ __all__ = [
     "ExperimentArtifactSpec",
     "ExperimentManifest",
     "ExperimentPaused",
+    "ExperimentProcessError",
     "ExperimentPreflightError",
     "ExperimentSpec",
     "declared_action_ids",

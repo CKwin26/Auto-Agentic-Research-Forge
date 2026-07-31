@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from research_forge.manuscript_depth import audit_manuscript_depth
+from research_forge.manuscript_depth import _profile, audit_manuscript_depth
 
 
 def _paragraph(prefix: str, index: int, words: int, *, numbers: int = 0) -> str:
@@ -210,3 +210,12 @@ def test_auto_language_detection_ignores_english_resource_appendix(
 
     assert report.language == "zh"
     assert report.profile == "journal-article-zh-v1"
+
+
+def test_chinese_short_report_has_a_native_depth_profile() -> None:
+    profile = _profile("short-report", "zh")
+
+    assert profile.profile_id == "short-report-zh-v1"
+    assert profile.unit == "han_chars"
+    assert profile.minimum_total == 6_000
+    assert profile.minimum_references == 8

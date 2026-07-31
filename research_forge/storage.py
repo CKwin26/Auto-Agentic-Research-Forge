@@ -5,6 +5,8 @@ import json
 import os
 import re
 import tempfile
+import threading
+import time
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -16,6 +18,14 @@ from .models import ProjectMeta, ProjectState
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_WORKSPACES = ROOT / "workspaces"
 _SLUG_RE = re.compile(r"[^a-z0-9-]+")
+_PATH_LOCKS: dict[str, threading.RLock] = {}
+_PATH_LOCKS_GUARD = threading.Lock()
+
+
+def _path_lock(path: Path) -> threading.RLock:
+    key = str(path.resolve())
+    with _PATH_LOCKS_GUARD:
+        return _PATH_LOCKS.setdefault(key, threading.RLock())
 
 
 def slugify(value: str) -> str:
@@ -61,32 +71,74 @@ def _jsonable(value: Any) -> Any:
 
 
 def write_json_atomic(path: Path, value: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    payload = json.dumps(_jsonable(value), ensure_ascii=False, indent=2, sort_keys=True) + "\n"
-    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
-            handle.write(payload)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temporary, path)
-    finally:
-        if os.path.exists(temporary):
-            os.unlink(temporary)
+    with _path_lock(path):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = json.dumps(
+            _jsonable(value), ensure_ascii=False, indent=2, sort_keys=True
+        ) + "\n"
+        fd, temporary = tempfile.mkstemp(
+            prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
+        )
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
+                handle.write(payload)
+                handle.flush()
+                os.fsync(handle.fileno())
+            for attempt in range(8):
+                try:
+                    os.replace(temporary, path)
+                    break
+                except PermissionError:
+                    if attempt == 7:
+                        raise
+                    # Windows indexers and antivirus scanners can briefly
+                    # retain a handle. The in-process path lock removes normal
+                    # scheduler read/write contention; this retry covers
+                    # external scanners without weakening atomic replacement.
+                    time.sleep(0.01 * (2**attempt))
+        finally:
+            if os.path.exists(temporary):
+                os.unlink(temporary)
+
+
+def write_text_atomic(path: Path, value: str) -> None:
+    with _path_lock(path):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fd, temporary = tempfile.mkstemp(
+            prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
+        )
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
+                handle.write(value)
+                handle.flush()
+                os.fsync(handle.fileno())
+            for attempt in range(8):
+                try:
+                    os.replace(temporary, path)
+                    break
+                except PermissionError:
+                    if attempt == 7:
+                        raise
+                    time.sleep(0.01 * (2**attempt))
+        finally:
+            if os.path.exists(temporary):
+                os.unlink(temporary)
 
 
 def append_jsonl(path: Path, value: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    payload = json.dumps(_jsonable(value), ensure_ascii=False, sort_keys=True)
-    with path.open("a", encoding="utf-8", newline="\n") as handle:
-        handle.write(payload + "\n")
-        handle.flush()
-        os.fsync(handle.fileno())
+    with _path_lock(path):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = json.dumps(_jsonable(value), ensure_ascii=False, sort_keys=True)
+        with path.open("a", encoding="utf-8", newline="\n") as handle:
+            handle.write(payload + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
 
 
 def read_json(path: Path) -> dict[str, Any]:
-    with path.open("r", encoding="utf-8") as handle:
-        value = json.load(handle)
+    with _path_lock(path):
+        with path.open("r", encoding="utf-8") as handle:
+            value = json.load(handle)
     if not isinstance(value, dict):
         raise ValueError(f"expected JSON object in {path}")
     return value

@@ -10,6 +10,8 @@ or editor metadata from leaking into reader-facing prose.
 import os
 import shutil
 import subprocess
+import tempfile
+import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -181,29 +183,68 @@ def export_drawio(
     if output_format not in {"png", "pdf", "svg"}:
         raise ValueError(f"unsupported draw.io export format: {output_format}")
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    command = [
-        str(drawio),
-        "--export",
-        "--format",
-        output_format,
-        "--crop",
-        "--border",
-        "20",
-        "--output",
-        str(output_path),
-        str(source_path),
-    ]
-    completed = subprocess.run(
-        command,
-        cwd=source_path.parent,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=timeout_seconds,
-        check=False,
-    )
-    if completed.returncode != 0 or not output_path.is_file():
-        detail = (completed.stderr or completed.stdout or "unknown draw.io error").strip()
-        raise RuntimeError(f"draw.io export failed: {detail}")
+    with tempfile.TemporaryDirectory(
+        prefix="research-forge-drawio-",
+        ignore_cleanup_errors=True,
+    ) as user_data_dir:
+        command = [str(drawio)]
+        if os.name == "nt":
+            # Electron's default GPU/cache profile has repeatedly failed with
+            # access-denied errors on managed Windows installations.  An
+            # isolated per-export profile avoids ambient editor state; keeping
+            # software rasterization enabled still produces deterministic
+            # vector output.
+            command.extend(
+                [
+                    "--disable-gpu",
+                    f"--user-data-dir={user_data_dir}",
+                ]
+            )
+        command.extend(
+            [
+                "--export",
+                "--format",
+                output_format,
+                "--crop",
+                "--border",
+                "20",
+                "--output",
+                str(output_path),
+                str(source_path),
+            ]
+        )
+        completed = subprocess.run(
+            command,
+            cwd=source_path.parent,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout_seconds,
+            check=False,
+        )
+        # Some Windows draw.io builds hand work to an Electron child and return
+        # before the child atomically publishes the file.  Treat process exit
+        # and artifact materialization as separate completion conditions.
+        deadline = time.monotonic() + min(10.0, max(1.0, timeout_seconds / 3))
+        while (
+            completed.returncode == 0
+            and (
+                not output_path.is_file()
+                or output_path.stat().st_size == 0
+            )
+            and time.monotonic() < deadline
+        ):
+            time.sleep(0.1)
+        if (
+            completed.returncode != 0
+            or not output_path.is_file()
+            or output_path.stat().st_size == 0
+        ):
+            detail = (
+                completed.stderr
+                or completed.stdout
+                or "draw.io exited without materializing the requested artifact"
+            ).strip()
+            raise RuntimeError(f"draw.io export failed: {detail}")
     return output_path

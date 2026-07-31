@@ -70,6 +70,17 @@ _OUTPUT_SCHEMA: dict[str, Any] = {
 }
 
 
+def _managed_web_search_env() -> dict[str, str]:
+    """Keep web search on the user's managed Codex login, not an API backend."""
+
+    return {
+        "CODEX_HOME": str(Path.home() / ".codex"),
+        "OPENAI_API_KEY": "",
+        "CODEX_API_KEY": "",
+        "OPENAI_BASE_URL": "",
+    }
+
+
 class CodexNativeWebSearchAdapter(ProviderAdapter):
     provider_id = "codex_native_web_search"
     domains = {"web-search.codex.openai.com"}
@@ -107,17 +118,13 @@ class CodexNativeWebSearchAdapter(ProviderAdapter):
         if self._runner is not None:
             return self._runner(plan)
         from openai_codex import Codex, CodexConfig, Sandbox
-        from ...agent_runtime import (
-            _codex_process_env,
-            _configured_codex_model,
-            _load_local_runtime_env,
-        )
+        from ...agent_runtime import _configured_codex_model, _load_local_runtime_env
 
         _load_local_runtime_env()
         self._working_directory.mkdir(parents=True, exist_ok=True)
         config = CodexConfig(
             cwd=str(self._working_directory),
-            env=_codex_process_env(),
+            env=_managed_web_search_env(),
             config_overrides=(
                 f'model="{_configured_codex_model()}"',
                 f'web_search="{plan.freshness.replace("_only", "")}"',

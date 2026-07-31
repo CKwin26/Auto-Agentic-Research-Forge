@@ -23,7 +23,13 @@ from .models import (
     utc_now,
 )
 from .models import MacroStage
-from .pipeline_contracts import PromptEnvelope, PromptFragment, relevant_failure_memory
+from .pipeline_contracts import (
+    MAX_PROMPT_FRAGMENT_CHARACTERS,
+    MAX_PROMPT_TOTAL_CHARACTERS,
+    PromptEnvelope,
+    PromptFragment,
+    relevant_failure_memory,
+)
 from .study_models import SemanticClaimJudgmentBatch, StudyFinalizerOutput
 
 
@@ -182,6 +188,13 @@ def _load_local_runtime_env() -> None:
     already selected the default Codex backend.  That made a correctly written
     API configuration silently use the managed subscription instead.
     """
+    if os.getenv("RESEARCH_FORGE_SKIP_LOCAL_ENV", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }:
+        return
+
     from dotenv import load_dotenv
 
     load_dotenv(ROOT / ".env.local", override=False)
@@ -292,7 +305,14 @@ def codex_provider_binding() -> dict[str, str]:
 
 
 def _codex_process_env() -> dict[str, str]:
-    child_env = {"OPENAI_API_KEY": "", "CODEX_API_KEY": ""}
+    child_env = {
+        "OPENAI_API_KEY": "",
+        "CODEX_API_KEY": "",
+        # API-backend configuration loaded from .env.local must not redirect a
+        # managed Codex/OAuth subprocess. Explicit custom providers are routed
+        # by their isolated CODEX_HOME below.
+        "OPENAI_BASE_URL": "",
+    }
     home = _configured_codex_home()
     if home is not None:
         child_env["CODEX_HOME"] = str(home)
@@ -484,16 +504,25 @@ async def _run_structured(
     # material through the same bounded envelope.  This is deliberately done
     # before backend selection so Codex and API paths have identical limits.
     prompt_root = Path(cwd or ROOT).resolve()
+    request_fragments = _runtime_request_fragments(prompt)
+    failure_fragments = relevant_failure_memory(
+        prompt_root, stage=stage, skill_id=skill_id
+    )
+    remaining = MAX_PROMPT_TOTAL_CHARACTERS - sum(
+        len(item.text) for item in request_fragments
+    )
+    admitted_failure_fragments: list[PromptFragment] = []
+    for fragment in failure_fragments:
+        if len(fragment.text) > remaining:
+            break
+        admitted_failure_fragments.append(fragment)
+        remaining -= len(fragment.text)
     bounded_prompt = PromptEnvelope(
         stage=stage,
         skill_id=skill_id,
         fragments=[
-            PromptFragment(
-                source_id="runtime-request",
-                kind="operator_request",
-                text=prompt,
-            ),
-            *relevant_failure_memory(prompt_root, stage=stage, skill_id=skill_id),
+            *request_fragments,
+            *admitted_failure_fragments,
         ],
     ).render()
     if backend_name() == "codex":
@@ -505,6 +534,40 @@ async def _run_structured(
             cwd=cwd,
         )
     return await _run_api_structured(name, instructions, output_type, bounded_prompt)
+
+
+def _runtime_request_fragments(prompt: str) -> list[PromptFragment]:
+    """Split a large structured request without dropping current evidence.
+
+    The envelope has both a per-fragment and a total budget.  Stage 4 prompts
+    can legitimately exceed the former after combining an outline, claim map,
+    reporting register, and literature manifest.  Chunking avoids treating
+    that valid aggregate as one oversized fragment; failure memory is admitted
+    only from the remaining total budget.
+    """
+
+    if not prompt:
+        raise ValueError("runtime request cannot be empty")
+    if len(prompt) > MAX_PROMPT_TOTAL_CHARACTERS:
+        raise ValueError(
+            "runtime request exceeds the total prompt budget; compact the "
+            "task-specific evidence view before invoking the model"
+        )
+    fragments: list[PromptFragment] = []
+    for index, start in enumerate(
+        range(0, len(prompt), MAX_PROMPT_FRAGMENT_CHARACTERS),
+        start=1,
+    ):
+        fragments.append(
+            PromptFragment(
+                source_id=f"runtime-request-part-{index:02d}",
+                kind="operator_request",
+                text=prompt[
+                    start : start + MAX_PROMPT_FRAGMENT_CHARACTERS
+                ],
+            )
+        )
+    return fragments
 
 
 async def generate_plan(
@@ -593,6 +656,24 @@ async def generate_bundle_paper_outline(
     )
 
 
+async def generate_bundle_publication_title(
+    prompt: str,
+    *,
+    cwd: str | Path | None = None,
+):
+    from .paper_authoring import PublicationTitleCandidate
+
+    return await _run_structured(
+        "Evidence-bound academic title editor",
+        _instructions("bundle_publication_title.md"),
+        PublicationTitleCandidate,
+        prompt,
+        cwd=cwd,
+        stage=MacroStage.SYNTHESIS,
+        skill_id="publication-title",
+    )
+
+
 async def review_bundle_paper_artifact(
     prompt: str,
     *,
@@ -608,6 +689,24 @@ async def review_bundle_paper_artifact(
         cwd=cwd,
         stage=MacroStage.SYNTHESIS,
         skill_id="manuscript-review",
+    )
+
+
+async def review_nuwa_claim_packet(
+    prompt: str,
+    *,
+    cwd: str | Path | None = None,
+):
+    from .nuwa_panel import NuwaPersonaReview
+
+    return await _run_structured(
+        "Blinded Nuwa claim reviewer",
+        _instructions("nuwa_claim_review.md"),
+        NuwaPersonaReview,
+        prompt,
+        cwd=cwd,
+        stage=MacroStage.SYNTHESIS,
+        skill_id="nuwa-claim-review",
     )
 
 
@@ -694,6 +793,24 @@ async def generate_proposal(
         cwd=cwd,
         stage=MacroStage.EXPERIMENTATION,
         skill_id="experiment-design",
+    )
+
+
+async def generate_stage3_profile_v1_package(
+    prompt: str,
+    *,
+    cwd: str | Path | None = None,
+):
+    from .stage_three_generation import GeneratedProfileV1Package
+
+    return await _run_structured(
+        "Stage 3 Profile v1 implementation builder",
+        _instructions("stage3_profile_v1_builder.md"),
+        GeneratedProfileV1Package,
+        prompt,
+        cwd=cwd,
+        stage=MacroStage.EXPERIMENTATION,
+        skill_id="stage3-profile-v1-builder",
     )
 
 

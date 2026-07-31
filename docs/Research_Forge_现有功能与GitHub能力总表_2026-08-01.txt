@@ -1,0 +1,392 @@
+﻿Research Forge 现有功能与 GitHub / Skill 能力总表
+更新日期：2026-08-01
+
+一、结论摘要
+========================================================================
+Research Forge 已形成可运行的四阶段研究工作台，并在流程控制、检索、证据约束写作、科研绘图、部分实验 Profile 和复现检查上取得真实验收。
+当前最强结论不是‘可以自动完成任意科研课题’，而是：在已支持的计算实验类型中，平台能够把方向、契约、执行、证据、判定、修复和论文保持在同一条可审计链上。
+机器注册表审计：18/18 项产品能力声明有本地证据；42/42 项上游采用状态通过证据定位审计。
+独立复现边界：已完成本地 clean-room replay，但没有外部独立操作者和外部签署收据，因此尚未达到 C5。
+
+成熟度：C0 概念；C1 实现；C2 组件验证；C3 受控端到端；C4 真实案例；C5 外部独立信任域复现。
+
+二、四阶段当前能力
+========================================================================
+阶段一：方向发现
+  过程：只读项目扫描 → Claim/关键词 → 外部文献与趋势 → Discovery Portfolio → 负责人冻结 Scope。
+  现状：可用；外部检索受项目网络策略约束。
+阶段二：协议与可行性
+  过程：收敛议题、假设、概念基线/处理、指标/分母、资源包和 MVP；编译并批准 Research Contract。
+  现状：可用但仍是主要泛化短板；已支持三类正式 Profile。
+阶段三：实验与判定
+  过程：构建正式资产、隔离运行、独立评估、资格门、统计规则、Hypothesis/Study Verdict、复现与 provenance。
+  现状：多个真实窄案例达到 C4；跨领域通用实验仍未达到。
+阶段四：论文与审计
+  过程：证据约束写作、论文图表、科学面板、数字/引用/主张审计、补证据回退、PDF 和投稿批准。
+  现状：写作控制闭环可用；真人外审与期刊录用不属于自动完成项。
+
+三、核心功能清单
+========================================================================
+1. 统一四阶段 Study 工作流｜已达到（C3）
+   已有：双入口、Study 隔离、持久化 StepInstance/DAG、负责人 Gate、暂停/恢复/重试和阶段交接。
+   边界：证明流程控制闭环，不保证任意课题都能完成科学实验。
+2. 本地项目只读扫描与 Claim 发现｜已达到
+   已有：扫描代码、数据、报告、Office 文档和 HDF5 元数据；排除缓存、驱动包与共享二进制目录；形成候选主张和学术化概念。
+   边界：语义发现链只有显式哈希/标识绑定后才能升级为正式证据。
+3. 外部检索网关｜已达到（C3）
+   已有：默认离线；负责人批准后统一访问论文、GitHub、公开网页、开放全文和精确 OpenML 资源，并记录预算、幂等、查询摘要和响应哈希。
+   边界：Provider 安装不等于联网已获批；机构登录与正式发布仍需用户授权。
+4. PaperQA 全文证据分析｜已达到（C4，限定）
+   已有：固定版本、冻结 corpus/index、EvidenceSpan、引文与哈希绑定；已有真实运行验收。
+   边界：不宣称普遍优于 PaperQA；完整答案由 Research Forge 的证据约束合成层生成。
+5. 阶段一 Discovery Portfolio｜已达到
+   已有：把本地主张、学术关键词、外部文献/趋势信号和候选贡献统一比较，由负责人选择并冻结 Scope。
+   边界：趋势与热度只能辅助选题，不能决定科学 Verdict。
+6. 阶段二可行性、MVP 与 Research Contract｜部分达到（C2）
+   已有：定义问题、假设、基线/实验组、指标、分母、样本原则、资源需求和最小冒烟验证；Contract Compiler 阻止占位字段进入正式实验。
+   边界：三类 Profile 已覆盖，但通用跨领域契约编译仍未完成。
+7. 类型化实验 Profile｜部分达到（C2）
+   已有：已实现 tabular_ml_v1、benchmark_prediction_v1、existing_python_project_v1，以及有限的回归、分类、检索、问卷与投资类扩展。
+   边界：未知实验类型会明确阻断，不会伪装成功。
+8. OpenML 隐藏标签配对实验｜已达到（C4）
+   已有：OpenML Task 39 的候选与隐藏标签隔离；基线/处理在隔离容器运行，独立 evaluator 与冻结参考实现一致。
+   边界：是一个真实窄案例，不代表完整 OpenML Run/Flow 兼容，也不是外部 C5 复现。
+9. 官方 AIRS RAD 实验｜已达到（C4，限定）
+   已有：四个官方任务、10 个种子、40 个隔离单元使用未修改官方 evaluator 完成。
+   边界：不是完整 AIRS 矩阵，也未提交排行榜。
+10. 既有 Python 项目密封复现｜已达到（C4，限定）
+   已有：两个非预制真实项目快照在全新离线 Docker 中重放，冻结指标与重放结果一致。
+   边界：仍属于本地控制的真实案例，不是外部独立信任域。
+11. Great Expectations 结构资格门｜已达到（C3）
+   已有：对冻结表格资源运行哈希绑定、离线结构检查，并归一化为资源资格记录。
+   边界：只能证明结构质量，不能证明标签语义、因果有效性或科学结论。
+12. 独立评估、证据链与 Verdict｜部分达到
+   已有：Protocol→Run→Output→Evaluation→Claim 显式绑定；确定性检查优先，NLI 只做风险告警；执行失败与科学反驳分离。
+   边界：仍需更多 Profile 和第二评估器家族的真实比较。
+13. W3C PROV 交换｜已达到（C3，限定）
+   已有：Stage 3 的受限 PROV 投影通过外部 PySHACL 语义引擎和冻结 SHACL 规则。
+   边界：不宣称覆盖全部 PROV-CONSTRAINTS，也不是 W3C 认证。
+14. RO-Crate 交换｜已达到（C3，Workflow Run）
+   已有：Stage 3 Workflow Run RO-Crate 0.5 连同继承的 Process Run、Workflow RO-Crate 与基础 RO-Crate 必需检查全部通过外部 CRS4 validator。
+   边界：Provenance Run Profile 仍待验收；不是第三方认证。
+15. 故障定位、Repair 与有界回滚｜已达到（受控）
+   已有：追加式诊断、最早可预防阶段、Repair Contract、Artifact Dependency Graph、successor run 和历史 Verdict 保留。
+   边界：AI 只能建议故障来源；科学修复和高成本重跑仍需负责人批准。
+16. 受控 clean-room replay｜已达到（C3/RF-E1）
+   已有：两个密封包在全新、离线、只读根文件系统、非 root Docker worker 中重算并比较。
+   边界：没有外部 KMS/WORM 收据和独立操作者，因此不能称 C5 独立复现。
+17. 公共最小复现包｜已公开发布（C4）
+   已有：OpenML Task 39 隐藏标签复现包和正确阻断契约案例已公开发布，并在 GitHub-hosted runner 重放；收据具有可验证的 Sigstore/SLSA provenance。
+   边界：工作流仍由同一仓库所有者控制，尚无独立科学操作者签署，因此不是 C5。
+18. 证据约束论文写作｜已达到（C3）
+   已有：自然学术标题、分层大纲、单段摘要、章节写作、数字/引用/Claim/结构审计、证据不足披露和 PDF 编译。
+   边界：不能把缺失证据美化成结果，也不能保证特定期刊录用。
+19. sci-ssci 写作约束｜部分达到
+   已有：已本地适配 reader-question 章节规划、目标期刊建模和证据保持型润色。
+   边界：没有嵌入上游完整 Skill runtime/corpus builder。
+20. Nuwa AI 科学家面板｜部分达到（C2）
+   已有：盲化 Claim 包、Feynman/Tukey/Shannon/Popper 风格角色、固定路由、veto/abstain 聚合和追加裁决队列。
+   边界：缺真实模型端到端验收和专门的人类裁决 UI；不得冒充真人外审。
+21. 可编辑科研图与导出｜已达到（C4）
+   已有：生成、审计 .drawio，并由本地 draw.io Desktop 导出 SVG/PDF；论文流水线保留可编辑源。
+   边界：next-ai-draw-io 的实时 MCP 对话编辑仍只有适配器，未完成最新端到端验收。
+22. Completion Record 与签名｜部分达到
+   已有：记录 Study/Contract/Run、关键哈希、readiness 三层状态和独立验证命令；支持自有 Ed25519 不可变记录。
+   边界：不是第三方认证、SLSA provenance 或 Sigstore 透明日志。
+
+四、GitHub / Skill / 标准来源总体分布
+========================================================================
+已实跑接入：6 项
+部分运行：4 项
+仅适配器：3 项
+仅架构参考：22 项
+仅 Codex Skill：2 项
+尚未实现：4 项
+未采用：1 项
+说明：‘仅架构参考’不等于已安装；‘仅 Codex Skill’不等于 Research Forge 产品运行时会自动调用；‘已实跑接入’也只允许声明注册表中的限定范围。
+
+五、逐项上游能力与接入情况
+========================================================================
+[已实跑接入｜6 项]
+- PaperQA2
+  来源：https://github.com/Future-House/paper-qa
+  上游能力：metadata-aware full-text scientific RAG；agentic evidence retrieval, reranking, and citation-grounded answers；multi-document corpus indexing and question answering
+  Research Forge 采用：metadata-aware full-text retrieval；evidence-bundle synthesis；citation-bound answer validation
+  可声明：Pinned PaperQA retrieval and evidence analysis run inside the gateway.
+  未达到/限制：smoke comparisons do not establish general superiority over PaperQA；answers remain bounded by frozen Evidence Bundles；the 2026-07-31 rerun revalidated retrieval only; the most recent Codex synthesis acceptance remains the 2026-07-24 run
+- AIRS-Bench
+  来源：https://github.com/facebookresearch/airs-bench
+  上游能力：end-to-end AI research benchmark across diverse ML tasks；official RAD task packaging, submission validation, and normalized scoring
+  Research Forge 采用：official RAD task import；normalized score and valid-submission semantics
+  可声明：Four official AIRS RAD tasks completed 40 isolated local cells with the unchanged official evaluator; leaderboard performance and external acceptance are not claimed.
+  未达到/限制：four official RAD tasks were executed locally; this is not the complete AIRS matrix；no leaderboard submission or external acceptance is claimed；AIRS-lite output is not an official benchmark result
+- draw.io
+  来源：https://github.com/jgraph/drawio
+  上游能力：client-side editable diagram and whiteboard authoring；desktop, browser, Docker, SVG, PDF, and image export paths
+  Research Forge 采用：editable diagram source；desktop SVG/PDF export
+  可声明：Research Forge writes and audits editable .drawio sources and exports them with the revalidated local draw.io Desktop path.
+  未达到/限制：draw.io is not treated as a scientific evaluator；real-time collaboration is not provided by this integration
+- Great Expectations
+  来源：https://github.com/fivetran/great_expectations
+  上游能力：declarative data-quality expectations and validation runs；generated validation documentation and reusable data contracts
+  Research Forge 采用：hash-bound frozen tabular expectation contracts；offline structural-data qualification before scientific admission
+  可声明：Research Forge runs a hash-bound, offline Great Expectations gate for frozen tabular structure; scientific meaning remains outside that gate.
+  未达到/限制：the controlled gate qualifies structural tabular properties only；passing expectations cannot establish label semantics, causal validity, or a scientific verdict
+- W3C PROV
+  来源：https://github.com/w3c/prov
+  上游能力：standard Entity, Activity, Agent, usage, generation, derivation, and attribution model；interoperable provenance serializations and constraints
+  Research Forge 采用：completion-package PROV JSON-LD export；explicit entity, activity, and agent lineage
+  可声明：The bounded Stage 3 PROV projection passes an external PySHACL semantic engine; full W3C PROV conformance and certification are not claimed.
+  未达到/限制：PySHACL validates the bounded Research Forge Stage 3 projection, not every W3C PROV constraint；no official W3C certification or third-party conformance badge is claimed；internal schemas remain authoritative for Research Forge
+- Workflow Run RO-Crate
+  来源：https://github.com/ResearchObject/ro-crate
+  上游能力：JSON-LD research object packaging with contextual metadata；workflow-run prospective and retrospective provenance profiles
+  Research Forge 采用：completion-package RO-Crate metadata export；portable research object description；external required-check validation with a frozen machine report
+  可声明：A Stage 3 minimal crate passes the maintained CRS4 external validator's Workflow Run Crate 0.5 required checks, including its inherited profiles; certification is not claimed.
+  未达到/限制：Workflow Run Crate 0.5 and all inherited required checks are accepted；Provenance Run profiles are not yet claimed；no third-party certification is claimed
+
+[部分运行｜4 项]
+- sci-ssci-skills
+  来源：https://github.com/Yila-AI/sci-ssci-skills
+  上游能力：SCI/SSCI planning, drafting, revising, and polishing skills；reader-question section planning and target-journal modeling；evidence, citation, and claim-strength preservation
+  Research Forge 采用：section-by-section reader-question writing；target-journal modeling；evidence-preserving polishing
+  可声明：Core writing constraints are locally adapted with attribution.
+  未达到/限制：the upstream skill runtime and corpus builder are not embedded；venue fit still depends on verified local policy inputs
+- Nuwa Scientist Panel
+  来源：https://github.com/CKwin26/Auto-Agentic-Research-Forge/tree/main/skills/nuwa-scientist-panel
+  上游能力：blinded Feynman-, Tukey-, Shannon-, and Popper-inspired claim review；fixed three-person routing with deterministic veto and abstention aggregation；human adjudication queue for mixed or abstaining outcomes
+  Research Forge 采用：blinded persona reviews；deterministic veto and abstention rules
+  可声明：Stage 4 implements the exact Nuwa protocol as a same-model advisory panel; real-model and human-queue acceptance remain pending.
+  未达到/限制：exact three-person claim routing, packet blinding, hashing, and deterministic aggregation are implemented；the human-adjudication queue is persisted but has no dedicated owner-decision UI；a recent real-model end-to-end acceptance run is still missing
+- academic-humanizer
+  来源：https://github.com/AIScientists-Dev/academic-humanizer
+  上游能力：claim-preserving academic prose revision；AI-writing-tell removal without detector-evasion promises；paper, thesis, rebuttal, NSF, and NIH writing modes
+  Research Forge 采用：claim-preserving academic copy edit；calibrated verbs and AI-tell removal；author voice profile and semantic diff
+  可声明：The manuscript pipeline adapts its claim-preserving editing discipline.
+  未达到/限制：funding-proposal mode is not a Stage 4 product workflow；humanization never changes numbers, citations, or verdicts
+- OpenML
+  来源：https://github.com/openml/openml-python
+  上游能力：versioned datasets, tasks, runs, flows, and benchmark suites；instance-level predictions uploaded for independent metric evaluation
+  Research Forge 采用：task and run identity separated from submitted predictions；sample-level independent evaluation
+  可声明：Five official tasks passed the narrow tabular benchmark, and the Retrieval Gateway resolves and freezes exact OpenML datasets; full OpenML Run/Flow compatibility is not claimed.
+  未达到/限制：exact Task/Dataset resolution and frozen acquisition are implemented; free-form OpenML search is intentionally not used for scientific selection；Research Forge does not publish OpenML Runs or Flows；Research Forge formal datasets are not published to OpenML
+
+[仅适配器｜3 项]
+- next-ai-draw-io
+  来源：https://github.com/DayuanJiang/next-ai-draw-io
+  上游能力：natural-language creation and revision of draw.io diagrams；image, PDF, and text-to-diagram workflows；version history, interactive chat, desktop app, and MCP server
+  Research Forge 采用：MCP configuration for AI-assisted diagram editing；audit of AI-edited draw.io output
+  可声明：MCP configuration and output audit exist; live editing is not yet verified.
+  未达到/限制：live MCP editing has not received a recent end-to-end acceptance run
+- Evidently
+  来源：https://github.com/evidentlyai/evidently
+  上游能力：ML, LLM, and data-pipeline evaluation, testing, and monitoring；100-plus metrics with structured reports and test conditions
+  Research Forge 采用：normalized external validation records
+  可声明：Research Forge can normalize supplied Evidently reports.
+  未达到/限制：package is not installed；no executor or real-run acceptance
+- ccf-deadlines
+  来源：https://github.com/ccfddl/ccf-deadlines
+  上游能力：community-maintained conference ranks, cycles, deadlines, website, CLI, and WeChat applet
+  Research Forge 采用：optional conference rank and cycle metadata overlay；official CFP remains final submission authority
+  可声明：A tested local metadata overlay exists; deadline authority remains external.
+  未达到/限制：only an owner-supplied local checkout is read；community deadlines never authorize submission or replace official CFP confirmation
+
+[仅架构参考｜22 项]
+- AutoResearchClaw
+  来源：https://github.com/aiming-lab/AutoResearchClaw
+  上游能力：23-stage, eight-phase idea-to-paper pipeline；six human-intervention modes with pause, approve, reject, and guidance；persistent ACP sessions across stages and pluggable SKILL.md loading；branch exploration, experiment self-repair, citation verification, and cross-run lessons；domain-specific experiment executors and ARC-Bench task manifests
+  Research Forge 采用：multi-stage research lifecycle；co-pilot gates；literature and experiment repair loops
+  可声明：Workflow architecture was compared with AutoResearchClaw.
+  未达到/限制：Research Forge does not run AutoResearchClaw's 23-stage engine；no compatibility claim with AutoResearchClaw modes or artifacts；no general skill loader, six-mode co-pilot controller, or cross-run lesson injection；no ARC-Bench or domain-executor compatibility
+- autoresearch
+  来源：https://github.com/karpathy/autoresearch
+  上游能力：single-GPU autonomous iteration over a fixed training program；five-minute bounded runs scored by one scalar validation metric；keep-or-discard research log that preserves experiment history
+  Research Forge 采用：fixed-budget scalar evaluator loop；keep-or-discard experiment iteration
+  可声明：The bounded evaluator loop informed experiment design.
+  未达到/限制：no train.py mutation loop；Research Forge is not a single-GPU val_bpb optimizer
+- AI Scientist
+  来源：https://github.com/SakanaAI/AI-Scientist
+  上游能力：template-based idea generation, code modification, experiment execution, figures, paper writing, and review；automated novelty search and LaTeX production
+  Research Forge 采用：idea-to-experiment-to-paper lifecycle；template-bound experiment execution warning
+  可声明：Research Forge was positioned against AI Scientist.
+  未达到/限制：no AI-Scientist template runtime is embedded；no compatibility with its generated experiments
+- AI Scientist v2
+  来源：https://github.com/SakanaAI/AI-Scientist-v2
+  上游能力：template-free experiment implementation；progressive agentic tree search over experiment and manuscript states；automated paper writing and review from explored nodes
+  Research Forge 采用：progressive agentic tree search；journaled experiment nodes
+  可声明：Its search-node model informed deferred design work.
+  未达到/限制：tree search is not implemented；Research Forge does not execute AI Scientist v2 generated code
+- DeepScientist
+  来源：https://github.com/ResearAI/DeepScientist
+  上游能力：local-first, one-repository-per-quest persistent research workspace；baseline reproduction, Findings Memory, research maps, and iterative branching；human takeover plus Codex, Claude, Kimi, and OpenCode runners；web, TUI, messaging, figure, LaTeX, and paper-delivery surfaces
+  Research Forge 采用：durable quest and artifact state；human takeover；baseline reproduction before optimization
+  可声明：Durable study state was compared with DeepScientist.
+  未达到/限制：no Bayesian optimization research map；no one-repository-per-quest compatibility
+- Agent Laboratory
+  来源：https://github.com/SamuelSchmidgall/AgentLaboratory
+  上游能力：end-to-end literature, experimentation, and report workflow；phase-specialized agents, checkpoints, and iterative researcher feedback
+  Research Forge 采用：phase-specific agent roles；checkpointed co-pilot workflow
+  可声明：Role separation informed the four-phase workflow.
+  未达到/限制：no AgentRxiv runtime；no Agent Laboratory checkpoint compatibility
+- CodeScientist
+  来源：https://github.com/allenai/codescientist
+  上游能力：autonomous discovery restricted to code-based experiments；multiple independent attempts with container isolation and meta-analysis
+  Research Forge 采用：containerized code-expressible experiments；independent attempts followed by meta-analysis
+  可声明：Its isolated experiment pattern informed Stage 3.
+  未达到/限制：no CodeScientist mutation or meta-analysis runtime
+- AI-Researcher
+  来源：https://github.com/HKUDS/AI-Researcher
+  上游能力：idea-driven and reference-paper-driven research entry modes；multi-agent literature, algorithm design, implementation, validation, and manuscript production
+  Research Forge 采用：idea and reference-paper entry modes；end-to-end research lifecycle
+  可声明：Its dual-entry pattern informed Research Forge entry modes.
+  未达到/限制：no AI-Researcher benchmark compatibility
+- XScientist
+  来源：https://github.com/smileformylove/XScientist
+  上游能力：ARA v1 git-like research artifact protocol with normalized hashes；fork, inspect, re-execute, diff, and continue any evidence node；claimref bindings, exploration graphs, repair history, and environment fingerprints；long-running daemon, feedback boards, integrity forensics, and isolated executors
+  Research Forge 采用：git-like research runs；claim-to-evidence references；fork, re-execute, review, and repair
+  可声明：Lineage and successor-run ideas were compared with XScientist.
+  未达到/限制：no ARA protocol compatibility
+- AIRA Dojo
+  来源：https://github.com/facebookresearch/aira-dojo
+  上游能力：composable task, solver, operator, interpreter, and runner framework；local, container, and Slurm-oriented evaluation infrastructure；journaled search operators for AI research agents
+  Research Forge 采用：task, solver, operator, runner separation；isolated large-scale execution design
+  可声明：Selected execution abstractions were adapted, not the full Dojo.
+  未达到/限制：full AIRA Dojo and Slurm harness are not deployed；no thousand-agent scale acceptance；Research Forge's container runner does not import AIRA Dojo
+- awesome-ai-research-writing
+  来源：https://github.com/Leey21/awesome-ai-research-writing
+  上游能力：curated prompts for Chinese-to-English academic rewriting, paragraph-level polishing, results analysis, and reviewer simulation；catalog of third-party research-writing Skills and installation patterns
+  Research Forge 采用：reader-facing paragraphs instead of audit-field enumeration；reduced mechanical connectives, ornamental formatting, and code-like prose；reviewer-oriented manuscript audit before submission
+  可声明：General paragraph and reviewer-audit ideas informed the local writing pipeline; no upstream runtime integration is claimed.
+  未达到/限制：the upstream repository is not installed or executed by Research Forge；its prompt collection is not a scientific authority or evidence source；Research Forge does not redistribute its prompt text
+- UI/UX Pro Max
+  来源：https://github.com/nextlevelbuilder/ui-ux-pro-max-skill
+  上游能力：searchable UI styles, palettes, typography, components, and UX patterns；stack-aware design-system generation；accessibility, responsive layout, and loading-state guidance
+  Research Forge 采用：searchable UI pattern and palette guidance；design-system artifact generation；accessibility and loading-state checklist
+  可声明：The UI used its design workflow and checklist; conformance is partial.
+  未达到/限制：no complete automated accessibility acceptance suite；current Ocean palette is a later Research Forge design decision
+- DVC
+  来源：https://github.com/treeverse/dvc
+  上游能力：versioned data, pipelines, models, metrics, and ML experiment state
+  Research Forge 采用：data and artifact versioning pattern
+  可声明：DVC-style versioning informed design; DVC is optional.
+  未达到/限制：no mandatory DVC repository or remote
+- OSF
+  来源：https://github.com/CenterForOpenScience/osf.io
+  上游能力：open-science project, registration, storage, sharing, and preservation platform；time-stamped registrations that preserve a study plan before analysis
+  Research Forge 采用：immutable frozen research contracts；versioned successor rather than in-place protocol mutation
+  可声明：OSF registration semantics informed contract freezing and successors.
+  未达到/限制：Research Forge does not submit registrations to OSF；no OSF API or registration-schema compatibility is claimed
+- MLflow
+  来源：https://github.com/mlflow/mlflow
+  上游能力：tracking of runs, parameters, metrics, artifacts, models, and lineage；evaluation, observability, prompt management, and model registry surfaces
+  Research Forge 采用：durable run and artifact records；configuration, metric, and lineage comparison
+  可声明：MLflow was used as an experiment-tracking comparison, not embedded.
+  未达到/限制：MLflow is not installed or used as the Research Forge state store；no MLflow tracking or model-registry compatibility
+- Nextflow
+  来源：https://github.com/nextflow-io/nextflow
+  上游能力：data-driven computational DAGs across local, HPC, and cloud executors；task hashing, caching, resume, retry, resource declaration, and reports
+  Research Forge 采用：persistent dependency DAG；bounded retry, resume, and cache-eligibility rules
+  可声明：Nextflow informed resilient DAG execution semantics.
+  未达到/限制：Research Forge is not a Nextflow executor；no Nextflow DSL, cache, or report compatibility
+- Snakemake
+  来源：https://github.com/snakemake/snakemake
+  上游能力：rule-based reproducible workflows from workstation to cluster or cloud；DAG scheduling, provenance, caching, profiles, and self-contained reports
+  Research Forge 采用：dependency-aware workflow execution；portable audit and offline reporting pattern
+  可声明：Snakemake reporting and DAG patterns informed platform design.
+  未达到/限制：Research Forge does not parse Snakefiles or run Snakemake；its HTML completion view is not a Snakemake report
+- MLPerf Inference
+  来源：https://github.com/mlcommons/inference
+  上游能力：standardized benchmark scenarios, reference implementations, and accuracy checks；submission checker and compliance tests before results are accepted
+  Research Forge 采用：formal package checker independent of the web service；qualification before a result can become authoritative
+  可声明：MLPerf checker semantics informed the offline completion verifier.
+  未达到/限制：Research Forge is not an MLPerf implementation or submission；no MLPerf compliance or leaderboard claim
+- Code Ocean
+  来源：https://docs.codeocean.com/osl-guide/getting-started/what-is-a-compute-capsule
+  上游能力：computational capsules that bind code, data, environment, and results；reproducible runs and independent computational reproducibility review
+  Research Forge 采用：portable sealed execution package；reproduction evidence distinct from internal evidence verification
+  可声明：Code Ocean capsule and replay concepts informed reproduction packaging.
+  未达到/限制：Research Forge does not create or validate Code Ocean Capsules；no Code Ocean external reproduction is claimed
+- ACM Artifact Review and Badging
+  来源：https://www.acm.org/publications/policies/artifact-review-and-badging-current
+  上游能力：separate artifact available, artifact evaluated, results reproduced, and results replicated claims；independent artifact inspection and execution evidence
+  Research Forge 采用：multi-level reproduction evidence；internal verification is not external replication
+  可声明：ACM badge distinctions informed Research Forge evidence levels.
+  未达到/限制：Research Forge does not award ACM badges；L3 and L4 require genuinely independent or external work
+- SLSA
+  来源：https://github.com/slsa-framework/slsa
+  上游能力：graduated software supply-chain integrity requirements；trusted builder provenance and verifiable artifact attestations
+  Research Forge 采用：control-plane-signed completion attestations；signing authority isolated from candidate workers
+  可声明：SLSA trust-boundary concepts informed custom Research Forge attestations.
+  未达到/限制：Research Forge attestations are not SLSA provenance statements；no SLSA build-level certification is claimed
+- Sigstore
+  来源：https://github.com/sigstore/sigstore
+  上游能力：keyless or key-based artifact signing and verification ecosystem；identity-bound certificates and transparency-log-backed verification
+  Research Forge 采用：signed immutable package and receipt verification；public verifier registry separated from private signing custody
+  可声明：Sigstore informed signing architecture; Sigstore itself is not integrated.
+  未达到/限制：Research Forge uses custom Ed25519 records, not Fulcio, Rekor, or Cosign；no Sigstore transparency or identity claim
+
+[仅 Codex Skill｜2 项]
+- Academic Research Suite
+  来源：https://github.com/Imbad0202/academic-research-skills
+  上游能力：deep research, systematic review, paper writing, peer review, and full-pipeline modes；multi-agent integrity gates, Material Passport, claim audit, and citation locators；style calibration, AI disclosure, cross-model verification, and experiment provenance intake
+  Research Forge 采用：deep research, paper, review, and full-pipeline roles；Material Passport and failure-mode gates
+  可声明：Available to Codex as a point-in-time skill snapshot, not a platform runtime.
+  未达到/限制：full suite runtime is not invoked automatically by Research Forge；RAISE and PRISMA claims require separate runtime evidence
+- experiment-agent
+  来源：https://github.com/Imbad0202/experiment-agent
+  上游能力：execution and monitoring of user-supplied computational experiments；human-study protocol and ethics checklist support；statistical fallacy checks and reproducibility verification
+  Research Forge 采用：run, validate, and reproduce user-supplied experiments；separation of statistical interpretation from scientific conclusion
+  可声明：Its constraints informed Stage 3; it is not the Stage 3 engine.
+  未达到/限制：it does not authorize automatic code generation or modification；Research Forge Stage 3 is an independent implementation
+
+[尚未实现｜4 项]
+- read-wechat-articles
+  来源：local-skill://read-wechat-articles/SKILL.md
+  上游能力：intended WeChat article browsing workflow; no executable specification is present
+  Research Forge 采用：未转化为平台能力
+  可声明：The named WeChat skill is not implemented.
+  未达到/限制：SKILL.md is still a TODO stub；no scripts or executable browsing workflow；RedFox retrieval provider is a separate platform capability
+- self-play skill
+  来源：missing-skill://self-play
+  上游能力：requested self-play ideation capability; no installed skill or upstream specification was found
+  Research Forge 采用：未转化为平台能力
+  可声明：Only a bounded example exists; no self-play skill is installed.
+  未达到/限制：no installed self-play SKILL.md；examples and claim-discovery terms are not a reusable skill
+- Manubot
+  来源：https://github.com/manubot/manubot
+  上游能力：persistent-identifier citation metadata retrieval；Pandoc-oriented manuscript processing, templating, and AI revision utilities
+  Research Forge 采用：citation and manuscript processing design
+  可声明：Manubot was reviewed as a possible validator; Research Forge has no Manubot adapter or runtime.
+  未达到/限制：no installed executor or accepted output
+- statcheck
+  来源：https://github.com/MicheleNuijten/statcheck
+  上游能力：automatic consistency checks for APA-style null-hypothesis significance tests
+  Research Forge 采用：APA-style NHST consistency-check design
+  可声明：statcheck was reviewed as a possible validator; Research Forge has no statcheck adapter or runtime.
+  未达到/限制：no R runtime integration or accepted report
+
+[未采用｜1 项]
+- Deepchecks
+  来源：https://github.com/deepchecks/deepchecks
+  上游能力：tabular, NLP, and vision validation suites for data and models；custom checks, CI conditions, monitoring, and JSON or HTML reports
+  Research Forge 采用：ML validation-suite comparison
+  可声明：Deepchecks was reviewed but not adopted.
+  未达到/限制：not imported or executed；license boundary intentionally preserved
+
+六、最重要的未完成项
+========================================================================
+1. C5 外部独立复现：需要独立操作者/信任域仅使用冻结包复现，并生成可验证外部收据。
+2. 通用 Contract Compiler：继续扩展实验 Profile、可执行指标、目标规则、采样框与资源授权，减少阶段三退回阶段二。
+3. Provenance Run RO-Crate：Workflow Run 0.5 已验收，Provenance Run Profile 仍待完成。
+4. Nuwa 面板：补真实模型端到端运行和负责人裁决 UI。
+5. next-ai-draw-io：补真实 MCP 对话编辑与导出验收。
+6. 大规模多文献 PaperQA benchmark：补多文献冲突、攻击、弃权准确率、引用准确率与 P95/P99。
+7. 尚未接入：OSF 在线注册、MLflow、DVC/Nextflow/Snakemake 运行时、Manubot、statcheck、Deepchecks、通用 Skill loader。
+
+七、审计入口
+========================================================================
+产品能力：python scripts/audit_capability_registry.py --root .
+上游采用：python scripts/audit_upstream_capabilities.py --repository-root .
+权威来源：research_forge/capability_manifest.yaml 与 research_forge/upstream_capabilities.py
+
+结论：Research Forge 已经是一个‘有限实验类型下可闭环、全过程可审计’的平台；尚不是‘任意学科全自动完成且已被外部独立复现’的平台。

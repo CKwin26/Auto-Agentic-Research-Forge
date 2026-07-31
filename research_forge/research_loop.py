@@ -131,7 +131,8 @@ def canonical_state_fingerprint(project: Path) -> str:
 
 def _proposal_axes(proposal: ExperimentProposal) -> list[str]:
     axes = [f"parameter:{item.name}" for item in proposal.parameters]
-    axes.extend(f"file:{item.path.replace('\\', '/')}" for item in proposal.file_replacements)
+    normalized_paths = (item.path.replace("\\", "/") for item in proposal.file_replacements)
+    axes.extend(f"file:{path}" for path in normalized_paths)
     return sorted(set(axes))
 
 

@@ -1,0 +1,37 @@
+from ..base import ExperimentProfileBundle, ProfileCertificationStatus
+from ...workflow_domain import Stage3Profile
+
+BUNDLE = ExperimentProfileBundle(
+    profile_id=Stage3Profile.PAIRED_BINARY_CLUSTERED_V1,
+    profile_version="1.0.0",
+    certification_status=ProfileCertificationStatus.CERTIFIED,
+    design_id="paired_two_arm_v1",
+    outcome_id="binary_outcome_v1",
+    estimand_id="paired_risk_difference_v1",
+    estimator_id="paired_proportion_difference_v1",
+    inference_id="cluster_bootstrap_paired_binary_v1",
+    missingness_id="block_on_missing_pair_v1",
+    multiplicity_id="single_primary_hypothesis_v1",
+    verdict_policy_id="superiority_threshold_v1",
+    contract_schema_id="paired_binary_clustered_contract_v1",
+    run_plan_compiler_id="paired_binary_cluster_compiler_v1",
+    candidate_schema_id="paired_binary_cluster_sample_v1",
+    analysis_table_id="paired_binary_cluster_table_v1",
+    qualification_id="paired_binary_cluster_qualification_v1",
+    evaluator_id="paired_binary_cluster_evaluator_v1",
+    claim_envelope_id="paired_binary_cluster_claim_envelope_v1",
+    repair_policy_id="paired_binary_cluster_successor_v1",
+    reproduction_comparator_id="paired_binary_clustered_v1",
+    assurance_suite_id="paired_binary_cluster_assurance_v1",
+    frontend_renderer_id="paired_binary_cluster_v1",
+    required_contract_fields=(
+        "pairing_key",
+        "cluster_id_field",
+        "success_definition",
+        "effect_threshold",
+        "inference_spec",
+    ),
+    supported_data_types=("jsonl", "csv", "parquet"),
+    builder_plugins=("paired_binary_cluster_builder_v1",),
+    notes=("Frozen cluster bootstrap for correlated paired binary units.",),
+)

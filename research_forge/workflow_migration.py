@@ -117,21 +117,54 @@ def migrate_bundle_run(
         research_type=support_type,
         study_id=study_id,
     )
+    study = repository.save_study(
+        study.model_copy(
+            update={
+                "settings": {
+                    **study.settings,
+                    "workflow_origin": "legacy_bundle_import",
+                    "live_stage_execution": False,
+                    "source_run": run.name,
+                }
+            }
+        ),
+        "legacy_bundle_import_registered",
+    )
     gate_scope = repository.create_gate(
         study_id,
         GateType.SCOPE_APPROVAL,
         "scope_contract",
         f"{study_id}:scope",
         subject_version=1,
-        status=GateStatus.APPROVED,
+        status=GateStatus.AWAITING_USER,
     )
-    repository.create_gate(
+    gate_scope = repository.decide_gate(
+        study_id,
+        gate_scope.gate_id,
+        approve=True,
+        decided_by="legacy_bundle_import",
+        reason=(
+            "Compatibility import preserves the historical frozen Scope; "
+            "this is not a new owner approval or live Stage-1 execution."
+        ),
+    )
+    gate_research = repository.create_gate(
         study_id,
         GateType.RESEARCH_CONTRACT,
         "research_contract",
         f"{study_id}:research",
         subject_version=1,
-        status=GateStatus.APPROVED,
+        status=GateStatus.AWAITING_USER,
+    )
+    repository.decide_gate(
+        study_id,
+        gate_research.gate_id,
+        approve=True,
+        decided_by="legacy_bundle_import",
+        reason=(
+            "Compatibility import preserves the historical protocol lock; "
+            "this is not a new owner approval or live Stage-2 execution."
+        ),
     )
 
     scope_contract = ScopeContractVersion(
@@ -230,6 +263,15 @@ def migrate_bundle_run(
             phase,
             executor,
             depends_on=[previous] if previous else [],
+        )
+        step = repository.update_step_parameters(
+            study_id,
+            step.step_instance_id,
+            {
+                "execution_provenance": "legacy_bundle_import",
+                "live_execution": False,
+                "source_run": run.name,
+            },
         )
         repository.update_step(study_id, step.step_instance_id, ExecutionStatus.RUNNING)
         repository.update_step(study_id, step.step_instance_id, ExecutionStatus.SUCCEEDED)
@@ -363,7 +405,22 @@ def migrate_bundle_run(
             "legacy_gate_id": gate_scope.gate_id,
         },
     )
-    repository.finish_study(study_id, StudyLifecycle.COMPLETED)
+    latest = repository.load_study(study_id)
+    repository.save_study(
+        latest.model_copy(
+            update={
+                "phase": Phase.PAPER,
+                "lifecycle": StudyLifecycle.ACTIVE,
+                "execution_status": (
+                    ExecutionStatus.WAITING_FOR_USER
+                    if bool(audit.get("publication_ready"))
+                    else ExecutionStatus.BLOCKED
+                ),
+                "current_step_ids": [],
+            }
+        ),
+        "legacy_bundle_import_stopped_before_live_execution",
+    )
     return repository.snapshot(study_id)
 
 

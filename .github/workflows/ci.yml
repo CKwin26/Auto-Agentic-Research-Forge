@@ -19,7 +19,11 @@ jobs:
           python-version: "3.12"
           cache: pip
       - name: Install Research Forge
-        run: python -m pip install -e ".[dev,external-research,paper-evidence]"
+        run: python -m pip install -e ".[dev,external-research,paper-evidence,scientific-validation]"
+      - name: Prepare clean-room replay image
+        run: docker pull python:3.12-slim
+      - name: Warm maintained RO-Crate validator cache
+        run: rocrate-validator cache warm
       - name: Test
         run: python -m pytest -p no:cacheprovider
       - name: Compile retrieval modules

@@ -16,6 +16,7 @@ from research_forge.claim_discovery import (
     discover_project_claims,
     extract_author_claims,
     recommend_claims,
+    _claims_from_text,
 )
 
 
@@ -70,6 +71,153 @@ def test_internal_project_label_is_normalized_before_academic_search(
     assert "extreme winner" not in " ".join(item.query for item in queries)
 
 
+def test_generic_engineering_brief_becomes_comparative_research_frame(
+    tmp_path: Path,
+) -> None:
+    report = tmp_path / "docs" / "product-refactor.md"
+    report.parent.mkdir()
+    report.write_text(
+        """# ProjectZephyr Retrieval Refactor
+
+## Baseline
+
+The professor recommendation pipeline runs whichever search channels happen
+to be available and lets the model emit scoring signals.
+
+## Problem
+
+Coverage is not explicit, so missing dimensions cannot be distinguished from
+unplanned sources. Model and fallback paths are asymmetric.
+
+## Target Path
+
+Persist mandatory dimension search packets, normalize an evidence ledger, and
+run deterministic scoring before rendering the recommendation.
+""",
+        encoding="utf-8",
+    )
+    candidate = {
+        "track_id": "project-zephyr-refactor",
+        "display_title": "ProjectZephyr Retrieval Refactor",
+        "novelty_seed": "Internal architecture proposal",
+        "report_path": "docs/product-refactor.md",
+    }
+
+    row = build_academic_concept_normalizations(
+        tmp_path, [candidate], []
+    )[0]
+
+    assert row.status == "normalized"
+    assert "ProjectZephyr" not in row.academic_title
+    assert "学术导师推荐" in row.academic_title
+    assert row.comparison_frame["comparator"].startswith(
+        "opportunistic retrieval"
+    )
+    assert (
+        row.comparison_frame["primary_outcome"]
+        == "evidence-dimension coverage rate"
+    )
+    assert row.comparison_frame["scientific_evidence_status"] == (
+        "not_yet_validated"
+    )
+
+
+def test_bounded_self_play_maps_to_agent_critique_not_play_therapy(
+    tmp_path: Path,
+) -> None:
+    report = tmp_path / "README.md"
+    report.write_text(
+        """
+# Bounded self-play claim verification
+
+Compare a single-pass claim proposer with one bounded proposer-critic-revision
+round over the same frozen claim-evidence items.
+""",
+        encoding="utf-8",
+    )
+    candidate = {
+        "track_id": "bounded-self-play-v1",
+        "display_title": "Bounded self-play claim verification",
+        "novelty_seed": "auditable proposer-critic revision",
+        "report_path": "README.md",
+    }
+
+    row = build_academic_concept_normalizations(
+        tmp_path, [candidate], []
+    )[0]
+
+    assert row.status == "normalized"
+    assert "self-critique in language models" in row.academic_concepts
+    assert "play therapy" not in " ".join(row.academic_query_terms)
+    assert row.comparison_frame["unit_of_analysis"] == (
+        "one registered task-seed pair"
+    )
+
+
+def test_prompt_corpus_and_account_tutorial_do_not_become_research_claims() -> None:
+    prompt_claims = _claims_from_text(
+        (
+            "# prompt sheet\n"
+            "masterpiece, detailed CG, 32K, a child holding food, "
+            "Steps: 28, Sampler: Euler, CFG scale: 7, Seed: 42\n"
+        ),
+        "materials/提示词/爆款关键词.xlsx",
+        "a" * 64,
+        allow_typed_lines=True,
+    )
+    tutorial_claims = _claims_from_text(
+        "这是目前唯一能实现无限积分的方法！！！\n",
+        "无限积分注册教程/完整步骤.docx",
+        "b" * 64,
+        allow_typed_lines=True,
+    )
+
+    assert prompt_claims == []
+    assert tutorial_claims == []
+
+
+def test_generative_media_materials_form_a_testable_prompt_study() -> None:
+    candidate = {
+        "track_id": "derived-generative-media-v1",
+        "display_title": "AI生成视频指南",
+        "novelty_seed": "用生成模型制作视频",
+        "output_path": "提示词/风景类关键词.xlsx",
+    }
+
+    row = build_academic_concept_normalizations(
+        None, [candidate], []
+    )[0]
+
+    assert row.status == "normalized"
+    assert "提示词属性" in row.academic_title
+    assert row.comparison_frame["primary_outcome"] == (
+        "prompt-output semantic alignment rate"
+    )
+    assert "即梦" not in " ".join(row.academic_query_terms)
+
+
+def test_technical_manual_forms_a_computational_retrieval_study() -> None:
+    manual = {
+        "track_id": "derived-user-manual-v1",
+        "display_title": "Notebook Instructions for Use",
+        "novelty_seed": "使用说明书包括安全须知、电池和 BIOS 故障处理。",
+        "output_path": "电子说明书.pdf",
+    }
+
+    row = build_academic_concept_normalizations(
+        None, [manual], []
+    )[0]
+
+    assert row.status == "normalized"
+    assert "操作指引可发现性" in row.academic_title
+    assert row.comparison_frame["primary_outcome"] == (
+        "correct instruction retrieval at k"
+    )
+    assert row.comparison_frame["source"] == (
+        "technical_manual_material"
+    )
+
+
 def test_author_claims_keep_exact_file_provenance(tmp_path: Path) -> None:
     report = tmp_path / "docs" / "report.md"
     report.parent.mkdir()
@@ -92,6 +240,38 @@ def test_author_claims_keep_exact_file_provenance(tmp_path: Path) -> None:
     assert claims[0].source_spans[0].path == "docs/report.md"
     assert claims[0].source_spans[0].line == 5
     assert claims[0].claim_type == "comparative"
+
+
+def test_research_contract_uses_title_and_hypothesis_not_embedded_task_brief(
+    tmp_path: Path,
+) -> None:
+    contract = tmp_path / "nested" / "research_contract.json"
+    contract.parent.mkdir()
+    contract.write_text(
+        json.dumps(
+            {
+                "title": "AIRS-Bench: Textual Classification",
+                "research_question": (
+                    "# Overview\n## Task Description\n"
+                    + "benchmark instructions " * 100
+                    + "\n## Dataset Structure\ntrain and test"
+                ),
+                "hypothesis": (
+                    "A bounded, evidence-driven change can improve the frozen "
+                    "benchmark metric."
+                ),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    claims = extract_author_claims(tmp_path, [_resource(contract, tmp_path)])
+
+    assert len(claims) == 1
+    assert claims[0].statement.startswith(
+        "AIRS-Bench: Textual Classification:"
+    )
+    assert "Task Description" not in claims[0].statement
 
 
 def test_external_trends_recommend_validation_but_never_become_evidence(

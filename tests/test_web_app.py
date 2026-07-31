@@ -10,9 +10,12 @@ import pytest
 import research_forge.web_app as web_app
 from research_forge.cli import _parser
 from research_forge.web_app import (
+    _write_runtime_env,
     _repair_mojibake,
     _safe_run_dir,
     bootstrap_payload,
+    configure_external_research_setup,
+    configure_runtime,
     create_server,
     initialize_idea_research,
     load_run_detail,
@@ -182,6 +185,260 @@ def test_health_endpoint(tmp_path: Path) -> None:
         thread.join(timeout=5)
 
 
+def test_runtime_env_update_is_atomic_and_preserves_unrelated_values(
+    tmp_path: Path,
+) -> None:
+    env_path = tmp_path / ".env.local"
+    env_path.write_text(
+        "# local only\nREDFOX_API_KEY=keep-me\nRESEARCH_FORGE_BACKEND=codex\n",
+        encoding="utf-8",
+    )
+
+    _write_runtime_env(
+        {
+            "RESEARCH_FORGE_BACKEND": "api",
+            "OPENAI_API_KEY": "secret-placeholder",
+            "AUTORESEARCH_MODEL": "test-model",
+        },
+        env_path=env_path,
+    )
+
+    text = env_path.read_text(encoding="utf-8")
+    assert "REDFOX_API_KEY=keep-me" in text
+    assert "RESEARCH_FORGE_BACKEND=api" in text
+    assert "OPENAI_API_KEY=secret-placeholder" in text
+    assert not list(tmp_path.glob(".*.tmp"))
+
+
+def test_runtime_config_rejects_insecure_custom_api_url(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="HTTPS"):
+        configure_runtime(
+            {
+                "backend": "api",
+                "api_key": "secret-placeholder",
+                "model": "test-model",
+                "base_url": "http://provider.example/v1",
+            },
+            env_path=tmp_path / ".env.local",
+        )
+
+
+def test_selecting_managed_codex_clears_stale_custom_provider_home(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    env_path = tmp_path / ".env.local"
+    env_path.write_text(
+        "RESEARCH_FORGE_BACKEND=codex\n"
+        "RESEARCH_FORGE_CODEX_HOME=C:\\\\custom-provider\n"
+        "RESEARCH_FORGE_PROVIDER_BILLING_CONTRACT=C:\\\\billing.json\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        web_app,
+        "runtime_status_payload",
+        lambda: {"backend": "codex", "ready": True},
+    )
+
+    configure_runtime(
+        {"backend": "codex", "provider_mode": "managed"},
+        env_path=env_path,
+    )
+
+    text = env_path.read_text(encoding="utf-8")
+    assert "RESEARCH_FORGE_BACKEND=codex" in text
+    assert "RESEARCH_FORGE_CODEX_HOME=" not in text
+    assert "RESEARCH_FORGE_PROVIDER_BILLING_CONTRACT=" not in text
+
+
+def test_external_research_setup_keeps_project_network_offline(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("RESEARCH_FORGE_EXTERNAL_RESEARCH_SETUP", raising=False)
+    env_path = tmp_path / ".env.local"
+
+    configured = configure_external_research_setup(
+        {"choice": "offline", "install_optional": False},
+        env_path=env_path,
+    )
+
+    assert configured["choice"] == "offline"
+    assert configured["project_network_default"] == "offline"
+    assert configured["requires_project_owner_network_approval"] is True
+    assert (
+        "RESEARCH_FORGE_EXTERNAL_RESEARCH_SETUP=offline"
+        in env_path.read_text(encoding="utf-8")
+    )
+
+
+def test_external_research_setup_installs_only_fixed_packages(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    observed: list[str] = []
+
+    def fake_run(command: list[str], **_: object) -> object:
+        observed.extend(command)
+        return type("Result", (), {"returncode": 0})()
+
+    monkeypatch.setattr(web_app.subprocess, "run", fake_run)
+    monkeypatch.setattr(
+        web_app,
+        "external_research_setup_payload",
+        lambda **_: {
+            "choice": "public",
+            "components": [],
+            "dependencies_installed": True,
+            "project_network_default": "offline",
+            "requires_project_owner_network_approval": True,
+        },
+    )
+
+    configured = configure_external_research_setup(
+        {
+            "choice": "public",
+            "install_optional": True,
+            "packages": ["untrusted-user-supplied-package"],
+        },
+        env_path=tmp_path / ".env.local",
+    )
+
+    assert configured["choice"] == "public"
+    assert "--user" in observed
+    assert "--no-warn-script-location" in observed
+    assert "paper-search-mcp==0.1.4" in observed
+    assert "paper-qa==2026.3.18" in observed
+    assert "validate_external_research_v1.py" in " ".join(observed)
+    assert "--quick" in observed
+    assert "--live" in observed
+    assert "untrusted-user-supplied-package" not in observed
+
+
+def test_runtime_endpoints_return_only_safe_configuration(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    static = tmp_path / "dist"
+    static.mkdir()
+    (static / "index.html").write_text("ok", encoding="utf-8")
+    observed: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        web_app,
+        "runtime_status_payload",
+        lambda **_: {
+            "backend": "codex",
+            "model": "codex:gpt-5.6-sol",
+            "provider_name": "OpenAI",
+            "codex_authenticated": True,
+            "ready": True,
+        },
+    )
+
+    def fake_configure(payload: dict[str, object]) -> dict[str, object]:
+        observed.update(payload)
+        return {
+            "backend": "api",
+            "model": "gpt-5.6-terra",
+            "provider_name": "OpenAI-compatible API",
+            "ready": True,
+        }
+
+    monkeypatch.setattr(web_app, "configure_runtime", fake_configure)
+    monkeypatch.setattr(
+        web_app,
+        "external_research_setup_payload",
+        lambda **_: {
+            "choice": "unconfigured",
+            "components": [],
+            "dependencies_installed": False,
+            "project_network_default": "offline",
+        },
+    )
+    monkeypatch.setattr(
+        web_app,
+        "configure_external_research_setup",
+        lambda payload, **_: {
+            "choice": payload["choice"],
+            "components": [],
+            "dependencies_installed": False,
+            "project_network_default": "offline",
+        },
+    )
+    server = create_server(
+        "127.0.0.1", 0, runs_root=tmp_path / "runs", static_root=static
+    )
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with urlopen(
+            f"http://127.0.0.1:{server.server_port}/api/runtime/status"
+        ) as response:
+            status = json.loads(response.read().decode("utf-8"))
+        assert status["ready"] is True
+        assert "api_key" not in status
+
+        request = Request(
+            f"http://127.0.0.1:{server.server_port}/api/runtime/configure",
+            data=json.dumps(
+                {
+                    "backend": "api",
+                    "model": "gpt-5.6-terra",
+                    "api_key": "secret-not-returned",
+                }
+            ).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(request) as response:
+            configured = json.loads(response.read().decode("utf-8"))
+        assert observed["api_key"] == "secret-not-returned"
+        assert configured["ready"] is True
+        assert "api_key" not in configured
+        assert "secret-not-returned" not in json.dumps(configured)
+
+        with urlopen(
+            f"http://127.0.0.1:{server.server_port}/api/runtime/external-research"
+        ) as response:
+            external = json.loads(response.read().decode("utf-8"))
+        assert external["choice"] == "unconfigured"
+        assert external["project_network_default"] == "offline"
+
+        external_request = Request(
+            f"http://127.0.0.1:{server.server_port}/api/runtime/external-research",
+            data=json.dumps(
+                {"choice": "offline", "install_optional": False}
+            ).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(external_request) as response:
+            selected = json.loads(response.read().decode("utf-8"))
+        assert selected["choice"] == "offline"
+
+        task_request = Request(
+            f"http://127.0.0.1:{server.server_port}/api/tasks/submit",
+            data=json.dumps(
+                {
+                    "operation": "bundle.inspect",
+                    "payload": {
+                        "source": str(tmp_path / "project"),
+                        "discover_claims": False,
+                    },
+                    "request_id": "web-injects-workflow-root",
+                }
+            ).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(task_request) as response:
+            task = json.loads(response.read().decode("utf-8"))
+        assert task["request"]["payload"]["workflow_root"] == str(
+            (tmp_path / "runs" / ".workflow-v2").resolve()
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
 def test_discovery_selection_endpoint_freezes_the_selected_scope(
     tmp_path: Path,
 ) -> None:
@@ -206,6 +463,16 @@ def test_discovery_selection_endpoint_freezes_the_selected_scope(
     )
     (source / "reports" / "demo.md").write_text(
         "# Contributions\n\nThe paired evaluation improves accuracy to 0.81.\n",
+        encoding="utf-8",
+    )
+    (source / "src").mkdir()
+    (source / "src" / "model.py").write_text(
+        "def predict(value):\n    return int(value > 0)\n",
+        encoding="utf-8",
+    )
+    (source / "data").mkdir()
+    (source / "data" / "test.csv").write_text(
+        "x,label\n1,1\n",
         encoding="utf-8",
     )
     workflow_root = tmp_path / "workflow"
@@ -239,6 +506,11 @@ def test_discovery_selection_endpoint_freezes_the_selected_scope(
                     "study_id": discovery["study_id"],
                     "direction_id": direction_id,
                     "decided_by": "project_owner",
+                    "reason": "Narrow the owner-approved Scope.",
+                    "scope_overrides": {
+                        "research_question": "Can the revised bundle question be evaluated?",
+                        "scope_out": ["unregistered deployment claims"],
+                    },
                 }
             ).encode("utf-8"),
             headers={"Content-Type": "application/json"},
@@ -250,18 +522,166 @@ def test_discovery_selection_endpoint_freezes_the_selected_scope(
         assert result["scope_contract"]["field_diff"][
             "selected_direction_id"
         ] == direction_id
+        assert result["scope_contract"]["research_question"] == (
+            "Can the revised bundle question be evaluated?"
+        )
+        assert result["scope_contract"]["scope_out"] == [
+            "unregistered deployment claims"
+        ]
         assert result["gate"]["status"] == "approved"
         assert next(
             item
             for item in result["workflow"]["steps"]
             if item["step_type"] == "freeze_scope_contract"
         )["status"] == "succeeded"
+        assert next(
+            item
+            for item in result["workflow"]["steps"]
+            if item["step_type"] == "select_specific_topic"
+        )["status"] == "waiting_for_user"
         assert (
             WorkflowRepository(workflow_root)
             .latest_scope_contract(discovery["study_id"])
             .status.value
             == "frozen"
         )
+        candidates = json.loads(
+            (
+                workflow_root
+                / "studies"
+                / discovery["study_id"]
+                / "stage2"
+                / "candidate_topics.json"
+            ).read_text(encoding="utf-8")
+        )
+        topic_request = Request(
+            f"http://127.0.0.1:{server.server_port}"
+            "/api/studies/stage2/topics/select",
+            data=json.dumps(
+                {
+                    "study_id": discovery["study_id"],
+                    "topic_id": candidates["recommended_topic_id"],
+                    "scope_overrides": {"primary_outcome": "accuracy"},
+                    "protocol_overrides": {
+                        "primary_metric": "accuracy",
+                        "metric_direction": "higher_is_better",
+                    },
+                }
+            ).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(topic_request) as response:
+            topic_result = json.loads(response.read().decode("utf-8"))
+        assert topic_result["scope_contract"]["contract_level"] == "specific_topic"
+        assert topic_result["scope_contract"]["version"] == 2
+        assert next(
+            item
+            for item in topic_result["workflow"]["steps"]
+            if item["step_type"] == "assess_stage2_gate"
+        )["status"] == "succeeded"
+        assert json.loads(
+            (
+                workflow_root
+                / "studies"
+                / discovery["study_id"]
+                / "stage2"
+                / "stage2_gate_report.json"
+            ).read_text(encoding="utf-8")
+        )["status"] == "DESIGN_READY"
+        with urlopen(
+            f"http://127.0.0.1:{server.server_port}"
+            f"/api/studies/stage2?study_id={discovery['study_id']}"
+        ) as response:
+            stage_two = json.loads(response.read().decode("utf-8"))
+        assert stage_two["artifacts"]["candidate_topics.json"]["candidates"]
+        assert stage_two["artifacts"]["resource_requirements.json"][
+            "requirements"
+        ]
+        assert stage_two["artifacts"]["resource_candidate_evaluation.json"][
+            "candidates"
+        ]
+        assert stage_two["artifacts"]["resource_selection.json"]["status"] == (
+            "frozen"
+        )
+        assert stage_two["artifacts"]["resource_acquisition_plan.md"].startswith(
+            "# Resource acquisition plan"
+        )
+        assert stage_two["artifacts"]["topic_feasibility_matrix.md"].startswith(
+            "# Topic feasibility matrix"
+        )
+        assert stage_two["artifacts"]["topic_recommendation.md"].startswith(
+            "# Topic recommendation"
+        )
+        assert stage_two["artifacts"]["mvp_spec.json"][
+            "scientific_evidence_eligible"
+        ] is False
+        assert stage_two["artifacts"]["stage3_resource_plan.json"]["tasks"]
+        revise_request = Request(
+            f"http://127.0.0.1:{server.server_port}"
+            "/api/studies/stage2/protocol/revise",
+            data=json.dumps(
+                {
+                    "study_id": discovery["study_id"],
+                    "reason": "Complete pre-freeze protocol fields.",
+                    "protocol_overrides": {
+                        "sample_size": "12 frozen rows",
+                        "statistical_power": "descriptive feasibility revision",
+                    },
+                }
+            ).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(revise_request) as response:
+            revised = json.loads(response.read().decode("utf-8"))
+        assert revised["requested_version"] == 2
+        with urlopen(
+            f"http://127.0.0.1:{server.server_port}"
+            f"/api/studies/stage2?study_id={discovery['study_id']}"
+        ) as response:
+            stage_two_v2 = json.loads(response.read().decode("utf-8"))
+        assert (
+            stage_two_v2["artifacts"]["protocol.draft.json"][
+                "research_contract_version"
+            ]
+            == 2
+        )
+        mvp_report = tmp_path / "stage2-mvp-report.json"
+        _write_json(
+            mvp_report,
+            {
+                "scientific_evidence_eligible": False,
+                "environment_started": True,
+                "metric_computable": True,
+                "baseline_instantiable": True,
+                "failure_modes_distinguishable": True,
+                "reset_or_isolation_verified": True,
+                "runtime_seconds": 1.5,
+                "smoke_cases": [
+                    {"case_id": "smoke-1", "status": "passed"},
+                    {"case_id": "smoke-2", "status": "passed"},
+                ],
+            },
+        )
+        mvp_request = Request(
+            f"http://127.0.0.1:{server.server_port}"
+            "/api/studies/stage2/mvp/approve",
+            data=json.dumps(
+                {
+                    "study_id": discovery["study_id"],
+                    "report_path": str(mvp_report),
+                    "decided_by": "project_owner",
+                }
+            ).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(mvp_request) as response:
+            mvp_result = json.loads(response.read().decode("utf-8"))
+        assert mvp_result["mvp"]["status"] == "verified"
+        assert mvp_result["mvp"]["scientific_evidence_eligible"] is False
+        assert mvp_result["revision"]["requested_version"] == 3
     finally:
         server.shutdown()
         server.server_close()

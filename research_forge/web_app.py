@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import asyncio
+import importlib.util
 import json
 import mimetypes
 import os
 import shutil
 import subprocess
+import sys
 import threading
 import uuid
 import webbrowser
@@ -23,6 +26,18 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_RUNS_ROOT = PROJECT_ROOT / "bundle_runs"
 DEFAULT_IDEA_ROOT = PROJECT_ROOT / "idea_runs"
 DEFAULT_STATIC_ROOT = PROJECT_ROOT / "research-forge-ui" / "dist"
+EXTERNAL_RESEARCH_OPTIONAL_PACKAGES = (
+    "huggingface-hub==1.24.0",
+    "mcp>=1.28,<2",
+    "openai>=2.45,<3",
+    "paper-search-mcp==0.1.4",
+    "paper-qa==2026.3.18",
+)
+EXTERNAL_RESEARCH_IMPORTS = {
+    "academic_search": ("paper_search_mcp",),
+    "huggingface_research": ("huggingface_hub",),
+    "evidence_analysis": ("paperqa", "paperqa_pypdf"),
+}
 
 
 def _retrieval_freshness(value: Any) -> Literal["cache_only", "live"]:
@@ -30,6 +45,30 @@ def _retrieval_freshness(value: Any) -> Literal["cache_only", "live"]:
     if freshness not in {"cache_only", "live"}:
         raise ValueError("freshness must be cache_only or live")
     return freshness  # type: ignore[return-value]
+
+
+def _run_stage3_build_action(
+    repository: Any,
+    study_id: str,
+    step_type: str,
+    action: Any,
+) -> Any:
+    """Keep API build failures in the persisted Stage 3 state machine."""
+
+    from .stage_three_build import (
+        Stage3BuildAdmissionError,
+        record_stage3_build_failure,
+    )
+
+    try:
+        return action()
+    except Stage3BuildAdmissionError as exc:
+        record_stage3_build_failure(
+            repository, study_id, step_type, exc
+        )
+        raise
+
+
 ALLOWED_ARTIFACT_SUFFIXES = {".json", ".md", ".txt"}
 
 
@@ -356,6 +395,281 @@ def bootstrap_payload(
     }
 
 
+def runtime_status_payload() -> dict[str, Any]:
+    """Return a secret-free summary for the first-run deployment wizard."""
+
+    from .agent_runtime import backend_status
+    from .service import key_is_present
+
+    try:
+        status = backend_status()
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "backend": "unknown",
+            "ready": False,
+            "error": f"{type(exc).__name__}: {exc}",
+        }
+    backend = str(status.get("backend", "codex"))
+    api_key_present = key_is_present()
+    ready = (
+        bool(status.get("codex_sdk_installed"))
+        and bool(status.get("codex_authenticated"))
+        if backend == "codex"
+        else bool(status.get("api_sdk_installed")) and api_key_present
+    )
+    allowed = {
+        "backend",
+        "model",
+        "api_sdk_installed",
+        "api_sdk_version",
+        "codex_sdk_installed",
+        "codex_sdk_version",
+        "codex_authenticated",
+        "codex_account_type",
+        "codex_plan_type",
+        "provider_name",
+        "provider_base_url",
+        "provider_model",
+        "provider_home_source",
+    }
+    return {
+        **{key: value for key, value in status.items() if key in allowed},
+        "api_key_present": api_key_present,
+        "ready": ready,
+    }
+
+
+def _write_runtime_env(
+    values: dict[str, str | None],
+    *,
+    env_path: str | Path = PROJECT_ROOT / ".env.local",
+) -> Path:
+    """Atomically update the ignored local runtime file without exposing secrets."""
+
+    path = Path(env_path).expanduser().resolve()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    existing = path.read_text(encoding="utf-8").splitlines() if path.is_file() else []
+    normalized: dict[str, str | None] = {}
+    for key, value in values.items():
+        if not key or not key.replace("_", "").isalnum() or key.upper() != key:
+            raise ValueError("runtime environment keys must use uppercase letters and underscores")
+        if value is not None and ("\n" in value or "\r" in value):
+            raise ValueError(f"runtime value for {key} must be a single line")
+        normalized[key] = value
+
+    output: list[str] = []
+    consumed: set[str] = set()
+    for line in existing:
+        stripped = line.strip()
+        key = stripped.partition("=")[0].strip() if "=" in stripped else ""
+        if key in normalized:
+            if key not in consumed and normalized[key] is not None:
+                output.append(f"{key}={normalized[key]}")
+            consumed.add(key)
+        else:
+            output.append(line)
+    for key, value in normalized.items():
+        if key not in consumed and value is not None:
+            output.append(f"{key}={value}")
+
+    temp = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
+    temp.write_text("\n".join(output).rstrip() + "\n", encoding="utf-8")
+    try:
+        os.chmod(temp, 0o600)
+    except OSError:
+        pass
+    os.replace(temp, path)
+    return path
+
+
+def configure_runtime(
+    payload: dict[str, Any],
+    *,
+    env_path: str | Path = PROJECT_ROOT / ".env.local",
+) -> dict[str, Any]:
+    """Configure the local model backend from the deployment wizard."""
+
+    backend = str(payload.get("backend", "")).strip().lower()
+    if backend not in {"codex", "api"}:
+        raise ValueError("backend must be codex or api")
+    updates: dict[str, str | None] = {"RESEARCH_FORGE_BACKEND": backend}
+    runtime_values: dict[str, str | None] = {"RESEARCH_FORGE_BACKEND": backend}
+    if backend == "codex":
+        provider_mode = str(
+            payload.get("provider_mode", "managed")
+        ).strip().lower()
+        if provider_mode not in {"managed", "configured"}:
+            raise ValueError(
+                "Codex provider_mode must be managed or configured"
+            )
+        if provider_mode == "managed":
+            # Selecting “use Codex login” means the local managed Codex
+            # subscription.  A stale CC-Switch/custom-provider home must not
+            # silently redirect later Stage 3/4 model calls.
+            updates.update(
+                {
+                    "RESEARCH_FORGE_CODEX_HOME": None,
+                    "RESEARCH_FORGE_PROVIDER_BILLING_CONTRACT": None,
+                }
+            )
+            runtime_values.update(updates)
+    else:
+        api_key = str(payload.get("api_key", "")).strip()
+        model = str(payload.get("model", "")).strip()
+        base_url = str(payload.get("base_url", "")).strip().rstrip("/")
+        if len(api_key) < 8:
+            raise ValueError("API key is required")
+        if not model or len(model) > 160:
+            raise ValueError("a valid model name is required")
+        if base_url and not base_url.startswith("https://"):
+            raise ValueError("custom API base URL must use HTTPS")
+        updates.update(
+            {
+                "OPENAI_API_KEY": api_key,
+                "AUTORESEARCH_MODEL": model,
+                "OPENAI_BASE_URL": base_url or None,
+            }
+        )
+        runtime_values.update(updates)
+    _write_runtime_env(updates, env_path=env_path)
+    for key, value in runtime_values.items():
+        if value is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = value
+    return runtime_status_payload()
+
+
+def _local_env_value(
+    key: str,
+    *,
+    env_path: str | Path = PROJECT_ROOT / ".env.local",
+) -> str | None:
+    value = os.environ.get(key)
+    if value is not None:
+        return value
+    path = Path(env_path).expanduser().resolve()
+    if not path.is_file():
+        return None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        candidate, separator, raw = line.partition("=")
+        if separator and candidate.strip() == key:
+            return raw.strip()
+    return None
+
+
+def external_research_setup_payload(
+    *,
+    env_path: str | Path = PROJECT_ROOT / ".env.local",
+    workflow_root: str | Path = DEFAULT_RUNS_ROOT / ".workflow-v2",
+) -> dict[str, Any]:
+    """Return installation state without treating installation as live validation."""
+
+    importlib.invalidate_caches()
+    components = []
+    for capability, module_names in EXTERNAL_RESEARCH_IMPORTS.items():
+        missing = [
+            module_name
+            for module_name in module_names
+            if importlib.util.find_spec(module_name) is None
+        ]
+        components.append(
+            {
+                "capability": capability,
+                "installed": not missing,
+                "missing_modules": missing,
+            }
+        )
+    choice = (
+        _local_env_value(
+            "RESEARCH_FORGE_EXTERNAL_RESEARCH_SETUP",
+            env_path=env_path,
+        )
+        or "unconfigured"
+    )
+    validation_path = (
+        Path(workflow_root).resolve()
+        / "retrieval"
+        / "readiness-validation.json"
+    )
+    validation = read_json(validation_path) if validation_path.is_file() else None
+    return {
+        "choice": choice,
+        "components": components,
+        "dependencies_installed": all(item["installed"] for item in components),
+        "project_network_default": "offline",
+        "requires_project_owner_network_approval": True,
+        "institutional_login_deferred": True,
+        "validation": validation,
+    }
+
+
+def configure_external_research_setup(
+    payload: dict[str, Any],
+    *,
+    env_path: str | Path = PROJECT_ROOT / ".env.local",
+    workflow_root: str | Path = DEFAULT_RUNS_ROOT / ".workflow-v2",
+) -> dict[str, Any]:
+    """Persist the deployment choice and optionally install a fixed capability set."""
+
+    choice = str(payload.get("choice", "")).strip().lower()
+    if choice not in {"public", "offline"}:
+        raise ValueError("external research choice must be public or offline")
+    install_optional = bool(payload.get("install_optional", False))
+    if choice == "offline" and install_optional:
+        raise ValueError("offline setup cannot request dependency installation")
+    if choice == "public" and install_optional:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "--user",
+                "--no-warn-script-location",
+                *EXTERNAL_RESEARCH_OPTIONAL_PACKAGES,
+            ],
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=900,
+            check=False,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                "可选研究组件安装失败。请检查网络后重试，或暂时选择离线模式。"
+            )
+    if choice == "public" and bool(payload.get("run_validation", True)):
+        validation = subprocess.run(
+            [
+                sys.executable,
+                str(PROJECT_ROOT / "scripts" / "validate_external_research_v1.py"),
+                "--workflow-root",
+                str(Path(workflow_root).resolve()),
+                "--quick",
+                "--live",
+            ],
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=480,
+            check=False,
+        )
+        if validation.returncode != 0:
+            raise RuntimeError(
+                "外部研究组件已安装，但部署验收未通过。请查看本机验收结果后重试。"
+            )
+    _write_runtime_env(
+        {"RESEARCH_FORGE_EXTERNAL_RESEARCH_SETUP": choice},
+        env_path=env_path,
+    )
+    os.environ["RESEARCH_FORGE_EXTERNAL_RESEARCH_SETUP"] = choice
+    return external_research_setup_payload(
+        env_path=env_path,
+        workflow_root=workflow_root,
+    )
+
+
 def initialize_idea_research(
     idea: str,
     *,
@@ -661,6 +975,16 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
                     bootstrap_payload(self.server.runs_root, self.server.idea_root)
                 )
                 return
+            if parsed.path == "/api/runtime/status":
+                self._send_json(runtime_status_payload())
+                return
+            if parsed.path == "/api/runtime/external-research":
+                self._send_json(
+                    external_research_setup_payload(
+                        workflow_root=self.server.workflow_root
+                    )
+                )
+                return
             if parsed.path == "/api/runs":
                 self._send_json({"runs": list_bundle_runs(self.server.runs_root)})
                 return
@@ -726,6 +1050,181 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
                 self._send_json(
                     WorkflowRepository(self.server.workflow_root).snapshot(study_id)
                 )
+                return
+            if parsed.path == "/api/studies/stage2":
+                from .workflow_domain import WorkflowRepository
+
+                query = parse_qs(parsed.query)
+                study_id = query.get("study_id", [""])[0]
+                repository = WorkflowRepository(self.server.workflow_root)
+                repository.load_study(study_id)
+                stage2 = (
+                    repository.root / "studies" / study_id / "stage2"
+                )
+                contract = repository.latest_research_contract(study_id)
+                contract_version = contract.version if contract else 1
+
+                def current_stage2_path(name: str) -> Path:
+                    path = stage2 / name
+                    if contract_version <= 1:
+                        return path
+                    candidate = stage2 / (
+                        f"{Path(name).stem}.v{contract_version}"
+                        f"{Path(name).suffix}"
+                    )
+                    return candidate if candidate.is_file() else path
+
+                json_names = (
+                    "stage2_input_check.json",
+                    "baseline_candidates.json",
+                    "resource_inventory.json",
+                    "data_quality_report.json",
+                    "data_boundary.json",
+                    "leakage_risk_report.json",
+                    "resource_gap_report.json",
+                    "resource_requirements.json",
+                    "concrete_resource_candidates.json",
+                    "resource_candidate_evaluation.json",
+                    "resource_selection.json",
+                    "candidate_topics.json",
+                    "scope_change_request.json",
+                    "scope_contract.json",
+                    "protocol.draft.json",
+                    "decision_rules.json",
+                    "preflight_report.json",
+                    "baseline_validation_report.json",
+                    "contract_lint_report.json",
+                    "contract_compile_report.json",
+                    "contract_dry_run_report.json",
+                    "execution_readiness_gate.json",
+                    "blocking_issue_report.json",
+                    "stage2_gate_report.json",
+                )
+                artifacts = {
+                    name: _read_json_if_present(
+                        current_stage2_path(name), None
+                    )
+                    for name in json_names
+                }
+                for name in (
+                    "research_method_summary.md",
+                    "resource_acquisition_plan.md",
+                    "resource_candidate_comparison.md",
+                    "topic_feasibility_matrix.md",
+                    "topic_recommendation.md",
+                    "protocol.draft.md",
+                    "baseline_validation_summary.md",
+                ):
+                    artifacts[name] = (
+                        _read_text_if_present(current_stage2_path(name))
+                        if current_stage2_path(name).is_file()
+                        else None
+                    )
+                for name in (
+                    "mvp_spec.json",
+                    "stage3_resource_plan.json",
+                    "dataset_spec.json",
+                    "annotation_protocol.json",
+                    "research-forge.experiments.json",
+                    "treatment_declaration.json",
+                ):
+                    artifacts[name] = _read_json_if_present(
+                        stage2 / "experiment_build" / name,
+                        None,
+                    )
+                self._send_json(
+                    {
+                        "study_id": study_id,
+                        "artifacts": artifacts,
+                        "amendments": [
+                            _read_json_if_present(path, {})
+                            for path in sorted(
+                                stage2.glob("protocol_amendment_*.json")
+                            )
+                        ],
+                        "input_check_attempts": [
+                            _read_json_if_present(path, {})
+                            for path in sorted(
+                                stage2.glob(
+                                    "stage2_input_check.attempt-*.json"
+                                )
+                            )
+                        ],
+                    }
+                )
+                return
+            if parsed.path == "/api/studies/stage3":
+                from .stage_three import stage3_read_model
+                from .workflow_domain import WorkflowRepository
+
+                query = parse_qs(parsed.query)
+                study_id = query.get("study_id", [""])[0]
+                self._send_json(
+                    stage3_read_model(
+                        WorkflowRepository(self.server.workflow_root),
+                        study_id,
+                    )
+                )
+                return
+            if parsed.path == "/api/studies/stage4":
+                from .stage_four import stage4_read_model
+                from .workflow_domain import WorkflowRepository
+
+                query = parse_qs(parsed.query)
+                study_id = query.get("study_id", [""])[0]
+                if not study_id:
+                    raise ValueError("study_id query parameter is required")
+                self._send_json(
+                    stage4_read_model(
+                        WorkflowRepository(self.server.workflow_root),
+                        study_id,
+                    )
+                )
+                return
+            path_parts = [
+                item for item in parsed.path.split("/") if item
+            ]
+            if (
+                len(path_parts) == 4
+                and path_parts[:2] == ["api", "studies"]
+                and path_parts[3] == "evidence-grade"
+            ):
+                from .reproduction_verifier import (
+                    ReproductionStore,
+                    assess_reproduction_evidence,
+                    load_reproduction_trust_registry,
+                )
+
+                study_id = path_parts[2]
+                store = ReproductionStore(self.server.workflow_root)
+                receipts = store.list_receipts(study_id)
+                conflicts = store.list_conflicts(study_id)
+                assessment = assess_reproduction_evidence(
+                    study_id=study_id,
+                    package_verified=bool(store.list_jobs(study_id)),
+                    receipts=receipts,
+                    trusted_verifier_keys=load_reproduction_trust_registry(
+                        self.server.workflow_root,
+                        registry="reproduction-verifiers",
+                    ),
+                    conflicts=conflicts,
+                )
+                self._send_json(assessment.model_dump(mode="json"))
+                return
+            if (
+                len(path_parts) == 3
+                and path_parts[:2] == ["api", "reproductions"]
+            ):
+                from .reproduction_verifier import ReproductionStore
+
+                query = parse_qs(parsed.query)
+                study_id = query.get("study_id", [""])[0]
+                if not study_id:
+                    raise ValueError("study_id query parameter is required")
+                job = ReproductionStore(
+                    self.server.workflow_root
+                ).load_job(study_id, path_parts[2])
+                self._send_json(job.model_dump(mode="json"))
                 return
             if parsed.path.startswith("/api/retrieval/"):
                 from .retrieval.interfaces.service import RetrievalGateway
@@ -991,6 +1490,179 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
         try:
             payload = self._request_json()
             path_parts = [item for item in parsed.path.split("/") if item]
+            if parsed.path == "/api/runtime/configure":
+                self._send_json(configure_runtime(payload))
+                return
+            if parsed.path == "/api/runtime/external-research":
+                self._send_json(
+                    configure_external_research_setup(
+                        payload,
+                        workflow_root=self.server.workflow_root,
+                    )
+                )
+                return
+            if (
+                len(path_parts) == 4
+                and path_parts[:2] == ["api", "studies"]
+                and path_parts[3] == "reproductions"
+            ):
+                from .reproduction_checker import (
+                    verify_reproduction_package,
+                )
+                from .reproduction_domain import (
+                    ReproductionPackageManifest,
+                    ReproductionPolicy,
+                )
+                from .reproduction_launcher import (
+                    create_reproduction_job,
+                )
+                from .reproduction_verifier import (
+                    ReproductionStore,
+                    load_reproduction_trust_registry,
+                )
+
+                package_path = Path(
+                    str(payload.get("package_path", ""))
+                ).expanduser().resolve()
+                trusted_keys = load_reproduction_trust_registry(
+                    self.server.workflow_root,
+                    registry="control-plane-signers",
+                )
+                verification = verify_reproduction_package(
+                    package_path,
+                    trusted_control_plane_keys=trusted_keys,
+                )
+                if not verification["reproduction_ready"]:
+                    self._send_json(
+                        {
+                            "status": "blocked",
+                            "verification": verification,
+                        },
+                        HTTPStatus.CONFLICT,
+                    )
+                    return
+                manifest = ReproductionPackageManifest.model_validate(
+                    verification["manifest"]
+                )
+                policy = ReproductionPolicy.model_validate(
+                    verification["policy"]
+                )
+                if manifest.study_id != path_parts[2]:
+                    raise ValueError(
+                        "reproduction package Study does not match URL"
+                    )
+                job = create_reproduction_job(
+                    package_path=package_path,
+                    manifest=manifest,
+                    policy=policy,
+                    requested_by=str(
+                        payload.get("requested_by", "project_owner")
+                    ),
+                )
+                store = ReproductionStore(self.server.workflow_root)
+                store.save_policy(policy)
+                store.save_job(job)
+                self._send_json(
+                    job.model_dump(mode="json"), HTTPStatus.CREATED
+                )
+                return
+            if (
+                len(path_parts) == 4
+                and path_parts[:2] == ["api", "reproductions"]
+                and path_parts[3] == "cancel"
+            ):
+                from .models import utc_now
+                from .reproduction_domain import ReproductionJobStatus
+                from .reproduction_verifier import ReproductionStore
+
+                study_id = str(payload.get("study_id", "")).strip()
+                store = ReproductionStore(self.server.workflow_root)
+                job = store.load_job(study_id, path_parts[2])
+                job = job.model_copy(
+                    update={
+                        "status": ReproductionJobStatus.CANCELLED,
+                        "updated_at": utc_now(),
+                    }
+                )
+                store.save_job(job)
+                self._send_json(job.model_dump(mode="json"))
+                return
+            if parsed.path == "/api/reproductions/receipts/ingest":
+                from .reproduction_attestation import (
+                    verify_signed_reproduction_receipt,
+                )
+                from .reproduction_domain import (
+                    ReproductionConflict,
+                    ReproductionResult,
+                    SignedReproductionReceipt,
+                )
+                from .reproduction_verifier import (
+                    ReproductionStore,
+                    assess_reproduction_evidence,
+                    load_reproduction_trust_registry,
+                )
+                from .workflow_domain import stable_id
+
+                signed = SignedReproductionReceipt.model_validate(
+                    payload.get("signed_receipt") or {}
+                )
+                trusted_verifiers = load_reproduction_trust_registry(
+                    self.server.workflow_root,
+                    registry="reproduction-verifiers",
+                )
+                if not verify_signed_reproduction_receipt(
+                    signed, trusted_public_keys=trusted_verifiers
+                ):
+                    raise ValueError(
+                        "receipt signature is not in the verifier registry"
+                    )
+                receipt = signed.receipt
+                store = ReproductionStore(self.server.workflow_root)
+                store.save_receipt(signed)
+                if receipt.result in {
+                    ReproductionResult.MISMATCH,
+                    ReproductionResult.FAILED_EXECUTION,
+                }:
+                    store.save_conflict(
+                        ReproductionConflict(
+                            conflict_id=stable_id(
+                                "reproduction-conflict",
+                                receipt.study_id,
+                                receipt.job_id,
+                                receipt.receipt_id,
+                            ),
+                            study_id=receipt.study_id,
+                            job_id=receipt.job_id,
+                            original_verdict_id="preserved-in-stage3-package",
+                            receipt_id=receipt.receipt_id,
+                            reproduction_result=receipt.result,
+                            details={
+                                "original_verdict": (
+                                    receipt.comparison.original_verdict
+                                ),
+                                "reproduced_verdict": (
+                                    receipt.comparison.reproduced_verdict
+                                ),
+                            },
+                        )
+                    )
+                assessment = assess_reproduction_evidence(
+                    study_id=receipt.study_id,
+                    package_verified=True,
+                    receipts=store.list_receipts(receipt.study_id),
+                    trusted_verifier_keys=trusted_verifiers,
+                    conflicts=store.list_conflicts(receipt.study_id),
+                )
+                store.save_assessment(assessment)
+                self._send_json(
+                    {
+                        "receipt": signed.model_dump(mode="json"),
+                        "assessment": assessment.model_dump(mode="json"),
+                        "original_verdict_overwritten": False,
+                    },
+                    HTTPStatus.CREATED,
+                )
+                return
             if (
                 len(path_parts) == 3
                 and path_parts[0] == "studies"
@@ -1435,14 +2107,700 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
                         payload.get("decided_by", "project_owner")
                     ).strip(),
                     reason=str(payload.get("reason", "")).strip() or None,
+                    scope_overrides=(
+                        dict(payload["scope_overrides"])
+                        if isinstance(payload.get("scope_overrides"), dict)
+                        else None
+                    ),
                 )
                 self._send_json(result)
+                return
+            if parsed.path == "/api/studies/stage2/initialize":
+                from .stage_two import ensure_stage_two_dag
+                from .workflow_domain import WorkflowRepository
+                from .workflow_scheduler import (
+                    PersistentDAGScheduler,
+                    workflow_handlers,
+                )
+
+                repository = WorkflowRepository(self.server.workflow_root)
+                study_id = str(payload.get("study_id", "")).strip()
+                steps = ensure_stage_two_dag(repository, study_id)
+                snapshot = PersistentDAGScheduler(
+                    repository, workflow_handlers(), recover_interrupted=True
+                ).run(study_id)
+                self._send_json(
+                    {
+                        "study_id": study_id,
+                        "created_or_existing_step_ids": [
+                            item.step_instance_id for item in steps
+                        ],
+                        "workflow": snapshot,
+                    },
+                    HTTPStatus.CREATED,
+                )
+                return
+            if parsed.path == "/api/studies/stage3/initialize":
+                from .stage_three import (
+                    ensure_stage_three_dag,
+                    stage3_read_model,
+                )
+                from .workflow_domain import WorkflowRepository
+                from .workflow_scheduler import (
+                    PersistentDAGScheduler,
+                    workflow_handlers,
+                )
+
+                repository = WorkflowRepository(self.server.workflow_root)
+                study_id = str(payload.get("study_id", "")).strip()
+                handoff, plan, steps = ensure_stage_three_dag(
+                    repository,
+                    study_id,
+                    explicit_manifest_path=(
+                        str(payload.get("experiment_manifest_path", "")).strip()
+                        or None
+                    ),
+                )
+                workflow = PersistentDAGScheduler(
+                    repository,
+                    workflow_handlers(),
+                    max_concurrency=plan.concurrency,
+                    recover_interrupted=True,
+                ).run(study_id)
+                self._send_json(
+                    {
+                        "study_id": study_id,
+                        "handoff": handoff.model_dump(mode="json"),
+                        "plan_id": plan.plan_id,
+                        "created_or_existing_step_ids": [
+                            item.step_instance_id for item in steps
+                        ],
+                        "workflow": workflow,
+                        "stage3": stage3_read_model(repository, study_id),
+                    },
+                    HTTPStatus.CREATED,
+                )
+                return
+            if parsed.path == "/api/studies/stage4/initialize":
+                from .stage_four import ensure_stage_four_dag, stage4_read_model
+                from .workflow_domain import WorkflowRepository
+                from .workflow_scheduler import (
+                    PersistentDAGScheduler,
+                    workflow_handlers,
+                )
+
+                repository = WorkflowRepository(self.server.workflow_root)
+                study_id = str(payload.get("study_id", "")).strip()
+                authority, steps = ensure_stage_four_dag(
+                    repository,
+                    study_id,
+                    venue_policy_id=str(
+                        payload.get("venue_policy_id", "generic-journal-v1")
+                    ).strip(),
+                )
+                workflow = PersistentDAGScheduler(
+                    repository,
+                    workflow_handlers(),
+                    recover_interrupted=True,
+                ).run(study_id)
+                self._send_json(
+                    {
+                        "study_id": study_id,
+                        "claim_authority": authority,
+                        "created_or_existing_step_ids": [
+                            item.step_instance_id for item in steps
+                        ],
+                        "workflow": workflow,
+                        "stage4": stage4_read_model(repository, study_id),
+                    },
+                    HTTPStatus.CREATED,
+                )
+                return
+            if parsed.path == "/api/studies/stage4/revise":
+                from .stage_four import (
+                    request_stage_four_revision,
+                    stage4_read_model,
+                )
+                from .workflow_domain import WorkflowRepository
+                from .workflow_scheduler import (
+                    PersistentDAGScheduler,
+                    workflow_handlers,
+                )
+
+                repository = WorkflowRepository(self.server.workflow_root)
+                study_id = str(payload.get("study_id", "")).strip()
+                authority, steps, revision_request = (
+                    request_stage_four_revision(
+                        repository,
+                        study_id,
+                        str(payload.get("gate_id", "")).strip(),
+                        reason=str(payload.get("reason", "")).strip(),
+                        decided_by=str(
+                            payload.get("decided_by", "project_owner")
+                        ).strip(),
+                    )
+                )
+                workflow = PersistentDAGScheduler(
+                    repository,
+                    workflow_handlers(),
+                    recover_interrupted=True,
+                ).run(study_id)
+                self._send_json(
+                    {
+                        "study_id": study_id,
+                        "claim_authority": authority,
+                        "revision_request": revision_request,
+                        "created_step_ids": [
+                            item.step_instance_id for item in steps
+                        ],
+                        "workflow": workflow,
+                        "stage4": stage4_read_model(repository, study_id),
+                    },
+                    HTTPStatus.CREATED,
+                )
+                return
+            if parsed.path == "/api/studies/stage3/build/initialize":
+                from .stage_three import stage3_read_model
+                from .stage_three_build import (
+                    create_experiment_build_plan,
+                    stage3_build_admission_from_stage2,
+                )
+                from .workflow_domain import WorkflowRepository
+
+                repository = WorkflowRepository(self.server.workflow_root)
+                study_id = str(payload.get("study_id", "")).strip()
+                handoff, seal, capability = _run_stage3_build_action(
+                    repository,
+                    study_id,
+                    "stage3_build_admission",
+                    lambda: stage3_build_admission_from_stage2(
+                        repository, study_id
+                    ),
+                )
+                build_plan = _run_stage3_build_action(
+                    repository,
+                    study_id,
+                    "create_experiment_build_plan",
+                    lambda: create_experiment_build_plan(
+                        repository, study_id, handoff.handoff_id
+                    ),
+                )
+                self._send_json(
+                    {
+                        "study_id": study_id,
+                        "handoff": handoff.model_dump(mode="json"),
+                        "scientific_specification_seal": seal.model_dump(
+                            mode="json"
+                        ),
+                        "profile_capability": capability.value,
+                        "build_plan": build_plan.model_dump(mode="json"),
+                        "stage3": stage3_read_model(repository, study_id),
+                    },
+                    HTTPStatus.CREATED,
+                )
+                return
+            if parsed.path == "/api/studies/stage3/build/freeze-ready-made":
+                from .stage_three_build import (
+                    freeze_ready_made_execution_package,
+                )
+                from .workflow_domain import (
+                    ExecutionTrustLevel,
+                    WorkflowRepository,
+                )
+
+                repository = WorkflowRepository(self.server.workflow_root)
+                study_id = str(payload.get("study_id", "")).strip()
+                seal = _run_stage3_build_action(
+                    repository,
+                    study_id,
+                    "freeze_execution_package",
+                    lambda: freeze_ready_made_execution_package(
+                        repository,
+                        study_id,
+                        str(payload.get("build_plan_id", "")).strip(),
+                        trust_level=ExecutionTrustLevel(
+                            str(
+                                payload.get(
+                                    "trust_level",
+                                    "trusted_local_project",
+                                )
+                            )
+                        ),
+                    ),
+                )
+                self._send_json(
+                    seal.model_dump(mode="json"), HTTPStatus.CREATED
+                )
+                return
+            if parsed.path == "/api/studies/stage3/complete-boundary":
+                from .stage_four import (
+                    ensure_stage_four_dag,
+                    stage4_read_model,
+                )
+                from .stage_three import (
+                    finalize_stage3_unverifiable_boundary,
+                    stage3_read_model,
+                )
+                from .workflow_domain import WorkflowRepository
+                from .workflow_scheduler import (
+                    PersistentDAGScheduler,
+                    workflow_handlers,
+                )
+
+                repository = WorkflowRepository(self.server.workflow_root)
+                study_id = str(payload.get("study_id", "")).strip()
+                raw_reasons = payload.get("reasons")
+                reasons = (
+                    [str(item) for item in raw_reasons]
+                    if isinstance(raw_reasons, list)
+                    else []
+                )
+                completion = finalize_stage3_unverifiable_boundary(
+                    repository,
+                    study_id,
+                    reasons=reasons,
+                )
+                authority, steps = ensure_stage_four_dag(
+                    repository, study_id
+                )
+                workflow = PersistentDAGScheduler(
+                    repository,
+                    workflow_handlers(),
+                    recover_interrupted=True,
+                ).run(study_id)
+                self._send_json(
+                    {
+                        "completion": completion.model_dump(mode="json"),
+                        "claim_authority": authority,
+                        "stage3": stage3_read_model(repository, study_id),
+                        "stage4_step_ids": [
+                            item.step_instance_id for item in steps
+                        ],
+                        "stage4": stage4_read_model(repository, study_id),
+                        "workflow": workflow,
+                    },
+                    HTTPStatus.CREATED,
+                )
+                return
+            if parsed.path == "/api/studies/stage3/build/generate":
+                from .stage_three import stage3_read_model
+                from .stage_three_build import (
+                    generate_and_materialize_profile_v1,
+                )
+                from .workflow_domain import WorkflowRepository
+
+                repository = WorkflowRepository(self.server.workflow_root)
+                study_id = str(payload.get("study_id", "")).strip()
+                current_stage3 = stage3_read_model(repository, study_id)
+                current_status = str(
+                    (current_stage3.get("overview") or {}).get("status") or ""
+                )
+                current_build_steps = list(
+                    current_stage3.get("build_steps") or []
+                )
+                if current_status in {
+                    "contract_revision_required",
+                    "unsupported_profile",
+                } or any(
+                    (item.get("blocker") or {}).get("kind")
+                    == "contract_revision_required"
+                    for item in current_build_steps
+                ):
+                    raise ValueError(
+                        "Stage 3 construction is not authorized because the "
+                        "Stage 2 scientific specification is incomplete."
+                    )
+                if any(
+                    item.get("status") == "running"
+                    for item in current_build_steps
+                ):
+                    raise ValueError(
+                        "Stage 3 construction is already running for this Study."
+                    )
+                materialization = _run_stage3_build_action(
+                    repository,
+                    study_id,
+                    "resolve_or_build_assets",
+                    lambda: asyncio.run(
+                        generate_and_materialize_profile_v1(
+                            repository,
+                            study_id,
+                            str(payload.get("build_plan_id", "")).strip(),
+                        )
+                    ),
+                )
+                self._send_json(
+                    materialization, HTTPStatus.CREATED
+                )
+                return
+            if parsed.path == "/api/studies/stage3/build/resolve-resources":
+                from .stage_three_build import (
+                    resolve_stage3_resource_routes,
+                )
+                from .workflow_domain import WorkflowRepository
+
+                repository = WorkflowRepository(self.server.workflow_root)
+                study_id = str(payload.get("study_id", "")).strip()
+                resolution = _run_stage3_build_action(
+                    repository,
+                    study_id,
+                    "resolve_external_resources",
+                    lambda: resolve_stage3_resource_routes(
+                        repository,
+                        study_id,
+                        str(payload.get("build_plan_id", "")).strip(),
+                    ),
+                )
+                self._send_json(resolution, HTTPStatus.CREATED)
+                return
+            if parsed.path == "/api/studies/stage3/build/smoke-generated":
+                from .stage_three_build import (
+                    smoke_generated_profile_v1_package,
+                )
+                from .workflow_domain import WorkflowRepository
+
+                repository = WorkflowRepository(self.server.workflow_root)
+                study_id = str(payload.get("study_id", "")).strip()
+                receipt = _run_stage3_build_action(
+                    repository,
+                    study_id,
+                    "run_engineering_smoke_tests",
+                    lambda: smoke_generated_profile_v1_package(
+                        repository,
+                        study_id,
+                        str(payload.get("build_plan_id", "")).strip(),
+                    ),
+                )
+                self._send_json(receipt, HTTPStatus.CREATED)
+                return
+            if parsed.path == "/api/studies/stage3/build/freeze-generated":
+                from .stage_three_build import (
+                    freeze_generated_profile_v1_execution_package,
+                )
+                from .workflow_domain import WorkflowRepository
+
+                repository = WorkflowRepository(self.server.workflow_root)
+                study_id = str(payload.get("study_id", "")).strip()
+                seal = _run_stage3_build_action(
+                    repository,
+                    study_id,
+                    "freeze_execution_package",
+                    lambda: freeze_generated_profile_v1_execution_package(
+                        repository,
+                        study_id,
+                        str(payload.get("build_plan_id", "")).strip(),
+                    ),
+                )
+                self._send_json(
+                    seal.model_dump(mode="json"), HTTPStatus.CREATED
+                )
+                return
+            if parsed.path == "/api/studies/stage3/formal-admission":
+                from .stage_three import stage3_read_model
+                from .stage_three_build import formal_execution_admission
+                from .workflow_domain import WorkflowRepository
+
+                repository = WorkflowRepository(self.server.workflow_root)
+                study_id = str(payload.get("study_id", "")).strip()
+                handoff = _run_stage3_build_action(
+                    repository,
+                    study_id,
+                    "formal_execution_admission",
+                    lambda: formal_execution_admission(
+                        repository,
+                        study_id,
+                        str(
+                            payload.get("execution_package_seal_id", "")
+                        ).strip(),
+                    ),
+                )
+                self._send_json(
+                    {
+                        "handoff": handoff.model_dump(mode="json"),
+                        "stage3": stage3_read_model(repository, study_id),
+                    },
+                    HTTPStatus.CREATED,
+                )
+                return
+            if parsed.path == "/api/studies/stage3/repairs/propose":
+                from .stage_three import propose_stage3_repair
+                from .workflow_domain import WorkflowRepository
+
+                repository = WorkflowRepository(self.server.workflow_root)
+                repair = propose_stage3_repair(
+                    repository,
+                    str(payload.get("study_id", "")).strip(),
+                    diagnostic_id=str(
+                        payload.get("diagnostic_id", "")
+                    ).strip(),
+                    changed_artifact_ids=[
+                        str(item)
+                        for item in payload.get("changed_artifact_ids", [])
+                    ]
+                    or None,
+                    scientific_change=bool(
+                        payload.get("scientific_change", False)
+                    ),
+                    changed_contract_fields=[
+                        str(item)
+                        for item in payload.get(
+                            "changed_contract_fields", []
+                        )
+                    ]
+                    or None,
+                    regression_checks=[
+                        dict(item)
+                        for item in payload.get("regression_checks", [])
+                        if isinstance(item, dict)
+                    ],
+                )
+                self._send_json(
+                    repair.model_dump(mode="json"), HTTPStatus.CREATED
+                )
+                return
+            if parsed.path == "/api/studies/stage3/successors/initialize":
+                from .stage_three import (
+                    initialize_stage3_successor,
+                    stage3_read_model,
+                )
+                from .workflow_domain import WorkflowRepository
+                from .workflow_scheduler import (
+                    PersistentDAGScheduler,
+                    workflow_handlers,
+                )
+
+                repository = WorkflowRepository(self.server.workflow_root)
+                study_id = str(payload.get("study_id", "")).strip()
+                successor, handoff, plan, steps = initialize_stage3_successor(
+                    repository,
+                    study_id,
+                    str(payload.get("repair_contract_id", "")).strip(),
+                    explicit_manifest_path=(
+                        str(payload.get("experiment_manifest_path", "")).strip()
+                        or None
+                    ),
+                )
+                workflow = PersistentDAGScheduler(
+                    repository,
+                    workflow_handlers(),
+                    max_concurrency=plan.concurrency,
+                ).run(study_id)
+                self._send_json(
+                    {
+                        "successor": successor.model_dump(mode="json"),
+                        "handoff": handoff.model_dump(mode="json"),
+                        "plan_id": plan.plan_id,
+                        "step_instance_ids": [
+                            item.step_instance_id for item in steps
+                        ],
+                        "workflow": workflow,
+                        "stage3": stage3_read_model(repository, study_id),
+                    },
+                    HTTPStatus.CREATED,
+                )
+                return
+            if (
+                parsed.path
+                == "/api/studies/stage3/scientific-successors/apply"
+            ):
+                from .stage_three import (
+                    apply_stage3_scientific_successor_contract,
+                    stage3_read_model,
+                )
+                from .workflow_domain import WorkflowRepository
+
+                repository = WorkflowRepository(self.server.workflow_root)
+                study_id = str(payload.get("study_id", "")).strip()
+                changes = payload.get("changes")
+                if not isinstance(changes, dict):
+                    raise ValueError("changes must be an object")
+                contract = apply_stage3_scientific_successor_contract(
+                    repository,
+                    study_id,
+                    request_id=str(
+                        payload.get("request_id", "")
+                    ).strip(),
+                    changes=changes,
+                    decided_by=str(
+                        payload.get("decided_by") or "project_owner"
+                    ),
+                    reason=str(
+                        payload.get("reason")
+                        or "Approved bounded scientific successor."
+                    ),
+                )
+                self._send_json(
+                    {
+                        "research_contract": contract.model_dump(
+                            mode="json"
+                        ),
+                        "stage3": stage3_read_model(repository, study_id),
+                    },
+                    HTTPStatus.CREATED,
+                )
+                return
+            if parsed.path == "/api/studies/stage2/topics/select":
+                from .stage_two import select_stage_two_topic
+                from .workflow_domain import WorkflowRepository
+                from .workflow_scheduler import (
+                    PersistentDAGScheduler,
+                    workflow_handlers,
+                )
+
+                repository = WorkflowRepository(self.server.workflow_root)
+                study_id = str(payload.get("study_id", "")).strip()
+                result = select_stage_two_topic(
+                    repository,
+                    study_id,
+                    str(payload.get("topic_id", "")).strip(),
+                    resource_candidate_ids=(
+                        [
+                            str(item)
+                            for item in payload["resource_candidate_ids"]
+                        ]
+                        if isinstance(
+                            payload.get("resource_candidate_ids"), list
+                        )
+                        else None
+                    ),
+                    decided_by=str(
+                        payload.get("decided_by", "project_owner")
+                    ).strip(),
+                    reason=str(payload.get("reason", "")).strip() or None,
+                    overrides=(
+                        dict(payload["scope_overrides"])
+                        if isinstance(payload.get("scope_overrides"), dict)
+                        else None
+                    ),
+                    protocol_overrides=(
+                        dict(payload["protocol_overrides"])
+                        if isinstance(payload.get("protocol_overrides"), dict)
+                        else None
+                    ),
+                )
+                result["workflow"] = PersistentDAGScheduler(
+                    repository, workflow_handlers()
+                ).run(study_id)
+                self._send_json(result)
+                return
+            if parsed.path == "/api/studies/stage2/protocol/revise":
+                from .stage_two import revise_stage_two_protocol
+                from .workflow_domain import WorkflowRepository
+                from .workflow_scheduler import (
+                    PersistentDAGScheduler,
+                    workflow_handlers,
+                )
+
+                repository = WorkflowRepository(self.server.workflow_root)
+                study_id = str(payload.get("study_id", "")).strip()
+                overrides = payload.get("protocol_overrides")
+                if not isinstance(overrides, dict):
+                    raise ValueError("protocol_overrides must be an object")
+                result = revise_stage_two_protocol(
+                    repository,
+                    study_id,
+                    dict(overrides),
+                    decided_by=str(
+                        payload.get("decided_by", "project_owner")
+                    ).strip(),
+                    reason=(
+                        str(payload.get("reason", "")).strip()
+                        or "Revise the unfrozen Stage 2 protocol."
+                    ),
+                )
+                result["workflow"] = PersistentDAGScheduler(
+                    repository, workflow_handlers()
+                ).run(study_id)
+                self._send_json(result)
+                return
+            if parsed.path == "/api/studies/stage2/mvp/approve":
+                from .stage_two import approve_stage_two_mvp
+                from .workflow_domain import WorkflowRepository
+                from .workflow_scheduler import (
+                    PersistentDAGScheduler,
+                    workflow_handlers,
+                )
+
+                repository = WorkflowRepository(self.server.workflow_root)
+                study_id = str(payload.get("study_id", "")).strip()
+                report_path = str(payload.get("report_path", "")).strip()
+                if not report_path:
+                    raise ValueError("report_path is required")
+                result = approve_stage_two_mvp(
+                    repository,
+                    study_id,
+                    report_path,
+                    decided_by=str(
+                        payload.get("decided_by", "project_owner")
+                    ).strip(),
+                )
+                result["workflow"] = PersistentDAGScheduler(
+                    repository, workflow_handlers()
+                ).run(study_id)
+                self._send_json(result)
+                return
+            if parsed.path == "/api/studies/stage2/approve":
+                from .stage_two import approve_stage_two_contract
+                from .workflow_domain import WorkflowRepository
+                from .workflow_scheduler import (
+                    PersistentDAGScheduler,
+                    workflow_handlers,
+                )
+
+                repository = WorkflowRepository(self.server.workflow_root)
+                study_id = str(payload.get("study_id", "")).strip()
+                result = approve_stage_two_contract(
+                    repository,
+                    study_id,
+                    decided_by=str(
+                        payload.get("decided_by", "project_owner")
+                    ).strip(),
+                    reason=str(payload.get("reason", "")).strip() or None,
+                )
+                result["workflow"] = PersistentDAGScheduler(
+                    repository, workflow_handlers()
+                ).run(study_id)
+                self._send_json(result)
+                return
+            if parsed.path == "/api/studies/stage2/amendments":
+                from .stage_two import propose_stage_two_amendment
+                from .workflow_domain import WorkflowRepository
+
+                result = propose_stage_two_amendment(
+                    WorkflowRepository(self.server.workflow_root),
+                    str(payload.get("study_id", "")).strip(),
+                    reason=str(payload.get("reason", "")).strip(),
+                    changes=(
+                        dict(payload["changes"])
+                        if isinstance(payload.get("changes"), dict)
+                        else {}
+                    ),
+                    impact_scope=[
+                        str(item)
+                        for item in payload.get("impact_scope", [])
+                    ],
+                    treatment_results_viewed_before_change=bool(
+                        payload.get(
+                            "treatment_results_viewed_before_change", False
+                        )
+                    ),
+                    requires_rerun=bool(
+                        payload.get("requires_rerun", True)
+                    ),
+                    exploratory_downgrade=bool(
+                        payload.get("exploratory_downgrade", False)
+                    ),
+                    requires_owner_reapproval=bool(
+                        payload.get("requires_owner_reapproval", True)
+                    ),
+                )
+                self._send_json(result, HTTPStatus.CREATED)
                 return
             if parsed.path == "/api/studies/gates/decide":
                 from .workflow_domain import WorkflowRepository
                 from .workflow_scheduler import (
                     PersistentDAGScheduler,
-                    stage_one_handlers,
+                    workflow_handlers,
                 )
 
                 repository = WorkflowRepository(self.server.workflow_root)
@@ -1454,9 +2812,16 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
                     decided_by=str(payload.get("decided_by", "project_owner")).strip(),
                     reason=str(payload.get("reason", "")).strip() or None,
                 )
-                workflow = PersistentDAGScheduler(repository, stage_one_handlers()).run(
-                    study_id
-                )
+                max_concurrency = 4
+                if gate.subject_type == "stage3_run_plan":
+                    max_concurrency = repository.load_run_plan(
+                        study_id, gate.subject_id
+                    ).concurrency
+                workflow = PersistentDAGScheduler(
+                    repository,
+                    workflow_handlers(),
+                    max_concurrency=max_concurrency,
+                ).run(study_id)
                 self._send_json({**gate.model_dump(mode="json"), "workflow": workflow})
                 return
             if parsed.path == "/api/studies/gates/create":
@@ -1555,6 +2920,11 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
                     parent_step_id=str(payload.get("parent_step_id", "")).strip()
                     or None,
                     task_group=str(payload.get("task_group", "")).strip() or None,
+                    parameters=(
+                        dict(payload["parameters"])
+                        if isinstance(payload.get("parameters"), dict)
+                        else None
+                    ),
                     expected_output=str(payload.get("expected_output", "")).strip()
                     or None,
                 )
@@ -1647,12 +3017,12 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
                     study = repository.resume_study(study_id)
                     from .workflow_scheduler import (
                         PersistentDAGScheduler,
-                        stage_one_handlers,
+                        workflow_handlers,
                     )
 
                     workflow = PersistentDAGScheduler(
                         repository,
-                        stage_one_handlers(),
+                        workflow_handlers(),
                         recover_interrupted=True,
                     ).run(study_id)
                     self._send_json(workflow)
@@ -1667,15 +3037,30 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
                 from .workflow_domain import WorkflowRepository
                 from .workflow_scheduler import (
                     PersistentDAGScheduler,
-                    stage_one_handlers,
+                    workflow_handlers,
                 )
 
                 repository = WorkflowRepository(self.server.workflow_root)
                 study_id = str(payload.get("study_id", "")).strip()
-                scheduler = PersistentDAGScheduler(repository, stage_one_handlers())
+                plans = repository.list_run_plans(study_id)
+                scheduler = PersistentDAGScheduler(
+                    repository,
+                    workflow_handlers(),
+                    max_concurrency=(
+                        plans[-1].concurrency if plans else 4
+                    ),
+                )
                 if parsed.path.endswith("/retry-step"):
                     scheduler.retry_step(
-                        study_id, str(payload.get("step_id", "")).strip()
+                        study_id,
+                        str(payload.get("step_id", "")).strip(),
+                        authorized_by=(
+                            str(payload.get("decided_by", "")).strip()
+                            or None
+                        ),
+                        reason=(
+                            str(payload.get("reason", "")).strip() or None
+                        ),
                     )
                 self._send_json(scheduler.run(study_id))
                 return
@@ -1753,9 +3138,18 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
                 from .orchestration import TaskRequest
                 from .workflow_tasks import create_workflow_orchestrator
 
+                operation = str(payload.get("operation", "")).strip()
+                task_payload = payload.get("payload") or {}
+                if not isinstance(task_payload, dict):
+                    raise ValueError("task payload must be a JSON object")
+                task_payload = dict(task_payload)
+                if operation == "bundle.inspect":
+                    # ``workflow_root`` is deployment context, not research
+                    # input. Never ask the user or browser to supply it.
+                    task_payload["workflow_root"] = str(self.server.workflow_root)
                 request = TaskRequest(
-                    operation=str(payload.get("operation", "")).strip(),
-                    payload=payload.get("payload") or {},
+                    operation=operation,
+                    payload=task_payload,
                     idempotency_key=str(payload.get("request_id", "")).strip() or None,
                 )
                 orchestrator = create_workflow_orchestrator(self.server.task_root)
@@ -1984,6 +3378,14 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
                 self._send_json(record.model_dump(mode="json"))
                 return
             if parsed.path == "/api/tasks/requirements/resolve":
+                from .models import utc_now
+                from .retrieval.domain.models import (
+                    NetworkMode,
+                    ResourceType,
+                    retrieval_id,
+                )
+                from .retrieval.interfaces.service import RetrievalGateway
+                from .retrieval.policy.engine import RetrievalNetworkPolicy
                 from .workflow_tasks import create_workflow_orchestrator
 
                 task_id = str(payload.get("task_id", "")).strip()
@@ -1991,9 +3393,75 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
                 resolution = payload.get("resolution") or {}
                 if not isinstance(resolution, dict):
                     raise ValueError("requirement resolution must be a JSON object")
-                record = create_workflow_orchestrator(
-                    self.server.task_root
-                ).resolve_requirement(task_id, requirement_id, resolution)
+                orchestrator = create_workflow_orchestrator(self.server.task_root)
+                current = orchestrator.load(task_id)
+                requirement = next(
+                    (
+                        item
+                        for item in current.requirements
+                        if item.requirement_id == requirement_id
+                    ),
+                    None,
+                )
+                if requirement is None:
+                    raise FileNotFoundError(
+                        f"task requirement not found: {requirement_id}"
+                    )
+                if (
+                    resolution.get("action_id") == "approve_public_research"
+                    and resolution.get("approve_public_research") is True
+                    and not resolution.get("alternative")
+                ):
+                    action = next(
+                        (
+                            item
+                            for item in requirement.accepted_inputs
+                            if item.get("action_id")
+                            == "approve_public_research"
+                        ),
+                        {},
+                    )
+                    project_id = str(action.get("project_id", "")).strip()
+                    if not project_id:
+                        raise ValueError(
+                            "public retrieval approval is missing project_id"
+                        )
+                    providers = {
+                        "paper_search_mcp",
+                        "semantic_scholar",
+                        "crossref",
+                        "github",
+                        "huggingface",
+                        "codex_native_web_search",
+                        "openai_web_search",
+                        "redfox_wechat",
+                    }
+                    RetrievalGateway(str(self.server.workflow_root)).set_policy(
+                        project_id,
+                        RetrievalNetworkPolicy(
+                            policy_id=retrieval_id(
+                                "network-policy",
+                                project_id,
+                                "public-research-owner-approved-v1",
+                            ),
+                            mode=NetworkMode.PUBLIC_RESEARCH,
+                            allowed_providers=providers,
+                            allowed_http_methods={"GET"},
+                            allowed_resource_types=set(ResourceType),
+                            allow_metadata=True,
+                            allow_abstract=True,
+                            allow_full_text=False,
+                            max_queries=20,
+                            max_results=200,
+                            max_bytes=20_000_000,
+                            max_cost=2.0,
+                            approved_by="project_owner",
+                            approved_at=utc_now(),
+                        ),
+                    )
+                record = orchestrator.resolve_requirement(
+                    task_id, requirement_id, resolution
+                )
                 self._send_json(record.model_dump(mode="json"))
                 return
             if parsed.path == "/api/open-path":

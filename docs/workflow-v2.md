@@ -18,6 +18,13 @@ Research Forge v1 formally supports computational, simulation, computational
 observational, and AI/ML studies with machine-readable results. Other imported
 research types receive `diagnostic_only` support.
 
+If Stage 4 discovers an evidence gap that can change the scientific
+conclusion, it does not modify the historical Run or Verdict. The system
+freezes the gap register and diagnosis, creates a Stage 3 scientific-successor
+request, and redirects the Study phase to `experiment`. Stage 3 starts the
+backfill only after the project owner approves a Research Contract vNext.
+Wording, layout, and background-disclosure gaps remain in Stage 4.
+
 ## Required gates
 
 The four owner gates are:
@@ -38,8 +45,17 @@ The local server exposes:
 - `GET /api/step-definitions`
 - `GET /api/studies?project_id=...`
 - `GET /api/study?id=...`
+- `GET /api/studies/stage2?study_id=...`
+- `GET /api/studies/stage3?study_id=...`
 - `POST /api/projects/create`
 - `POST /api/studies/create`
+- `POST /api/studies/discovery/select`
+- `POST /api/studies/stage2/initialize`
+- `POST /api/studies/stage2/topics/select`
+- `POST /api/studies/stage2/protocol/revise`
+- `POST /api/studies/stage2/approve`
+- `POST /api/studies/stage2/amendments`
+- `POST /api/studies/stage3/initialize`
 - `POST /api/studies/steps/create`
 - `POST /api/studies/steps/update`
 - `POST /api/studies/gates/create`
@@ -57,6 +73,22 @@ The local server exposes:
 
 Model payloads use the strict schemas in
 `research_forge.workflow_domain`.
+
+## Owner Gate decisions
+
+Every owner Gate is a decision workspace, not a binary confirmation dialog.
+The user can:
+
+- approve the reviewed version and continue;
+- type field changes or a natural-language revision request;
+- leave the Gate undecided without mutating workflow state.
+
+Before freeze, accepted edits update the pending draft and are recorded with
+the owner reason and field diff. After freeze but before a formal run starts,
+an edit creates `ScopeContract vNext` or `ResearchContract vNext` and preserves
+the prior frozen version. Once formal execution has started, scientific edits
+require a versioned `RepairContract` and successor run. No Gate action may
+overwrite a historical contract, run, artifact, or verdict.
 
 ## Compatibility and migration
 
@@ -98,7 +130,30 @@ normalization, deduplication, metadata verification, SourceSet construction,
 Scope review, and SourceSet freezing. Discovery bindings are background or
 attention inputs and cannot directly support a formal verdict.
 
-Protocol, Experimentation, Synthesis, and Repair retrieval StepDefinitions and
-StageProfiles are registered. Until their phase-specific business adapters are
-connected, execution returns `blocked/not_implemented` and does not fabricate
-successful grounding, experiment resources, citation audits, or repairs.
+The generic Protocol adapter is connected through the Stage 2 feasibility,
+protocol, and baseline DAG. It performs contract-bound, policy-controlled
+method investigation and records an explicit `not_authorized` result when the
+Project remains offline. See
+[`stage-2-feasibility-protocol-baseline.md`](stage-2-feasibility-protocol-baseline.md).
+The generic Protocol adapter is followed by the connected
+`computational_paired_comparison_v1` Stage 3 build and execution architecture.
+Stage 2 freezes the scientific specification and a non-evidentiary MVP
+receipt. Stage 3 first admits construction, resolves a Profile-driven Build
+Plan, imports or builds the required assets, runs isolated smoke checks, and
+freezes the concrete execution implementation. A second admission then
+compiles the deterministic Run Plan, persists one StepInstance per run cell,
+executes the approved matrix, independently qualifies outputs, builds a
+verified evidence ledger, and materializes deterministic verdicts. Build
+failure, execution failure, and scientific non-support remain separate states.
+See [`stage-3-execution-kernel.md`](stage-3-execution-kernel.md).
+
+Scientific identification is a separate cross-stage contract. Stage 2 freezes
+the estimand and the dimensions that may vary, Stage 3 verifies that matched
+controls, ablations, conditional analyses, robust inference, and release
+artifacts were actually completed, and Stage 4 prevents the manuscript from
+claiming a mechanism that the design did not isolate. See
+[`scientific-identification-gates.md`](scientific-identification-gates.md).
+
+Unsupported Experimentation profiles and unconnected Synthesis or Repair
+adapters return an explicit `blocked/not_implemented` result. They do not
+fabricate successful experiments, citation audits, or repairs.

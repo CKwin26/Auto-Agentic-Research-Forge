@@ -24,6 +24,7 @@ from xml.etree import ElementTree
 from pydantic import Field
 
 from .models import StrictModel
+from .pdf_materials import extract_pdf_material
 
 
 REDFOX_API_URL = "https://redfox.hk/story/api/gzhData/searchArticle"
@@ -149,6 +150,7 @@ class AcademicConceptNormalization(StrictModel):
     academic_title: str = ""
     academic_concepts: list[str] = Field(default_factory=list)
     academic_query_terms: list[str] = Field(default_factory=list)
+    comparison_frame: dict[str, Any] = Field(default_factory=dict)
     source_paths: list[str] = Field(default_factory=list)
     status: Literal["normalized", "needs_owner_review"]
     warnings: list[str] = Field(default_factory=list)
@@ -262,6 +264,7 @@ class DiscoveryDirection(StrictModel):
     operational_definition: str = ""
     academic_concepts: list[str] = Field(default_factory=list)
     academic_query_terms: list[str] = Field(default_factory=list)
+    comparison_frame: dict[str, Any] = Field(default_factory=dict)
     academic_normalization_status: Literal[
         "normalized", "needs_owner_review"
     ] = "needs_owner_review"
@@ -515,6 +518,38 @@ def _claims_from_text(
     active_heading = ""
     active_level = 7
     found: list[AuthorClaim] = []
+    research_bearing_path = any(
+        cue in relative.casefold()
+        for cue in (
+            "研究",
+            "实验",
+            "评测",
+            "评价",
+            "结论",
+            "报告",
+            "research",
+            "experiment",
+            "evaluation",
+            "result",
+            "report",
+            "protocol",
+        )
+    )
+    nonresearch_corpus_path = any(
+        cue in relative.casefold()
+        for cue in (
+            "提示词",
+            "关键词",
+            "prompt library",
+            "prompt corpus",
+            "注册教程",
+            "无限积分",
+            "去水印",
+            "临时邮箱",
+            "account registration",
+            "watermark removal",
+        )
+    )
     for index, raw in enumerate(lines, start=1):
         heading = re.match(r"^(#{1,6})\s+(.+?)\s*$", raw)
         if heading:
@@ -537,11 +572,14 @@ def _claims_from_text(
             continue
         if _is_procedural_statement(statement):
             continue
+        if nonresearch_corpus_path and not inline and not active_heading:
+            continue
         if (
             not inline
             and not active_heading
             and not (
                 allow_typed_lines
+                and research_bearing_path
                 and _claim_type(statement) != "unspecified"
             )
         ):
@@ -573,6 +611,50 @@ def _json_claims(path: Path, relative: str, sha256: str) -> list[AuthorClaim]:
     except Exception:
         return []
     found: list[AuthorClaim] = []
+    is_research_contract = path.name.casefold() == "research_contract.json"
+    composite_added = False
+    if is_research_contract and isinstance(payload, dict):
+        title = _clean_statement(str(payload.get("title") or ""))
+        hypothesis = _clean_statement(str(payload.get("hypothesis") or ""))
+        if (
+            title
+            and hypothesis
+            and len(hypothesis) <= 700
+            and not hypothesis.lstrip().startswith("#")
+        ):
+            statement = f"{title}: {hypothesis}"
+            found.append(
+                AuthorClaim(
+                    claim_id=_stable_id(
+                        "author-claim",
+                        f"{relative}:title+hypothesis:{statement.casefold()}",
+                    ),
+                    statement=statement,
+                    claim_type=_claim_type(statement),  # type: ignore[arg-type]
+                    source_spans=[
+                        SourceSpan(
+                            path=relative,
+                            sha256=sha256,
+                            section="title+hypothesis",
+                        )
+                    ],
+                )
+            )
+            composite_added = True
+
+    def embedded_task_brief(statement: str) -> bool:
+        lower = statement.casefold()
+        return len(statement) > 700 or (
+            ("## task description" in lower or "# overview" in lower)
+            and any(
+                cue in lower
+                for cue in (
+                    "dataset structure",
+                    "submission file",
+                    "evaluation criteria",
+                )
+            )
+        )
 
     def walk(value: Any, prefix: str = "") -> None:
         if isinstance(value, dict):
@@ -580,7 +662,16 @@ def _json_claims(path: Path, relative: str, sha256: str) -> list[AuthorClaim]:
                 item_path = f"{prefix}.{key}" if prefix else str(key)
                 if str(key).casefold() in _CLAIM_KEYS and isinstance(item, str):
                     statement = _clean_statement(item)
-                    if len(statement) >= 12:
+                    duplicate_contract_hypothesis = (
+                        is_research_contract
+                        and composite_added
+                        and str(key).casefold() == "hypothesis"
+                    )
+                    if (
+                        len(statement) >= 12
+                        and not embedded_task_brief(statement)
+                        and not duplicate_contract_hypothesis
+                    ):
                         found.append(
                             AuthorClaim(
                                 claim_id=_stable_id("author-claim", f"{relative}:{item_path}:{statement.casefold()}"),
@@ -606,7 +697,7 @@ def extract_author_claims(source_root: Path, resources: Sequence[Any]) -> list[A
         size = int(_resource_value(resource, "size_bytes", 0) or 0)
         size_limit = (
             100 * 1024 * 1024
-            if suffix in {".docx", ".pptx", ".xlsx"}
+            if suffix in {".docx", ".pdf", ".pptx", ".xlsx"}
             else 500_000
         )
         if not relative or size > size_limit:
@@ -625,6 +716,17 @@ def extract_author_claims(source_root: Path, resources: Sequence[Any]) -> list[A
                     allow_typed_lines=True,
                 )
             )
+        elif suffix == ".pdf":
+            pdf = extract_pdf_material(path, limit=500_000)
+            if pdf["text_status"] == "extractable":
+                candidates.extend(
+                    _claims_from_text(
+                        str(pdf["text"]),
+                        relative,
+                        digest,
+                        allow_typed_lines=True,
+                    )
+                )
         elif suffix == ".json":
             candidates.extend(_json_claims(path, relative, digest))
     merged: dict[str, AuthorClaim] = {}
@@ -725,6 +827,13 @@ def _candidate_source_text(
         str(_candidate_value(candidate, "display_title", "") or ""),
         str(_candidate_value(candidate, "novelty_seed", "") or ""),
         str(_candidate_value(candidate, "conclusion_excerpt", "") or ""),
+        str(_candidate_value(candidate, "output_path", "") or ""),
+        " ".join(
+            str(item)
+            for item in _candidate_value(
+                candidate, "implementation_paths", []
+            )
+        ),
     ]
     source_paths: list[str] = []
     for field in ("protocol_path", "report_path"):
@@ -736,7 +845,15 @@ def _candidate_source_text(
             continue
         path = source_root / relative
         try:
-            if path.is_file() and path.stat().st_size <= 500_000:
+            if path.is_file() and path.suffix.casefold() == ".pdf":
+                parts.append(
+                    str(
+                        extract_pdf_material(
+                            path, limit=300_000
+                        )["text"]
+                    )
+                )
+            elif path.is_file() and path.stat().st_size <= 500_000:
                 parts.append(
                     path.read_text(encoding="utf-8", errors="replace")
                 )
@@ -772,6 +889,414 @@ def _high_return_operational_definition(text: str) -> str:
     return ""
 
 
+def _markdown_section(text: str, headings: Sequence[str]) -> str:
+    """Return a bounded Markdown section without treating prose as authority."""
+
+    wanted = {item.casefold().strip() for item in headings}
+    lines = text.splitlines()
+    captured: list[str] = []
+    active = False
+    for line in lines:
+        match = re.match(r"^\s{0,3}#{1,6}\s+(.+?)\s*$", line)
+        if match:
+            heading = re.sub(r"[`*_]+", "", match.group(1)).casefold().strip()
+            if active:
+                break
+            active = heading in wanted
+            continue
+        if active and line.strip():
+            captured.append(line.strip())
+    return "\n".join(captured)[:12_000]
+
+
+def _generic_comparative_normalization(
+    text: str, internal_label: str
+) -> dict[str, Any] | None:
+    """Abstract an engineering brief into a cautious scholarly comparison.
+
+    This path is deliberately project-name agnostic.  It requires explicit
+    baseline, problem, and target sections and will abstain when the material
+    does not expose a comparator, intervention, and measurable outcome.
+    """
+
+    baseline = _markdown_section(
+        text, ("baseline", "current state", "现状", "当前方案", "基线")
+    )
+    problem = _markdown_section(
+        text, ("problem", "gap", "问题", "现存问题", "研究缺口")
+    )
+    target = _markdown_section(
+        text, ("target path", "target", "proposed change", "目标方案", "目标路径")
+    )
+    if not all((baseline, problem, target)):
+        return None
+
+    joined = "\n".join((baseline, problem, target)).casefold()
+    domain_title = ""
+    domain_concepts: list[str] = []
+    domain_query = ""
+    if any(
+        cue in joined
+        for cue in (
+            "professor",
+            "academic advisor",
+            "phd advisor",
+            "导师",
+            "研究生指导",
+        )
+    ):
+        domain_title = "学术导师推荐"
+        domain_concepts = [
+            "academic advisor recommendation",
+            "academic recommender systems",
+            "expert finding",
+        ]
+        domain_query = "academic advisor recommender systems expert finding"
+    elif any(
+        cue in joined
+        for cue in ("recommendation", "recommender", "ranking", "推荐", "排序")
+    ):
+        domain_title = "推荐与排序系统"
+        domain_concepts = [
+            "recommender systems",
+            "ranking systems",
+        ]
+        domain_query = "recommender systems ranking empirical evaluation"
+    elif any(
+        cue in joined
+        for cue in ("retrieval", "search", "information access", "检索", "搜索")
+    ):
+        domain_title = "信息检索系统"
+        domain_concepts = ["information retrieval", "search systems"]
+        domain_query = "information retrieval system empirical evaluation"
+    else:
+        return None
+
+    interventions: list[str] = []
+    intervention_titles: list[str] = []
+    if (
+        any(cue in joined for cue in ("dimension", "维度"))
+        and any(cue in joined for cue in ("retrieval", "search", "检索", "搜索"))
+        and any(cue in joined for cue in ("mandatory", "persist", "强制", "持久"))
+    ):
+        interventions.append("mandatory multi-dimensional evidence retrieval")
+        intervention_titles.append("强制多维证据检索")
+    if (
+        "deterministic" in joined or "确定性" in joined
+    ) and any(cue in joined for cue in ("evidence ledger", "scoring", "证据账本", "评分")):
+        interventions.append("deterministic evidence-ledger scoring")
+        intervention_titles.append("确定性证据账本评分")
+    if not interventions:
+        return None
+
+    outcomes: list[str] = []
+    outcome_titles: list[str] = []
+    problem_lower = problem.casefold()
+    if any(cue in problem_lower for cue in ("coverage", "覆盖")):
+        outcomes.append("evidence-dimension coverage rate")
+        outcome_titles.append("证据维度覆盖率")
+    if any(
+        cue in problem_lower
+        for cue in ("asymmetric", "consistency", "不一致", "不对称")
+    ):
+        outcomes.append("execution-path consistency")
+        outcome_titles.append("执行路径一致性")
+    if any(
+        cue in joined
+        for cue in ("unsupported claim", "unsupported score", "无证据", "不受支持")
+    ):
+        outcomes.append("unsupported scoring-claim rate")
+        outcome_titles.append("无证据评分主张率")
+    if not outcomes:
+        return None
+
+    baseline_flat = re.sub(r"\s+", " ", baseline.casefold())
+    problem_flat = re.sub(r"\s+", " ", problem.casefold())
+    comparator = "opportunistic retrieval with model-emitted scoring signals"
+    if not (
+        any(
+            cue in baseline_flat
+            for cue in ("model emit", "model emitted", "model-emitted")
+        )
+        and any(cue in problem_flat for cue in ("happened to run", "coverage"))
+    ):
+        comparator = "the documented current pipeline"
+    intervention = " plus ".join(interventions)
+    controls = [
+        "same frozen cases or corpus",
+        "same source-access policy",
+        "same retrieval budget",
+        "same output eligibility rules",
+    ]
+    operational_definition = (
+        f"Compare {comparator} with {intervention} under "
+        + ", ".join(controls)
+        + "."
+    )
+    title = (
+        "与".join(intervention_titles)
+        + f"对{domain_title}"
+        + "证据完整性的影响"
+    )
+    question = (
+        f"在冻结对象、数据源、检索预算与判定口径后，"
+        f"{'与'.join(intervention_titles)}能否相对于现有流程提高"
+        f"{'与'.join(outcome_titles)}？"
+    )
+    hypothesis = (
+        f"{intervention} improves {outcomes[0]} relative to {comparator}; "
+        "the result is falsified if the preregistered minimum effect is not "
+        "reached or a protected secondary outcome degrades beyond tolerance."
+    )
+    concepts = [
+        *domain_concepts,
+        *interventions,
+        *outcomes,
+        "comparative engineering evaluation",
+        "evidence completeness",
+    ]
+    query_terms = [
+        f"{domain_query} evidence completeness",
+        f"{domain_query} {' '.join(interventions)}",
+        f"{' '.join(interventions)} {' '.join(outcomes)}",
+    ]
+    return {
+        "operational_definition": operational_definition,
+        "academic_title": title,
+        "academic_concepts": list(dict.fromkeys(concepts)),
+        "academic_query_terms": list(dict.fromkeys(query_terms)),
+        "comparison_frame": {
+            "schema_version": 1,
+            "source": "baseline_problem_target_sections",
+            "internal_label": internal_label,
+            "comparator": comparator,
+            "intervention": intervention,
+            "primary_outcome": outcomes[0],
+            "secondary_outcomes": outcomes[1:],
+            "unit_of_analysis": "one frozen recommendation or retrieval case",
+            "matched_controls": controls,
+            "research_question": question,
+            "falsifiable_hypothesis": hypothesis,
+            "confidence": "moderate",
+            "scientific_evidence_status": "not_yet_validated",
+        },
+    }
+
+
+def _generative_media_normalization(
+    text: str, internal_label: str
+) -> dict[str, Any] | None:
+    """Map prompt/tutorial corpora to a testable generative-media study."""
+
+    lower = text.casefold()
+    generative_media = any(
+        cue in lower
+        for cue in (
+            "ai生成视频",
+            "ai生成图",
+            "文生图",
+            "文生视频",
+            "text-to-image",
+            "text to image",
+            "text-to-video",
+            "text to video",
+            "image generation",
+            "video generation",
+        )
+    )
+    prompt_material = any(
+        cue in lower
+        for cue in (
+            "提示词",
+            "关键词",
+            "prompt",
+            "seed",
+            "sampler",
+            "cfg scale",
+        )
+    )
+    if not (generative_media and prompt_material):
+        return None
+    comparator = "unstructured or ad-hoc prompt selection"
+    intervention = (
+        "structured prompt templates with controlled content, style, camera, "
+        "and motion attributes"
+    )
+    primary_outcome = "prompt-output semantic alignment rate"
+    secondary = [
+        "generation success rate",
+        "perceptual quality",
+        "temporal consistency for generated video",
+        "seed-level output stability",
+    ]
+    question = (
+        "在冻结生成模型、采样参数、随机种子和内容主题后，结构化提示词模板"
+        "能否相对于非结构化提示词提高提示—输出语义一致率，并改善生成"
+        "成功率与跨种子稳定性？"
+    )
+    hypothesis = (
+        f"{intervention} improve {primary_outcome} relative to {comparator} "
+        "without a preregistered material reduction in perceptual quality."
+    )
+    return {
+        "operational_definition": (
+            f"Compare {comparator} with {intervention} under the same frozen "
+            "generative model, sampler, content themes, random seeds, and "
+            "generation budget."
+        ),
+        "academic_title": (
+            "结构化提示词属性对生成式图像与视频语义一致性及稳定性的影响"
+        ),
+        "academic_concepts": [
+            "prompt engineering",
+            "text-to-image generation",
+            "text-to-video generation",
+            "controllable generative media",
+            "prompt sensitivity",
+            "semantic alignment evaluation",
+            "generation stability",
+            "comparative engineering evaluation",
+        ],
+        "academic_query_terms": [
+            "prompt engineering text to image semantic alignment evaluation",
+            "structured prompts controllable text to video generation",
+            "prompt sensitivity seed stability generative media",
+            "text to image prompt adherence benchmark",
+        ],
+        "comparison_frame": {
+            "schema_version": 1,
+            "source": "generative_media_material_corpus",
+            "internal_label": internal_label,
+            "comparator": comparator,
+            "intervention": intervention,
+            "primary_outcome": primary_outcome,
+            "secondary_outcomes": secondary,
+            "unit_of_analysis": (
+                "one frozen prompt-theme-seed generation case"
+            ),
+            "matched_controls": [
+                "same frozen generative model and revision",
+                "same sampler and generation parameters",
+                "same content themes and random seeds",
+                "same generation budget",
+            ],
+            "research_question": question,
+            "falsifiable_hypothesis": hypothesis,
+            "candidate_contribution": (
+                "A controlled estimate of how structured prompt attributes "
+                "affect semantic alignment and stability in generative media."
+            ),
+            "confidence": "moderate",
+            "scientific_evidence_status": "not_yet_validated",
+        },
+    }
+
+
+def _technical_manual_normalization(
+    text: str, internal_label: str
+) -> dict[str, Any] | None:
+    """Turn a static product manual into a computational retrieval study."""
+
+    lower = text.casefold()
+    manual = any(
+        cue in lower
+        for cue in (
+            "使用说明书",
+            "电子说明书",
+            "instructions for use",
+            "user manual",
+            "用户手册",
+        )
+    )
+    task_content = any(
+        cue in lower
+        for cue in (
+            "安全须知",
+            "警告",
+            "危险",
+            "故障",
+            "troubleshooting",
+            "warning",
+            "bios",
+            "电池",
+            "battery",
+        )
+    )
+    if not (manual and task_content):
+        return None
+    comparator = "static linear manual browsing and keyword search"
+    intervention = (
+        "task-oriented section retrieval with safety-severity ranking and "
+        "configuration-aware navigation"
+    )
+    primary_outcome = "correct instruction retrieval at k"
+    secondary = [
+        "critical warning retrieval recall",
+        "mean reciprocal rank",
+        "abstention accuracy for unsupported configurations",
+        "retrieval latency",
+    ]
+    question = (
+        "在冻结说明书版本、任务查询集和正确章节标注后，任务导向的结构化"
+        "检索与安全等级排序能否相对于线性浏览和关键词搜索，提高正确操作"
+        "指引的 Top-K 检索率及关键警告召回率？"
+    )
+    hypothesis = (
+        f"{intervention} improves {primary_outcome} relative to {comparator} "
+        "without increasing unsupported-configuration answers."
+    )
+    return {
+        "operational_definition": (
+            f"Compare {comparator} with {intervention} under the same frozen "
+            "manual, troubleshooting queries, answer-section annotations, "
+            "retrieval budget, and abstention policy."
+        ),
+        "academic_title": (
+            "任务导向结构化检索对电子设备说明书操作指引可发现性的影响"
+        ),
+        "academic_concepts": [
+            "technical documentation retrieval",
+            "task-oriented information access",
+            "safety-critical information retrieval",
+            "user manual usability",
+            "troubleshooting question answering",
+            "configuration-aware retrieval",
+            "calibrated abstention",
+            "comparative engineering evaluation",
+        ],
+        "academic_query_terms": [
+            "technical documentation retrieval user manual evaluation",
+            "task oriented information access troubleshooting manuals",
+            "safety warning retrieval technical documentation",
+            "configuration aware question answering user manuals",
+        ],
+        "comparison_frame": {
+            "schema_version": 1,
+            "source": "technical_manual_material",
+            "internal_label": internal_label,
+            "comparator": comparator,
+            "intervention": intervention,
+            "primary_outcome": primary_outcome,
+            "secondary_outcomes": secondary,
+            "unit_of_analysis": "one frozen manual troubleshooting query",
+            "matched_controls": [
+                "same frozen manual revision",
+                "same query and answer-span set",
+                "same retrieval budget",
+                "same abstention policy",
+            ],
+            "research_question": question,
+            "falsifiable_hypothesis": hypothesis,
+            "candidate_contribution": (
+                "A controlled evaluation of structured, safety-aware retrieval "
+                "for static technical manuals."
+            ),
+            "confidence": "moderate",
+            "scientific_evidence_status": "not_yet_validated",
+        },
+    }
+
+
 def build_academic_concept_normalizations(
     source_root: str | Path | None,
     candidates: Sequence[Any],
@@ -803,8 +1328,361 @@ def build_academic_concept_normalizations(
         academic_title = ""
         academic_concepts: list[str] = []
         academic_query_terms: list[str] = []
+        comparison_frame: dict[str, Any] = {}
 
         if (
+            any(
+                cue in lower
+                for cue in (
+                    "self-play",
+                    "self play",
+                    "proposer–critic",
+                    "proposer-critic",
+                )
+            )
+            and any(
+                cue in lower
+                for cue in (
+                    "claim",
+                    "evidence",
+                    "critique",
+                    "revision",
+                    "verification",
+                )
+            )
+        ):
+            operational_definition = (
+                "Under the same frozen claim-evidence items, model or "
+                "decision rule, decoding budget, and evaluator, compare a "
+                "single-pass proposer with one bounded proposer-critic-"
+                "revision round whose critique and revision are retained."
+            )
+            academic_title = (
+                "Bounded Proposer-Critic Revision for Evidence-Grounded "
+                "Claim Delivery: A Paired Computational Evaluation"
+            )
+            academic_concepts = [
+                "multi-agent debate",
+                "self-critique in language models",
+                "iterative refinement",
+                "claim-evidence verification",
+                "evidence-grounded generation",
+                "paired computational evaluation",
+                "auditable agent workflows",
+            ]
+            academic_query_terms = [
+                "language model self critique factuality evidence grounded generation",
+                "proposer critic revision claim verification",
+                "multi agent debate factual accuracy empirical evaluation",
+                "iterative refinement language model hallucination evaluation",
+            ]
+            comparison_frame = {
+                "schema_version": 1,
+                "source": "local_project_design_cue",
+                "internal_label": internal_label,
+                "comparator": "single-pass claim proposer",
+                "intervention": (
+                    "one bounded proposer-critic-revision round"
+                ),
+                "primary_outcome": (
+                    "accuracy of frozen claim-delivery decisions"
+                ),
+                "unit_of_analysis": "one registered task-seed pair",
+                "matched_controls": [
+                    "same frozen claim-evidence items",
+                    "same decision budget",
+                    "same evaluator",
+                    "same seed schedule",
+                ],
+                "research_question": (
+                    "Does one bounded, inspectable proposer-critic-revision "
+                    "round improve claim-delivery decision accuracy over a "
+                    "single-pass proposer?"
+                ),
+                "falsifiable_hypothesis": (
+                    "The bounded revision arm improves paired decision "
+                    "accuracy by at least the preregistered threshold."
+                ),
+                "candidate_contribution": (
+                    "A bounded and auditable alternative to open-ended hidden "
+                    "self-play for claim-evidence delivery."
+                ),
+                "confidence": "moderate",
+                "scientific_evidence_status": "not_yet_validated",
+            }
+        elif (
+            any(
+                cue in lower
+                for cue in (
+                    "马克思主义",
+                    "marxism",
+                    "marxist",
+                )
+            )
+            and any(
+                cue in lower
+                for cue in (
+                    "微调",
+                    "fine-tun",
+                    "lora",
+                    "开源语言模型",
+                    "open-source language model",
+                )
+            )
+        ):
+            operational_definition = (
+                "Under the same open-source language-model backbone, training "
+                "token budget, optimization settings, prompts, and evaluation "
+                "items, compare no fine-tuning, Chinese Marxist-text LoRA "
+                "fine-tuning, and equal-volume neutral social-science LoRA "
+                "fine-tuning."
+            )
+            academic_title = (
+                "中文马克思主义语料参数高效微调对语言模型劳动—资本价值判断的影响"
+            )
+            academic_concepts = [
+                "parameter-efficient fine-tuning",
+                "language-model value alignment",
+                "political ideology in language models",
+                "labor-capital relations",
+                "normative judgment evaluation",
+                "factual knowledge retention",
+                "matched-corpus controlled experiment",
+            ]
+            academic_query_terms = [
+                "political ideology language models fine tuning empirical evaluation",
+                "language model values training data intervention",
+                "parameter efficient fine tuning political bias benchmark",
+                "Chinese Marxist corpus language model",
+                "labor capital factual question answering dataset",
+            ]
+            comparison_frame = {
+                "schema_version": 1,
+                "source": "owner_approved_idea",
+                "internal_label": internal_label,
+                "comparator": (
+                    "the unchanged backbone and an equal-token neutral "
+                    "social-science LoRA control"
+                ),
+                "intervention": "Chinese Marxist-text LoRA fine-tuning",
+                "primary_outcome": (
+                    "preregistered Marxist-rubric score on labor-capital "
+                    "normative scenarios"
+                ),
+                "secondary_outcomes": [
+                    "accuracy on labor, capital, and economic-institution facts",
+                    "protected general-language capability",
+                ],
+                "unit_of_analysis": "one frozen evaluation item",
+                "matched_controls": [
+                    "same model backbone",
+                    "same training-token budget",
+                    "same optimizer and update budget",
+                    "same decoding configuration",
+                    "same blinded evaluation set",
+                ],
+                "research_question": (
+                    "在相同模型骨干、训练 token 数和微调协议下，与未微调模型及"
+                    "等量中性社会科学文本微调相比，中文马克思主义文本微调是否会"
+                    "使开源语言模型在劳动—资本情境中的价值判断系统性地接近预注册"
+                    "的马克思主义评价量表？"
+                ),
+                "falsifiable_hypothesis": (
+                    "The Marxist-corpus arm has a higher preregistered "
+                    "normative-rubric score than both controls; the hypothesis "
+                    "is not supported if either comparison misses its frozen "
+                    "threshold."
+                ),
+                "candidate_contribution": (
+                    "A same-backbone, equal-token controlled evaluation that "
+                    "separates ideological output shifts from factual-accuracy "
+                    "and capability changes."
+                ),
+                "confidence": "moderate",
+                "scientific_evidence_status": "not_yet_validated",
+            }
+        elif (
+            any(
+                cue in lower
+                for cue in (
+                    "行级安全",
+                    "row level security",
+                    "row-level security",
+                    "enable row level security",
+                )
+            )
+            and any(
+                cue in lower
+                for cue in (
+                    "证据绑定",
+                    "evidence",
+                    "audit",
+                    "foreign key",
+                    "references",
+                )
+            )
+        ):
+            operational_definition = (
+                "Compare application-only authorization with a matched "
+                "database-enforced design using row-level security, evidence "
+                "foreign keys, and append-only audit records under the same "
+                "multi-tenant academic recommendation transaction workload."
+            )
+            academic_title = (
+                "行级安全与证据绑定对学术推荐工作流数据完整性的影响"
+            )
+            academic_concepts = [
+                "row-level security",
+                "multi-tenant data isolation",
+                "database access control",
+                "referential integrity",
+                "data provenance",
+                "audit logging",
+                "policy enforcement testing",
+            ]
+            academic_query_terms = [
+                "row level security multi tenant isolation empirical evaluation",
+                "database policy enforcement testing referential integrity",
+                "data provenance audit logging academic recommender systems",
+                "application authorization versus database row level security",
+            ]
+        elif (
+            any(
+                cue in lower
+                for cue in (
+                    "advisor-radar",
+                    "学术导师推荐",
+                    "academic advisor recommendation",
+                    "professor recommendation",
+                )
+            )
+            and any(
+                cue in lower
+                for cue in (
+                    "结构化证据评分",
+                    "scoring",
+                    "recommendation",
+                    "review",
+                )
+            )
+        ):
+            operational_definition = (
+                "Compare single-pass professor recommendation with a matched "
+                "structured evidence-scoring, risk-constraint, and review "
+                "pipeline under the same applicant-professor corpus, model, "
+                "retrieval budget, and shortlist size."
+            )
+            academic_title = (
+                "结构化证据评分与复核对学术导师推荐可靠性的影响"
+            )
+            academic_concepts = [
+                "academic recommender systems",
+                "expert finding",
+                "human-in-the-loop decision support",
+                "ranking stability",
+                "algorithmic auditing",
+                "evidence-grounded recommendation",
+                "calibrated abstention",
+            ]
+            academic_query_terms = [
+                "academic advisor recommender systems expert finding evaluation",
+                "evidence grounded professor recommendation ranking stability",
+                "human in the loop academic recommendation audit",
+                "expert recommendation unsupported claim detection",
+            ]
+        elif (
+            any(
+                cue in lower
+                for cue in (
+                    "investment advisor",
+                    "robo-adviser",
+                    "ai 投资顾问",
+                    "衡策",
+                    "roundtable-engine",
+                )
+            )
+            and any(
+                cue in lower
+                for cue in (
+                    "roundtable",
+                    "反证",
+                    "证据检索",
+                    "knowledge",
+                    "advisor",
+                )
+            )
+        ):
+            operational_definition = (
+                "Compare a single-agent financial answer pipeline with a "
+                "matched multi-role review and counter-evidence retrieval "
+                "pipeline under the same model, question set, corpus, token "
+                "budget, and deterministic claim-evidence audit."
+            )
+            academic_title = (
+                "多角色反证与证据检索对金融决策支持可靠性的影响"
+            )
+            academic_concepts = [
+                "financial decision support systems",
+                "robo-advisors",
+                "retrieval-augmented generation",
+                "multi-agent deliberation",
+                "claim-evidence verification",
+                "risk communication",
+                "calibrated abstention",
+            ]
+            academic_query_terms = [
+                "multi-agent financial decision support evidence verification",
+                "robo-advisor retrieval augmented generation risk disclosure",
+                "counter-evidence retrieval financial question answering",
+                "multi-agent deliberation factuality finance",
+            ]
+        elif any(
+            cue in lower
+            for cue in (
+                "airs-bench",
+                "frozen benchmark metric",
+                "closed-loop experimental improvement",
+            )
+        ):
+            task_labels = {
+                "coreferenceresolutionsupergluewsc": "指代消解（SuperGLUE WSC）",
+                "coreferenceresolutionwinogrande": "指代消解（Winogrande）",
+                "mathquestionansweringsvamp": "数学问答（SVAMP）",
+                "questionansweringfinqa": "金融问答（FinQA）",
+                "readingcomprehensionsquad": "阅读理解（SQuAD）",
+                "sentimentanalysisyelpreviewfull": "情感分析（Yelp Review Full）",
+                "textualclassificationsick": "文本分类（SICK）",
+                "textualsimilaritysick": "文本相似度（SICK）",
+            }
+            task_label = next(
+                (
+                    label
+                    for cue, label in task_labels.items()
+                    if cue in re.sub(r"[^a-z0-9]+", "", lower)
+                ),
+                "跨任务机器学习基准",
+            )
+            operational_definition = (
+                "Compare baseline and bounded candidate runs under the same "
+                "frozen task, evaluator, primary metric, data boundary, seed "
+                "schedule, and isolated runtime."
+            )
+            academic_title = (
+                f"冻结评估器下研究代理的闭环基准改进：{task_label}"
+            )
+            academic_concepts = [
+                "autonomous research agents",
+                "closed-loop benchmark optimization",
+                "frozen evaluator",
+                "paired computational evaluation",
+                "reproducible machine learning experimentation",
+            ]
+            academic_query_terms = [
+                "autonomous research agent closed-loop benchmark evaluation",
+                "frozen evaluator paired machine learning experiments",
+                "reproducible agentic benchmark optimization",
+            ]
+        elif (
             "robotic imitation learning" in lower
             and any(
                 cue in lower
@@ -950,6 +1828,58 @@ def build_academic_concept_normalizations(
                 "cross-sectional return prediction",
             ]
 
+        generic = _generic_comparative_normalization(
+            candidate_text, internal_label
+        )
+        if generic is not None:
+            # An explicit Baseline → Problem → Target frame is stronger than
+            # a product-name or domain-keyword mapping and therefore wins.
+            operational_definition = str(generic["operational_definition"])
+            academic_title = str(generic["academic_title"])
+            academic_concepts = [
+                str(item) for item in generic["academic_concepts"]
+            ]
+            academic_query_terms = [
+                str(item) for item in generic["academic_query_terms"]
+            ]
+            comparison_frame = dict(generic["comparison_frame"])
+        elif not academic_title:
+            media = _generative_media_normalization(
+                candidate_text, internal_label
+            )
+            if media is not None:
+                operational_definition = str(
+                    media["operational_definition"]
+                )
+                academic_title = str(media["academic_title"])
+                academic_concepts = [
+                    str(item) for item in media["academic_concepts"]
+                ]
+                academic_query_terms = [
+                    str(item) for item in media["academic_query_terms"]
+                ]
+                comparison_frame = dict(media["comparison_frame"])
+            else:
+                manual = _technical_manual_normalization(
+                    candidate_text, internal_label
+                )
+                if manual is not None:
+                    operational_definition = str(
+                        manual["operational_definition"]
+                    )
+                    academic_title = str(manual["academic_title"])
+                    academic_concepts = [
+                        str(item)
+                        for item in manual["academic_concepts"]
+                    ]
+                    academic_query_terms = [
+                        str(item)
+                        for item in manual["academic_query_terms"]
+                    ]
+                    comparison_frame = dict(
+                        manual["comparison_frame"]
+                    )
+
         normalized = bool(academic_title and academic_concepts)
         warnings: list[str] = []
         if not normalized:
@@ -974,6 +1904,7 @@ def build_academic_concept_normalizations(
                 academic_title=academic_title,
                 academic_concepts=academic_concepts,
                 academic_query_terms=academic_query_terms,
+                comparison_frame=comparison_frame,
                 source_paths=source_paths,
                 status=(
                     "normalized" if normalized else "needs_owner_review"
@@ -1663,6 +2594,69 @@ def build_discovery_portfolio(
     directions: list[DiscoveryDirection] = []
     accepted_terms: list[set[str]] = []
     recommendations = list(claim_report.recommended_claims)
+    represented_statements = {
+        item.statement.casefold() for item in recommendations
+    }
+    for candidate in candidate_rows:
+        statement = str(
+            _candidate_value(candidate, "novelty_seed", "")
+            or _candidate_value(candidate, "display_title", "")
+            or ""
+        ).strip()
+        if not statement or statement.casefold() in represented_statements:
+            continue
+        represented_statements.add(statement.casefold())
+        local_paths = [
+            str(path)
+            for path in (
+                _candidate_value(candidate, "protocol_path", ""),
+                _candidate_value(candidate, "output_path", ""),
+                _candidate_value(candidate, "report_path", ""),
+                *_candidate_value(candidate, "implementation_paths", []),
+                *_candidate_value(candidate, "test_paths", []),
+            )
+            if path
+        ]
+        readiness = max(
+            0,
+            min(
+                100,
+                int(
+                    _candidate_value(candidate, "paperability_score", 0)
+                    or 0
+                ),
+            ),
+        )
+        recommendations.append(
+            RecommendedClaim(
+                claim_id=_stable_id(
+                    "candidate-claim",
+                    f"{_candidate_value(candidate, 'track_id', '')}:{statement}",
+                ),
+                statement=statement,
+                origin="author_asserted",
+                recommendation_score=readiness,
+                trend_score=0,
+                project_match_score=100,
+                evidence_readiness_score=max(10, readiness),
+                local_evidence_paths=local_paths,
+                match_reasons=[
+                    "The direction is derived from the local project boundary, "
+                    "implementation, and authored materials."
+                ],
+                missing_context=[
+                    *(
+                        ["No eligible author Claim was extracted"]
+                        if not claim_report.recommended_claims
+                        and not claim_report.author_claims
+                        else []
+                    ),
+                    "frozen_protocol_output_binding",
+                    "independent_validation",
+                    "external_trend_match",
+                ],
+            )
+        )
     if not recommendations:
         for candidate in candidate_rows[:5]:
             statement = str(
@@ -1866,6 +2860,10 @@ def build_discovery_portfolio(
                             _candidate_value(item, "protocol_path", ""),
                             _candidate_value(item, "output_path", ""),
                             _candidate_value(item, "report_path", ""),
+                            *_candidate_value(
+                                item, "implementation_paths", []
+                            ),
+                            *_candidate_value(item, "test_paths", []),
                         )
                         if path
                     ],
@@ -1948,6 +2946,26 @@ def build_discovery_portfolio(
                 "候选横截面排序模型相对于冻结基线具有更高的 Top-K "
                 f"高收益事件命中率；事件定义为：{operational_definition}"
             )
+        elif (
+            academic_normalization is not None
+            and "financial decision support systems"
+            in academic_normalization.academic_concepts
+        ):
+            question = recommendation.statement.strip()
+            falsifiable_hypothesis = (
+                "Under the same model, question set, corpus, and token budget, "
+                "multi-role review plus counter-evidence retrieval reduces the "
+                "unsupported financial-claim rate and increases risk-factor "
+                "coverage relative to a single-agent pipeline without a "
+                "predeclared material loss in usefulness."
+            )
+        elif (
+            academic_normalization is not None
+            and academic_normalization.comparison_frame
+        ):
+            frame = academic_normalization.comparison_frame
+            question = str(frame["research_question"])
+            falsifiable_hypothesis = str(frame["falsifiable_hypothesis"])
         else:
             question = recommendation.statement.strip()
             falsifiable_hypothesis = recommendation.statement
@@ -1962,6 +2980,17 @@ def build_discovery_portfolio(
             if primary is not None
             else ""
         ) or recommendation.statement
+        if (
+            academic_normalization is not None
+            and academic_normalization.comparison_frame.get(
+                "candidate_contribution"
+            )
+        ):
+            contribution = str(
+                academic_normalization.comparison_frame[
+                    "candidate_contribution"
+                ]
+            )
         prior_relation = (
             f"已匹配 {scholarly_count} 条相关学术或官方来源；"
             "它们用于界定最近工作，不直接支持项目结论。"
@@ -2041,6 +3070,11 @@ def build_discovery_portfolio(
                 academic_normalization.academic_query_terms
                 if academic_normalization is not None
                 else []
+            ),
+            comparison_frame=(
+                academic_normalization.comparison_frame
+                if academic_normalization is not None
+                else {}
             ),
             academic_normalization_status=(
                 academic_normalization.status
