@@ -1,0 +1,101 @@
+name: Public replay verification
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+jobs:
+  verify-public-packages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RELEASE_TAG: research-forge-v1-capability-acceptance-2026-08-01
+      SUCCESS_PACKAGE: research-forge-openml-39-hidden-target-v1.zip
+      SUCCESS_SHA256: 8c788149ac3a892e8e83d6f3d217d7671d50d507094611317ca273d7943a0eab
+      BLOCKED_PACKAGE: research-forge-correctly-blocked-contract-v1.zip
+      BLOCKED_SHA256: 7bb31c15bf45e6b832cbdc299315b4922b40d8524d75bf715677a88d4a78d227
+    steps:
+      - name: Download public release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}"
+          curl --fail --location --retry 3 --output "${SUCCESS_PACKAGE}" "${base}/${SUCCESS_PACKAGE}"
+          curl --fail --location --retry 3 --output "${BLOCKED_PACKAGE}" "${base}/${BLOCKED_PACKAGE}"
+
+      - name: Verify frozen archive digests
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s  %s\n' "${SUCCESS_SHA256}" "${SUCCESS_PACKAGE}" | sha256sum --check --strict
+          printf '%s  %s\n' "${BLOCKED_SHA256}" "${BLOCKED_PACKAGE}" | sha256sum --check --strict
+
+      - name: Replay both standalone verifiers
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p replay/success replay/blocked receipt
+          unzip -q "${SUCCESS_PACKAGE}" -d replay/success
+          unzip -q "${BLOCKED_PACKAGE}" -d replay/blocked
+          (cd replay/success && python verify.py) | tee receipt/success-verification.json
+          (cd replay/blocked && python verify.py) | tee receipt/blocked-verification.json
+
+      - name: Build external-host receipt
+        shell: python
+        run: |
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path("receipt")
+          payload = {
+              "schema_version": 1,
+              "receipt_kind": "github_hosted_public_replay",
+              "repository": os.environ["GITHUB_REPOSITORY"],
+              "workflow": os.environ["GITHUB_WORKFLOW"],
+              "run_id": os.environ["GITHUB_RUN_ID"],
+              "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "runner_environment": "github-hosted ubuntu-latest",
+              "release_tag": os.environ["RELEASE_TAG"],
+              "packages": {
+                  "successful_case": {
+                      "name": os.environ["SUCCESS_PACKAGE"],
+                      "sha256": os.environ["SUCCESS_SHA256"],
+                      "verification": json.loads((root / "success-verification.json").read_text("utf-8")),
+                  },
+                  "blocked_case": {
+                      "name": os.environ["BLOCKED_PACKAGE"],
+                      "sha256": os.environ["BLOCKED_SHA256"],
+                      "verification": json.loads((root / "blocked-verification.json").read_text("utf-8")),
+                  },
+              },
+              "independent_scientific_operator": False,
+              "c5_awarded": False,
+              "claim_boundary": "GitHub-hosted replay proves external infrastructure execution and signed artifact provenance; it is not an independent scientific-operator review.",
+          }
+          encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+          payload["receipt_subject_sha256"] = hashlib.sha256(encoded).hexdigest()
+          (root / "external-host-replay-receipt.json").write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+
+      - name: Upload replay receipt
+        uses: actions/upload-artifact@v7
+        with:
+          name: public-replay-receipt
+          path: receipt/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Attest replay receipt provenance
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: receipt/external-host-replay-receipt.json
