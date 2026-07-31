@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 
 import pytest
+import research_forge.journal_recommendation as recommendation_module
 
 from research_forge.journal_recommendation import (
     REGISTRY_PATH,
@@ -70,7 +72,16 @@ def test_non_archival_or_unverified_custom_venue_is_rejected(tmp_path: Path) -> 
         load_journal_registry(invalid)
 
 
-def test_conferences_are_ranked_separately_and_deadlines_gate_current_cycle() -> None:
+def test_conferences_are_ranked_separately_and_deadlines_gate_current_cycle(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FixedDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            value = cls(2026, 7, 20, 12, 0, 0)
+            return value.replace(tzinfo=tz) if tz is not None else value
+
+    monkeypatch.setattr(recommendation_module, "datetime", FixedDatetime)
     report = recommend_venues(MANUSCRIPT, project=PROJECT)
     journals = [item for item in report.recommendations if item.venue_type == "journal"]
     conferences = [item for item in report.recommendations if item.venue_type == "conference"]
