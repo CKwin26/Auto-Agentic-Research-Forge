@@ -8,6 +8,7 @@ from .huggingface import HuggingFaceResearchAdapter
 from .paper_search_mcp import PaperSearchMCPAdapter
 from .openai_web import OpenAIWebSearchAdapter
 from .open_access import OpenAccessAdapter
+from .openml import OpenMLAdapter
 from .institutional import InstitutionalAccessAdapter
 from .paperqa import PaperQAAdapter
 from .redfox import RedFoxAdapter
@@ -39,6 +40,7 @@ def default_provider_registry() -> ProviderRegistry:
             PaperSearchMCPAdapter(),
             OpenAIWebSearchAdapter(),
             OpenAccessAdapter(),
+            OpenMLAdapter(),
             InstitutionalAccessAdapter(),
             PaperQAAdapter(),
         ]

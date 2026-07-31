@@ -48,6 +48,7 @@ from research_forge.retrieval.pipelines.resources import normalize_signals
 from research_forge.retrieval.pipelines.provenance import build_provider_records
 from research_forge.retrieval.providers.codex_web import (
     CodexNativeWebSearchAdapter,
+    _managed_web_search_env,
 )
 from research_forge.retrieval.providers.open_access import OpenAccessAdapter
 from research_forge.retrieval.providers.openai_web import OpenAIWebSearchAdapter
@@ -192,6 +193,42 @@ def test_readiness_uses_recent_gateway_run_not_package_presence(
     assert academic.state is CapabilityState.READY
     assert academic.health_verified is True
     assert report.external_research_v1_ready is False
+
+
+def test_readiness_accepts_recent_bounded_deployment_health(
+    tmp_path: Path,
+) -> None:
+    repository = RetrievalRepository(tmp_path)
+    (repository.root / "readiness-validation.json").write_text(
+        json.dumps(
+            {
+                "generated_at": utc_now(),
+                "capability_tests": {"academic_search": True},
+                "capability_health": {"academic_search": True},
+            }
+        ),
+        encoding="utf-8",
+    )
+    report = ReadinessService(
+        repository,
+        ProviderRegistry(
+            [
+                PaperSearchMCPAdapter(
+                    runner=lambda _tool, _arguments: {
+                        "sources_used": [],
+                        "papers": [],
+                    }
+                )
+            ]
+        ),
+    ).evaluate()
+    academic = next(
+        item
+        for item in report.capabilities
+        if item.capability is ExternalCapability.ACADEMIC_SEARCH
+    )
+    assert academic.state is CapabilityState.READY
+    assert any("deployment validation passed" in item for item in academic.reasons)
 
 
 def test_codex_native_live_search_satisfies_public_web_readiness(
@@ -1545,6 +1582,19 @@ def test_official_web_routes_to_codex_without_synapai() -> None:
     )
 
     assert decision.providers == ["codex_native_web_search"]
+
+
+def test_codex_web_search_ignores_explicit_api_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("RESEARCH_FORGE_CODEX_HOME", "C:/private/synapai-codex")
+    monkeypatch.setenv("OPENAI_API_KEY", "must-not-leave-process")
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://api.synapai.top")
+    env = _managed_web_search_env()
+    assert Path(env["CODEX_HOME"]).resolve() == (Path.home() / ".codex").resolve()
+    assert env["OPENAI_API_KEY"] == ""
+    assert env["CODEX_API_KEY"] == ""
+    assert env["OPENAI_BASE_URL"] == ""
 
 
 def test_experimentation_open_metric_search_is_denied() -> None:

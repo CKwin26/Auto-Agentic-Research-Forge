@@ -1,0 +1,190 @@
+{
+  "@context": "https://w3id.org/ro/crate/1.1/context",
+  "@graph": [
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "about": {
+        "@id": "./"
+      },
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.1"
+      }
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "conformsTo": [
+        {
+          "@id": "https://w3id.org/ro/wfrun/workflow/0.5"
+        },
+        {
+          "@id": "https://w3id.org/ro/wfrun/process/0.5"
+        },
+        {
+          "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0"
+        }
+      ],
+      "datePublished": "2026-08-01",
+      "description": "A content-addressed Stage 3 completion package with frozen scientific artifacts and bounded provenance.",
+      "hasPart": [
+        {
+          "@id": "stage3/completion/completion.json"
+        },
+        {
+          "@id": "stage3/evaluations/result.json"
+        },
+        {
+          "@id": "workflow.json"
+        }
+      ],
+      "license": "NOASSERTION",
+      "mainEntity": {
+        "@id": "workflow.json"
+      },
+      "mentions": {
+        "@id": "#stage3-execution"
+      },
+      "name": "Research Forge Stage 3 completion package"
+    },
+    {
+      "@id": "stage3/completion/completion.json",
+      "@type": "File",
+      "identifier": {
+        "@id": "#sha256-a7a34190f2c345333c7bc8eaee15f88f405a6f5a6168fe488028bf1973bbbcc8"
+      },
+      "name": "completion.json"
+    },
+    {
+      "@id": "stage3/evaluations/result.json",
+      "@type": "File",
+      "identifier": {
+        "@id": "#sha256-1db7bad12257793eb869d2426434ae213d78ab90d6eb053a4e1ad330e8edad1e"
+      },
+      "name": "result.json"
+    },
+    {
+      "@id": "#sha256-1db7bad12257793eb869d2426434ae213d78ab90d6eb053a4e1ad330e8edad1e",
+      "@type": "PropertyValue",
+      "propertyID": "sha256",
+      "value": "1db7bad12257793eb869d2426434ae213d78ab90d6eb053a4e1ad330e8edad1e"
+    },
+    {
+      "@id": "#sha256-a7a34190f2c345333c7bc8eaee15f88f405a6f5a6168fe488028bf1973bbbcc8",
+      "@type": "PropertyValue",
+      "propertyID": "sha256",
+      "value": "a7a34190f2c345333c7bc8eaee15f88f405a6f5a6168fe488028bf1973bbbcc8"
+    },
+    {
+      "@id": "workflow.json",
+      "@type": [
+        "File",
+        "SoftwareSourceCode",
+        "ComputationalWorkflow"
+      ],
+      "description": "Machine-readable descriptor of the frozen Stage 3 run, its input artifact collection, and its output artifact collection.",
+      "encodingFormat": "application/json",
+      "input": {
+        "@id": "#frozen-stage3-input"
+      },
+      "name": "Research Forge Stage 3 frozen execution workflow",
+      "output": {
+        "@id": "#frozen-stage3-output"
+      },
+      "programmingLanguage": {
+        "@id": "#json-language"
+      }
+    },
+    {
+      "@id": "#json-language",
+      "@type": "ComputerLanguage",
+      "alternateName": "JSON",
+      "name": "JSON"
+    },
+    {
+      "@id": "#frozen-stage3-input",
+      "@type": "FormalParameter",
+      "additionalType": "https://schema.org/MediaObject",
+      "description": "Content-addressed artifacts authorized by the frozen Stage 3 plan.",
+      "name": "Frozen Stage 3 input artifacts",
+      "workExample": {
+        "@id": "#input-artifact-collection"
+      }
+    },
+    {
+      "@id": "#frozen-stage3-output",
+      "@type": "FormalParameter",
+      "additionalType": "https://schema.org/MediaObject",
+      "description": "Content-addressed evaluation and completion artifacts produced by the recorded Stage 3 execution.",
+      "name": "Frozen Stage 3 completion artifacts",
+      "workExample": {
+        "@id": "#output-artifact-collection"
+      }
+    },
+    {
+      "@id": "#input-artifact-collection",
+      "@type": "Collection",
+      "hasPart": [
+        {
+          "@id": "stage3/completion/completion.json"
+        },
+        {
+          "@id": "stage3/evaluations/result.json"
+        }
+      ],
+      "name": "Frozen Stage 3 input artifact collection"
+    },
+    {
+      "@id": "#output-artifact-collection",
+      "@type": "Collection",
+      "hasPart": [
+        {
+          "@id": "stage3/completion/completion.json"
+        },
+        {
+          "@id": "stage3/evaluations/result.json"
+        }
+      ],
+      "name": "Frozen Stage 3 output artifact collection"
+    },
+    {
+      "@id": "#stage3-execution",
+      "@type": "CreateAction",
+      "actionStatus": "CompletedActionStatus",
+      "agent": {
+        "@id": "#research-forge"
+      },
+      "description": "Recorded execution that generated the frozen Stage 3 completion artifacts.",
+      "instrument": {
+        "@id": "workflow.json"
+      },
+      "name": "Research Forge Stage 3 execution",
+      "object": {
+        "@id": "#input-artifact-collection"
+      },
+      "result": {
+        "@id": "#output-artifact-collection"
+      }
+    },
+    {
+      "@id": "#research-forge",
+      "@type": "Organization",
+      "name": "Research Forge"
+    },
+    {
+      "@id": "https://w3id.org/ro/wfrun/workflow/0.5",
+      "@type": "CreativeWork",
+      "name": "Workflow Run Crate 0.5"
+    },
+    {
+      "@id": "https://w3id.org/ro/wfrun/process/0.5",
+      "@type": "CreativeWork",
+      "name": "Process Run Crate 0.5"
+    },
+    {
+      "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0",
+      "@type": "CreativeWork",
+      "name": "Workflow RO-Crate 1.0"
+    }
+  ]
+}

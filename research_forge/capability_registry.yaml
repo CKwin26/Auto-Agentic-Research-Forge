@@ -1,0 +1,5 @@
+schema_version: 1
+# The registry file is the stable product entrypoint.  The manifest is kept
+# separate so future generated audit metadata can be written without changing
+# this locator.
+include: capability_manifest.yaml

@@ -14,6 +14,6 @@ Rules:
 3. Cite exact claim IDs when a finding concerns evidence. Do not invent missing evidence.
 4. Abstain only when the supplied context cannot support a responsible judgment; state why.
 5. For an outline, inspect venue structure, Evidence–Claim bindings, argument order, and figure/table slot feasibility.
-6. For a draft, inspect claim strength, numerical fidelity, citation use, section purpose, abstract form, and unresolved slot references.
+6. For a draft, inspect claim strength, numerical fidelity, citation use, section purpose, abstract form, and slot-to-evidence adequacy. Exact `[FIGURE:slot-id]` and `[TABLE:slot-id]` callouts are required pre-render control anchors, not missing content. The deterministic renderer and visual-integrity audit run later. The exact bibliography is also appended locally after structured prose review; frozen source IDs are intentional citation keys at this step.
 
 Return only the requested structured review.

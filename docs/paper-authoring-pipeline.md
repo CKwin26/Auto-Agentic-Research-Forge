@@ -2,6 +2,13 @@
 
 Research Forge owns the runtime paper workflow. External Codex skills may inform its design, but the project does not require an installed writing skill at runtime.
 
+Stage 4 does not disguise missing evidence as a finished paper. It first
+freezes an `EvaluationTransparencyRegister` and runs an evidence-sufficiency
+gate. A material experimental gap creates an immutable diagnosis and
+scientific-successor request, then redirects the Study to Stage 3 for
+owner-approved evidence backfill. See
+[Stage 4 evidence transparency and backfill](stage4-evaluation-transparency-and-backfill.md).
+
 ## Canonical order
 
 1. Freeze the submission genre independently from the evidence.
@@ -17,7 +24,20 @@ Research Forge owns the runtime paper workflow. External Codex skills may inform
 
 ## Figures and tables
 
-Conceptual figures use draw.io Desktop as the default renderer. Research Forge writes an editable `.drawio` source, exports a publication image through the draw.io CLI, and records both paths in the artifact manifest. Mermaid or another diagram DSL is never typeset as manuscript prose. Numeric plots may continue to use deterministic native rendering when that is the more faithful representation of frozen values.
+Conceptual figures must use the next-ai-draw-io governed source path, with
+draw.io Desktop performing the final local vector export. Research Forge writes
+an editable `.drawio` source and records both the source and exported artifact
+in the manifest. Mermaid or another diagram DSL is never typeset as manuscript
+prose. Numeric plots continue to use deterministic native rendering when that
+is the more faithful representation of frozen values.
+
+The next-ai-draw-io editing bridge is mandatory for architecture, process,
+mind-map, qualitative-panel, and graphical-abstract figures. The model may
+propose only a typed node/edge plan; Research Forge owns XML generation and
+audits any browser edits before the source can re-enter publication assets.
+Missing editor provenance or export capability blocks Stage 4 rather than
+falling back to an untracked native diagram. See
+[next-ai-drawio.md](next-ai-drawio.md).
 
 Markdown tables require an explicit `Table: ...` caption. The LaTeX renderer assigns the table number, uses ragged-right `tabularx` columns, reduces padding and font size, and rejects uncaptained tables. This prevents anonymous tables and pathological word splitting in narrow fixed-width columns.
 

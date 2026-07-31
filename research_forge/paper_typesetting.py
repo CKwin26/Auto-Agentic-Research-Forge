@@ -3,6 +3,8 @@ from __future__ import annotations
 """Deterministic venue-facing LaTeX rendering for reviewed manuscripts."""
 
 import re
+import shutil
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -15,11 +17,182 @@ from .paper_pipeline import (
 
 
 _CITATION_RE = re.compile(r"\[([A-Za-z0-9][A-Za-z0-9._:-]{1,120})\]")
-_IMAGE_RE = re.compile(r"^!\[([^\]]*)\]\(([^)]+)\)\s*$")
+_IMAGE_RE = re.compile(r"^!\[([^\]]*)\]\(([^)]+)\)\s*$", re.MULTILINE)
 _TABLE_SEPARATOR_RE = re.compile(r"^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*$")
 _INTERNAL_COMMENT_RE = re.compile(r"<!--(?:block|ref|anchor):.*?-->", re.DOTALL)
 _TABLE_CAPTION_RE = re.compile(r"(?i)^Table:\s*(.+?)\s*$")
 _PAGEBREAK_RE = re.compile(r"^<!--\s*pagebreak\s*-->$", re.IGNORECASE)
+
+
+def _edge_executable() -> Path | None:
+    found = shutil.which("msedge")
+    candidates = [
+        Path(found) if found else None,
+        Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"),
+        Path(r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"),
+    ]
+    return next(
+        (candidate for candidate in candidates if candidate and candidate.is_file()),
+        None,
+    )
+
+
+def _localize_standard_artifact_text(
+    markdown: str,
+    *,
+    language: Literal["zh", "en"],
+) -> str:
+    """Localize fixed system-authored artifact captions, never study claims."""
+
+    if language != "zh":
+        return markdown
+    replacements = {
+        (
+            "Canonical Stage 3 lineage. Each row binds one arm-seed run cell "
+            "to its preserved attempt and result records; hashes are "
+            "abbreviated visually but remain complete in the source artifact."
+        ): (
+            "阶段三规范执行谱系。每一行将一个实验臂—种子运行单元绑定到"
+            "保留的尝试与结果记录；表中缩写哈希，源工件保留完整值。"
+        ),
+        (
+            "Registered primary result. The figure reports the frozen "
+            "intervention–comparator claim; the manuscript states the "
+            "eligible denominator and evidence boundary."
+        ): (
+            "冻结的主要结果。图中展示注册的处理—对照结果；正文说明"
+            "合格分母与证据边界。"
+        ),
+    }
+    for source, target in replacements.items():
+        markdown = markdown.replace(source, target)
+    return markdown
+
+
+def _materialize_latex_image_assets(
+    markdown: str,
+    base_dir: Path,
+    *,
+    language: Literal["zh", "en"],
+) -> str:
+    """Convert local SVG figures to PNG for portable XeLaTeX inclusion."""
+
+    edge = _edge_executable()
+
+    def replace(match: re.Match[str]) -> str:
+        caption, raw_path = match.groups()
+        if Path(raw_path).suffix.lower() != ".svg":
+            return match.group(0)
+        source = (base_dir / raw_path).resolve()
+        if not source.is_file() or edge is None:
+            return match.group(0)
+        if base_dir.resolve() not in source.parents:
+            raise ValueError("figure path escapes the manuscript directory")
+        svg_text = source.read_text(encoding="utf-8")
+        # A frozen figure may expose long internal claim IDs on an axis. Keep
+        # that source immutable and create a publication-only visual projection.
+        def public_claim_label(match: re.Match[str]) -> str:
+            raw_label = match.group(2)
+            abbreviations = {
+                "lora": "LoRA",
+                "nli": "NLI",
+                "llm": "LLM",
+            }
+            label = " ".join(
+                abbreviations.get(word.lower(), word.capitalize())
+                for word in raw_label.replace("-", "_").split("_")
+                if word
+            )
+            return label[:34] or match.group(1).capitalize()
+
+        projected_svg = re.sub(
+            r"(?:evaluation-[0-9a-f]+|[^<>\s]+):(arm|contrast):"
+            r"([A-Za-z0-9_-]+)",
+            public_claim_label,
+            svg_text,
+        )
+        if language == "zh":
+            projected_svg = projected_svg.replace(
+                "What is the registered intervention–comparator result?",
+                "冻结三臂的规范对齐得分",
+            )
+        projected_source = source.with_name(source.stem + ".latex.svg")
+        projected_source.write_text(
+            projected_svg,
+            encoding="utf-8",
+            newline="\n",
+        )
+        target = source.with_name(source.stem + ".latex.png")
+        svg_head = projected_svg[:1000]
+        width_match = re.search(r'\bwidth="(\d+)', svg_head)
+        height_match = re.search(r'\bheight="(\d+)', svg_head)
+        width = int(width_match.group(1)) if width_match else 1200
+        height = int(height_match.group(1)) if height_match else 800
+        completed = subprocess.run(
+            [
+                str(edge),
+                "--headless=new",
+                "--disable-gpu",
+                "--hide-scrollbars",
+                f"--window-size={width},{height}",
+                f"--screenshot={target}",
+                projected_source.as_uri(),
+            ],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=60,
+            check=False,
+        )
+        if completed.returncode != 0 or not target.is_file():
+            raise ValueError(
+                "SVG conversion failed for LaTeX: "
+                + (completed.stderr.strip() or projected_source.name)
+            )
+        relative = target.relative_to(base_dir.resolve()).as_posix()
+        return f"![{caption}]({relative})"
+
+    return _IMAGE_RE.sub(replace, markdown)
+
+
+def _compact_wide_lineage_table(markdown: str) -> str:
+    """Project verbose lineage identifiers into a readable publication table."""
+
+    lines = markdown.splitlines()
+    output: list[str] = []
+    index = 0
+    while index < len(lines):
+        if lines[index].strip() != "| Arm | Seed | Run / attempt | Result | Status |":
+            output.append(lines[index])
+            index += 1
+            continue
+        output.extend(
+            [
+                "| Arm | Seed | Attempt hash | Result hash | Exit |",
+                "|---|---:|---|---|---|",
+            ]
+        )
+        index += 2
+        while index < len(lines) and lines[index].strip().startswith("|"):
+            cells = [
+                cell.strip()
+                for cell in lines[index].strip().strip("|").split("|")
+            ]
+            if len(cells) == 5:
+                attempt_hash = re.findall(r"`([0-9a-f]{12})`", cells[2])
+                result_hash = re.findall(r"`([0-9a-f]{12})`", cells[3])
+                output.append(
+                    "| {arm} | {seed} | `{attempt}` | `{result}` | {status} |".format(
+                        arm=cells[0],
+                        seed=cells[1],
+                        attempt=attempt_hash[-1] if attempt_hash else "unavailable",
+                        result=result_hash[-1] if result_hash else "unavailable",
+                        status=cells[4],
+                    )
+                )
+            index += 1
+    return "\n".join(output) + ("\n" if markdown.endswith("\n") else "")
 
 
 @dataclass(frozen=True)
@@ -332,9 +505,19 @@ def write_submission_latex(
 ) -> Path:
     source = manuscript_path.resolve()
     destination = source.with_suffix(".tex")
+    markdown = _localize_standard_artifact_text(
+        source.read_text(encoding="utf-8"),
+        language=language,
+    )
+    markdown = _compact_wide_lineage_table(markdown)
+    markdown = _materialize_latex_image_assets(
+        markdown,
+        source.parent,
+        language=language,
+    )
     destination.write_text(
         render_submission_latex(
-            source.read_text(encoding="utf-8"),
+            markdown,
             contract=contract,
             language=language,
         ),

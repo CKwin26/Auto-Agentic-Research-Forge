@@ -22,6 +22,7 @@ from .claim_discovery import (
     DiscoveryPortfolio,
     DiscoveryQueryIntent,
     ProjectResearchFingerprint,
+    SourceSpan,
     TrendSignal,
     _terms,
     build_discovery_portfolio,
@@ -32,16 +33,21 @@ from .claim_discovery import (
     recommend_claims,
     _is_procedural_statement,
 )
+from .models import ProjectMeta
 from .project_bundle import (
     BundleInspection,
     BundleResource,
     NoveltyCandidate,
+    discover_code_project_candidate,
     discover_derived_material_candidate,
     discover_hdf5_metadata_candidate,
     discover_novelty_candidates,
     inventory_project_bundle,
     inventory_project_hdf5_metadata,
+    is_dependency_cache_root,
+    is_driver_installation_bundle,
     is_excluded_bundle_path,
+    is_shared_binary_dependency_bundle,
 )
 from .hdf5_metadata import HDF5MetadataResource
 from .workflow_domain import (
@@ -52,10 +58,13 @@ from .workflow_domain import (
     ExecutionStatus,
     ExecutorType,
     GateType,
+    HumanInterventionRecord,
+    LiteratureSetVersion,
     Phase,
     RepairContract,
     RepairStatus,
     ScopeContractVersion,
+    StepAcceptanceStatus,
     StepInstance,
     StudyLifecycle,
     WorkflowDiagnostic,
@@ -76,6 +85,7 @@ from .retrieval.workflow.step_definitions import (
     retrieval_step_definitions,
 )
 from .retrieval.workflow.handlers import external_research_handlers
+from .storage import read_json, sha256_file
 
 
 class TransientStepError(RuntimeError):
@@ -91,9 +101,16 @@ class TransientStepError(RuntimeError):
 class BlockedStepError(RuntimeError):
     """A non-transient missing condition that requires an external change."""
 
-    def __init__(self, message: str, *, kind: str = "requirement") -> None:
+    def __init__(
+        self,
+        message: str,
+        *,
+        kind: str = "requirement",
+        redirect_phase: Phase | None = None,
+    ) -> None:
         super().__init__(message)
         self.kind = kind
+        self.redirect_phase = redirect_phase
 
 
 StepHandler = Callable[["StepContext"], dict[str, Any]]
@@ -180,13 +197,20 @@ class PersistentDAGScheduler:
                 return self.repository.snapshot(study_id)
 
             automatic: list[StepInstance] = []
+            owner_steps_waiting = False
             for step in ready:
                 if step.executor_type is ExecutorType.PROJECT_OWNER:
-                    gate_label = (
-                        "repair scope"
-                        if step.step_type == "regression_scope_review"
-                        else "Scope Contract"
-                    )
+                    gate_label = {
+                        "regression_scope_review": "repair scope",
+                        "select_specific_topic": "specific research topic",
+                        "research_contract_review": "Research Contract",
+                        "stage3_execution_gate": "Stage 3 run plan",
+                        "publication_narrative_selection": "Publication Narrative Contract",
+                        "visual_argument_plan_approval": "Visual Argument Plan",
+                        "final_visual_approval": "final figures and tables",
+                        "humanization_author_approval": "humanized manuscript",
+                        "author_final_review_and_approval": "final submission package",
+                    }.get(step.step_type, "Scope Contract")
                     self.repository.update_step(
                         study_id,
                         step.step_instance_id,
@@ -198,9 +222,21 @@ class PersistentDAGScheduler:
                             ),
                         },
                     )
+                    owner_steps_waiting = True
                 else:
                     automatic.append(step)
             if not automatic:
+                if owner_steps_waiting:
+                    self._resolve_owner_steps(study_id)
+                    if any(
+                        self.repository.load_step(
+                            study_id, step.step_instance_id
+                        ).status
+                        is ExecutionStatus.SUCCEEDED
+                        for step in ready
+                        if step.executor_type is ExecutorType.PROJECT_OWNER
+                    ):
+                        continue
                 return self.repository.snapshot(study_id)
 
             with ThreadPoolExecutor(
@@ -212,8 +248,41 @@ class PersistentDAGScheduler:
                 }
                 for future in as_completed(futures):
                     future.result()
+            # A sibling that succeeds after a blocked step can otherwise
+            # overwrite the blocked step's phase redirect. Re-apply the
+            # earliest requested redirect after the whole concurrent batch.
+            redirected = [
+                Phase(str(step.blocker["redirect_phase"]))
+                for step in self.repository.list_steps(study_id)
+                if step.status is ExecutionStatus.BLOCKED
+                and isinstance(step.blocker, dict)
+                and step.blocker.get("redirect_phase")
+            ]
+            if redirected:
+                phase_order = {
+                    Phase.DISCOVERY: 0,
+                    Phase.PROTOCOL: 1,
+                    Phase.EXPERIMENT: 2,
+                    Phase.PAPER: 3,
+                }
+                redirect_phase = min(
+                    redirected, key=lambda item: phase_order[item]
+                )
+                study = self.repository.load_study(study_id)
+                if study.phase is not redirect_phase:
+                    self.repository.save_study(
+                        study.model_copy(update={"phase": redirect_phase}),
+                        "blocked_batch_redirected_phase",
+                    )
 
-    def retry_step(self, study_id: str, step_id: str) -> StepInstance:
+    def retry_step(
+        self,
+        study_id: str,
+        step_id: str,
+        *,
+        authorized_by: str | None = None,
+        reason: str | None = None,
+    ) -> StepInstance:
         step = self.repository.load_step(study_id, step_id)
         if step.status not in {
             ExecutionStatus.FAILED,
@@ -221,11 +290,81 @@ class PersistentDAGScheduler:
             ExecutionStatus.WAITING_FOR_USER,
         }:
             raise ValueError("only failed, blocked, or waiting steps can be retried")
+        if step.step_type == "execute_stage3_run_cell":
+            if not authorized_by or not reason:
+                raise ValueError(
+                    "manual Stage 3 rerun requires authorized_by and reason"
+                )
+            plan_id = str(step.parameters.get("plan_id") or "")
+            repository_plan = self.repository.load_run_plan(
+                study_id, plan_id
+            )
+            self.repository.save_human_intervention(
+                HumanInterventionRecord(
+                    intervention_id=stable_id(
+                        "human-intervention",
+                        study_id,
+                        step_id,
+                        step.attempt,
+                        utc_now(),
+                    ),
+                    study_id=study_id,
+                    plan_id=repository_plan.plan_id,
+                    run_cell_id=str(
+                        step.parameters.get("run_cell_id") or ""
+                    ),
+                    intervention_type="manual_rerun",
+                    reason=reason,
+                    authorized_by=authorized_by,
+                )
+            )
         # A retry is an explicit new scheduling decision; the attempt counter and
         # prior audit events stay intact.
-        return self.repository.update_step(
+        retried = self.repository.update_step(
             study_id, step_id, ExecutionStatus.QUEUED, blocker=None
         )
+        self._requeue_dependency_blocked_descendants(study_id, step_id)
+        return retried
+
+    def _requeue_dependency_blocked_descendants(
+        self, study_id: str, retried_step_id: str
+    ) -> None:
+        """Re-open only descendants blocked by the retried dependency chain.
+
+        Permanent scientific, policy, integrity, or user-gate blockers remain
+        untouched.  This makes a bounded retry useful without erasing attempts
+        or indiscriminately resetting unrelated branches of the Study DAG.
+        """
+
+        steps = self.repository.list_steps(study_id)
+        children: dict[str, list[StepInstance]] = {}
+        for candidate in steps:
+            for dependency_id in candidate.depends_on:
+                children.setdefault(dependency_id, []).append(candidate)
+
+        pending = [retried_step_id]
+        visited: set[str] = set()
+        while pending:
+            parent_id = pending.pop()
+            if parent_id in visited:
+                continue
+            visited.add(parent_id)
+            for candidate in children.get(parent_id, []):
+                blocker = candidate.blocker or {}
+                dependency_ids = set(blocker.get("dependency_step_ids") or [])
+                is_dependency_block = (
+                    candidate.status is ExecutionStatus.BLOCKED
+                    and blocker.get("kind") == "upstream_not_succeeded"
+                    and parent_id in dependency_ids
+                )
+                if is_dependency_block:
+                    self.repository.update_step(
+                        study_id,
+                        candidate.step_instance_id,
+                        ExecutionStatus.QUEUED,
+                        blocker=None,
+                    )
+                    pending.append(candidate.step_instance_id)
 
     def _execute_step(self, study_id: str, step: StepInstance) -> None:
         handler = self.handlers.get(step.step_type)
@@ -249,18 +388,29 @@ class PersistentDAGScheduler:
             try:
                 result = handler(StepContext(self.repository, study_id, current))
                 with self._repository_lock:
-                    self._persist_success(study_id, step, result)
+                    self._persist_success(study_id, current, result)
                 return
             except TransientStepError as exc:
-                current = self.repository.load_step(study_id, step.step_instance_id)
-                if current.attempt >= current.max_retries + 1:
+                latest = self.repository.load_step(
+                    study_id, step.step_instance_id
+                )
+                if (
+                    latest.lease_id != current.lease_id
+                    or latest.fencing_token != current.fencing_token
+                ):
+                    return
+                if latest.attempt >= latest.max_retries + 1:
                     with self._repository_lock:
                         if exc.fallback_result is not None:
-                            self._persist_success(study_id, step, exc.fallback_result)
-                        else:
-                            self.repository.update_step(
+                            self._persist_success(
                                 study_id,
-                                step.step_instance_id,
+                                current,
+                                exc.fallback_result,
+                            )
+                        else:
+                            self._update_leased_step(
+                                study_id,
+                                current,
                                 ExecutionStatus.FAILED,
                                 blocker={
                                     "kind": "retry_exhausted",
@@ -269,29 +419,50 @@ class PersistentDAGScheduler:
                             )
                     return
                 with self._repository_lock:
-                    self.repository.update_step(
+                    updated = self._update_leased_step(
                         study_id,
-                        step.step_instance_id,
+                        current,
                         ExecutionStatus.RETRYING,
                         blocker={"kind": "transient", "message": str(exc)},
                     )
+                    if updated is None:
+                        return
                 time.sleep(
-                    self.retry_backoff_seconds * (2 ** max(0, current.attempt - 1))
+                    self.retry_backoff_seconds
+                    * (2 ** max(0, latest.attempt - 1))
                 )
             except BlockedStepError as exc:
                 with self._repository_lock:
-                    self.repository.update_step(
+                    updated = self._update_leased_step(
                         study_id,
-                        step.step_instance_id,
+                        current,
                         ExecutionStatus.BLOCKED,
-                        blocker={"kind": exc.kind, "message": str(exc)},
+                        blocker={
+                            "kind": exc.kind,
+                            "message": str(exc),
+                            "redirect_phase": (
+                                exc.redirect_phase.value
+                                if exc.redirect_phase is not None
+                                else None
+                            ),
+                        },
                     )
+                    if updated is None:
+                        return
+                    if exc.redirect_phase is not None:
+                        study = self.repository.load_study(study_id)
+                        self.repository.save_study(
+                            study.model_copy(
+                                update={"phase": exc.redirect_phase}
+                            ),
+                            "blocked_step_redirected_phase",
+                        )
                 return
             except Exception as exc:
                 with self._repository_lock:
-                    self.repository.update_step(
+                    self._update_leased_step(
                         study_id,
-                        step.step_instance_id,
+                        current,
                         ExecutionStatus.FAILED,
                         blocker={
                             "kind": "permanent_execution_error",
@@ -301,11 +472,44 @@ class PersistentDAGScheduler:
                     )
                 return
 
+    def _update_leased_step(
+        self,
+        study_id: str,
+        step: StepInstance,
+        status: ExecutionStatus,
+        **kwargs: Any,
+    ) -> StepInstance | None:
+        try:
+            return self.repository.update_step(
+                study_id,
+                step.step_instance_id,
+                status,
+                lease_id=step.lease_id,
+                fencing_token=step.fencing_token,
+                **kwargs,
+            )
+        except ValueError as exc:
+            if "expired or mismatched execution lease" in str(exc):
+                return None
+            raise
+
     def _persist_success(
         self, study_id: str, step: StepInstance, result: dict[str, Any]
     ) -> None:
+        acceptance = dict(result.get("_workflow_acceptance") or {})
+        postcondition_passed = bool(
+            acceptance.get("scientific_postcondition_passed", True)
+        )
+        if not postcondition_passed:
+            raise ValueError(
+                "step output failed its declared scientific postcondition"
+            )
         artifact = self.repository.save_step_result(
-            study_id, step.step_instance_id, result
+            study_id,
+            step.step_instance_id,
+            result,
+            lease_id=step.lease_id,
+            fencing_token=step.fencing_token,
         )
         extra_output_ids = [
             str(item) for item in result.get("_workflow_output_artifact_ids", [])
@@ -319,15 +523,37 @@ class PersistentDAGScheduler:
                     artifact.artifact_id,
                     relation="step_depends_on",
                 )
-        self.repository.update_step(
+        updated = self._update_leased_step(
             study_id,
-            step.step_instance_id,
+            step,
             ExecutionStatus.SUCCEEDED,
             output_artifact_ids=[artifact.artifact_id, *extra_output_ids],
+            acceptance_status=StepAcceptanceStatus.ACCEPTED,
+            output_produced=True,
+            schema_validated=True,
+            scientific_postcondition_passed=True,
+            acceptance_checks={
+                str(key): bool(value)
+                for key, value in dict(acceptance.get("checks") or {}).items()
+            },
         )
+        if updated is None:
+            return
+        next_phase = result.get("_workflow_next_phase")
+        if next_phase:
+            study = self.repository.load_study(study_id)
+            self.repository.save_study(
+                study.model_copy(update={"phase": Phase(str(next_phase))}),
+                "workflow_phase_advanced",
+            )
+        if step.step_type == "completion_record":
+            self.repository.finish_study(
+                study_id, StudyLifecycle.COMPLETED
+            )
 
     def _resolve_owner_steps(self, study_id: str) -> None:
         gates = self.repository.list_gates(study_id)
+        latest_contract = self.repository.latest_research_contract(study_id)
         for step in self.repository.list_steps(study_id):
             if (
                 step.executor_type is not ExecutorType.PROJECT_OWNER
@@ -340,11 +566,113 @@ class PersistentDAGScheduler:
                 else [
                     gate
                     for gate in gates
-                    if gate.gate_type is GateType.REPAIR_OR_HIGH_COST_RUN
+                    if gate.gate_type is GateType.RESEARCH_CONTRACT
+                    and latest_contract is not None
+                    and gate.subject_version
+                    == latest_contract.version
                 ]
-                if step.step_type == "regression_scope_review"
+                if step.step_type == "research_contract_review"
+                else [
+                    gate
+                    for gate in gates
+                    if gate.gate_type is GateType.REPAIR_OR_HIGH_COST_RUN
+                    and (
+                        step.step_type != "stage3_execution_gate"
+                        or (
+                            gate.subject_type == "stage3_run_plan"
+                            and gate.subject_id
+                            == step.parameters.get("plan_id")
+                        )
+                    )
+                ]
+                if step.step_type in {
+                    "regression_scope_review",
+                    "stage3_execution_gate",
+                }
+                else [
+                    gate
+                    for gate in gates
+                    if (
+                        (
+                            step.step_type == "publication_narrative_selection"
+                            and gate.gate_type is GateType.PUBLICATION_NARRATIVE
+                        )
+                        or (
+                            step.step_type
+                            in {
+                                "visual_argument_plan_approval",
+                                "final_visual_approval",
+                            }
+                            and gate.gate_type is GateType.VISUAL_ARGUMENT
+                        )
+                        or (
+                            step.step_type == "humanization_author_approval"
+                            and gate.gate_type is GateType.AUTHOR_VOICE
+                        )
+                        or (
+                            step.step_type == "author_final_review_and_approval"
+                            and gate.gate_type is GateType.FINAL_SUBMISSION
+                        )
+                    )
+                    and (
+                        not step.parameters.get("subject_id")
+                        or gate.subject_id == step.parameters.get("subject_id")
+                    )
+                ]
+                if step.step_type
+                in {
+                    "publication_narrative_selection",
+                    "visual_argument_plan_approval",
+                    "final_visual_approval",
+                    "humanization_author_approval",
+                    "author_final_review_and_approval",
+                }
                 else []
             )
+            if step.step_type == "research_contract_review" and not relevant:
+                assessments = [
+                    candidate
+                    for candidate in self.repository.list_steps(study_id)
+                    if candidate.step_type == "assess_stage2_gate"
+                    and candidate.status is ExecutionStatus.SUCCEEDED
+                ]
+                if assessments:
+                    latest_assessment = assessments[-1]
+                    result = self.repository.load_step_result(
+                        study_id, latest_assessment.step_instance_id
+                    )
+                    gate_report = result.get("stage2_gate_report", result)
+                    if gate_report.get("status") in {
+                        "FAIL",
+                        "BUILD_REQUIRED",
+                    }:
+                        self.repository.update_step(
+                            study_id,
+                            step.step_instance_id,
+                            ExecutionStatus.BLOCKED,
+                            blocker={
+                                "kind": (
+                                    "experiment_build_required"
+                                    if gate_report.get("status")
+                                    == "BUILD_REQUIRED"
+                                    else "gate_conditions_failed"
+                                ),
+                                "message": (
+                                    "Stage 2 still needs a non-scientific MVP: "
+                                    "a minimum runnable environment, 2–3 smoke "
+                                    "cases, metric computation, and conceptual "
+                                    "baseline feasibility."
+                                    if gate_report.get("status")
+                                    == "BUILD_REQUIRED"
+                                    else (
+                                        "Stage 2 Gate conditions failed; revise "
+                                        "the draft contract or resource selection "
+                                        "before requesting owner approval."
+                                    )
+                                ),
+                            },
+                        )
+                        continue
             if any(gate.status.value == "approved" for gate in relevant):
                 self._persist_success(
                     study_id,
@@ -369,6 +697,24 @@ class PersistentDAGScheduler:
 
     def _recover_interrupted_steps(self, study_id: str) -> None:
         for step in self.repository.list_steps(study_id):
+            if (
+                step.status is ExecutionStatus.BLOCKED
+                and step.blocker
+                and step.blocker.get("kind") == "paused_checkpoint"
+            ):
+                self.repository.update_step(
+                    study_id,
+                    step.step_instance_id,
+                    ExecutionStatus.QUEUED,
+                    blocker={
+                        "kind": "resumed_from_safe_checkpoint",
+                        "message": (
+                            "The paused run cell will start a new append-only "
+                            "ExecutionAttempt."
+                        ),
+                    },
+                )
+                continue
             if step.status not in {
                 ExecutionStatus.RUNNING,
                 ExecutionStatus.RETRYING,
@@ -431,8 +777,42 @@ def _project_scan(context: StepContext) -> dict[str, Any]:
     )
     if not project.source_root:
         raise BlockedStepError("project source folder is not configured")
+    if is_dependency_cache_root(project.source_root):
+        raise BlockedStepError(
+            "selected source is a package-manager dependency cache, not a "
+            "research project bundle"
+        )
+    if is_shared_binary_dependency_bundle(project.source_root):
+        raise BlockedStepError(
+            "selected source is a shared binary runtime/dependency "
+            "installation bundle, not a research project or "
+            "research-material bundle"
+        )
     resources, excluded = inventory_project_bundle(project.source_root)
     hdf5_metadata = inventory_project_hdf5_metadata(project.source_root)
+    from .pdf_materials import extract_pdf_material
+
+    pdf_metadata = []
+    source_root = Path(project.source_root).resolve()
+    for resource in resources:
+        if resource.suffix != ".pdf":
+            continue
+        metadata = extract_pdf_material(
+            source_root / resource.path, limit=200_000
+        )
+        pdf_metadata.append(
+            {
+                key: value
+                for key, value in metadata.items()
+                if key != "text"
+            }
+            | {"path": resource.path}
+        )
+    if is_driver_installation_bundle(project.source_root, resources):
+        raise BlockedStepError(
+            "selected source is a binary device-driver installation bundle, "
+            "not a research project bundle"
+        )
     return {
         "source_root": str(Path(project.source_root).resolve()),
         "resource_count": len(resources),
@@ -441,6 +821,7 @@ def _project_scan(context: StepContext) -> dict[str, Any]:
         "hdf5_metadata": [
             item.model_dump(mode="json") for item in hdf5_metadata
         ],
+        "pdf_metadata": pdf_metadata,
         "include_external": bool(
             context.repository.load_study(context.study_id).settings.get(
                 "include_external_discovery", True
@@ -452,7 +833,31 @@ def _project_scan(context: StepContext) -> dict[str, Any]:
 def _author_claim_extraction(context: StepContext) -> dict[str, Any]:
     scan = context.result("project_scan")
     resources = _models(scan["resources"], BundleResource)
-    claims = extract_author_claims(Path(scan["source_root"]), resources)
+    study = context.repository.load_study(context.study_id)
+    source_root = Path(scan["source_root"])
+    if (
+        study.entry_mode is EntryMode.IDEA_TO_PAPER
+        and (source_root / "project.json").is_file()
+    ):
+        meta = ProjectMeta.model_validate(read_json(source_root / "project.json"))
+        claims = [
+            AuthorClaim(
+                claim_id=stable_id(
+                    "author-claim", context.study_id, "research-idea"
+                ),
+                statement=meta.idea,
+                claim_type="research_question",
+                source_spans=[
+                    SourceSpan(
+                        path="project.json",
+                        sha256=sha256_file(source_root / "project.json"),
+                        section="idea",
+                    )
+                ],
+            )
+        ]
+    else:
+        claims = extract_author_claims(source_root, resources)
     repair_actions = set(
         context.repository.load_study(context.study_id).settings.get(
             "discovery_repair_actions", []
@@ -481,7 +886,48 @@ def _author_claim_extraction(context: StepContext) -> dict[str, Any]:
 def _candidate_discovery(context: StepContext) -> dict[str, Any]:
     scan = context.result("project_scan")
     resources = _models(scan["resources"], BundleResource)
-    candidates = discover_novelty_candidates(scan["source_root"], resources)
+    study = context.repository.load_study(context.study_id)
+    source_root = Path(scan["source_root"])
+    if (
+        study.entry_mode is EntryMode.IDEA_TO_PAPER
+        and (source_root / "project.json").is_file()
+    ):
+        meta = ProjectMeta.model_validate(read_json(source_root / "project.json"))
+        project_resource = next(
+            (item for item in resources if item.path == "project.json"),
+            None,
+        )
+        candidates = [
+            NoveltyCandidate(
+                track_id=stable_id(
+                    "idea-track", context.study_id, meta.idea
+                ),
+                novelty_seed=meta.idea,
+                protocol_path="project.json",
+                latest_artifact_at=(
+                    project_resource.modified_at
+                    if project_resource is not None
+                    else utc_now()
+                ),
+                evidence_maturity="mixed_or_unspecified",
+                artifact_chain_complete=False,
+                protocol_bound_to_output=False,
+                paperability_score=3,
+                paperability_reasons=[
+                    "owner-approved research direction",
+                    "prospective experiment can be designed",
+                ],
+                blockers=[
+                    "frozen_protocol_output_binding",
+                    "independent_validation",
+                ],
+                source_mode="derived_materials",
+                closure_input_ready=False,
+                display_title=meta.name,
+            )
+        ]
+    else:
+        candidates = discover_novelty_candidates(scan["source_root"], resources)
     if not candidates:
         hdf5_candidate = discover_hdf5_metadata_candidate(
             scan["source_root"],
@@ -495,6 +941,12 @@ def _candidate_discovery(context: StepContext) -> dict[str, Any]:
             )
             if derived is not None:
                 candidates = [derived]
+            else:
+                code_candidate = discover_code_project_candidate(
+                    scan["source_root"], resources
+                )
+                if code_candidate is not None:
+                    candidates = [code_candidate]
     return {"candidates": [item.model_dump(mode="json") for item in candidates]}
 
 
@@ -727,6 +1179,24 @@ def _execute_discovery_retrieval(context: StepContext) -> dict[str, Any]:
             statuses[provider] = (
                 "not_requested" if not include_external else "policy_denied"
             )
+    if (
+        include_external
+        and execution.run.execution_status.value == "blocked"
+    ):
+        classification = (
+            execution.run.error_classification.value
+            if execution.run.error_classification is not None
+            else "retrieval_blocked"
+        )
+        raise BlockedStepError(
+            (
+                "External discovery was requested, but the Project retrieval "
+                f"policy blocked every provider ({classification}). Approve a "
+                "public read-only retrieval policy for this Project before "
+                "continuing discovery."
+            ),
+            kind="retrieval_policy_approval_required",
+        )
     return {
         **execution.model_dump(),
         "provider_status": statuses,
@@ -862,6 +1332,67 @@ def _build_discovery_source_set(context: StepContext) -> dict[str, Any]:
     }
 
 
+def bind_frozen_discovery_literature_set(
+    repository: WorkflowRepository,
+    study_id: str,
+    *,
+    resource_set_payload: dict[str, Any] | None = None,
+) -> LiteratureSetVersion | None:
+    """Bind a frozen retrieval ResourceSet into Workflow literature v1.
+
+    This is a compatibility bridge between the horizontal Retrieval Gateway
+    and the versioned publication workflow.  It creates a new immutable
+    binding only; it never changes the frozen retrieval set or promotes
+    background sources into decision evidence.
+    """
+
+    existing = repository.list_literature_sets(study_id)
+    if existing:
+        return existing[-1]
+    resource_set = resource_set_payload
+    if resource_set is None:
+        freeze_steps = [
+            item
+            for item in repository.list_steps(study_id)
+            if item.step_type == "freeze_discovery_source_set"
+            and item.status is ExecutionStatus.SUCCEEDED
+        ]
+        if not freeze_steps:
+            return None
+        result = repository.load_step_result(
+            study_id, freeze_steps[-1].step_instance_id
+        )
+        resource_set = result.get("resource_set")
+    if (
+        not isinstance(resource_set, dict)
+        or resource_set.get("status") != "frozen"
+    ):
+        return None
+    gateway = RetrievalGateway(str(repository.root))
+    source_ids: set[str] = set()
+    for binding_id in resource_set.get("binding_ids", []):
+        binding = gateway.repository.load_binding(str(binding_id))
+        resource = gateway.repository.load_resource(binding.resource_id)
+        if resource.resource_type in {
+            ResourceType.PUBLICATION,
+            ResourceType.PREPRINT,
+        }:
+            source_ids.add(resource.resource_id)
+    if not source_ids:
+        return None
+    literature = LiteratureSetVersion(
+        literature_set_id="literature-discovery-sources",
+        study_id=study_id,
+        version=1,
+        status=ArtifactStatus.FROZEN,
+        background_source_ids=sorted(source_ids),
+        decision_source_ids=[],
+        affects_novelty=True,
+        affects_research_design=False,
+    )
+    return repository.save_literature_set(literature)
+
+
 def _freeze_discovery_source_set(context: StepContext) -> dict[str, Any]:
     payload = context.result("build_discovery_source_set")
     resource_set = payload.get("resource_set")
@@ -871,7 +1402,19 @@ def _freeze_discovery_source_set(context: StepContext) -> dict[str, Any]:
             "reason": "offline or empty retrieval produced no ResourceSet",
         }
     frozen = _gateway(context).freeze_resource_set(str(resource_set["resource_set_id"]))
-    return {"resource_set": frozen.model_dump(mode="json")}
+    literature = bind_frozen_discovery_literature_set(
+        context.repository,
+        context.study_id,
+        resource_set_payload=frozen.model_dump(mode="json"),
+    )
+    return {
+        "resource_set": frozen.model_dump(mode="json"),
+        "literature_set": (
+            literature.model_dump(mode="json")
+            if literature is not None
+            else None
+        ),
+    }
 
 
 def _recommendation(context: StepContext) -> dict[str, Any]:
@@ -994,7 +1537,13 @@ def _scope_drafting(context: StepContext) -> dict[str, Any]:
         literature_set_id=(
             portfolio.resource_set_ids[0] if portfolio.resource_set_ids else None
         ),
-        field_diff={"selected_direction_id": selected.direction_id},
+        field_diff={
+            "selected_direction_id": selected.direction_id,
+            "selected_primary_track_id": selected.primary_track_id,
+            "comparison_frame": selected.comparison_frame,
+            "academic_concepts": selected.academic_concepts,
+            "operational_definition": selected.operational_definition,
+        },
     )
     context.repository.save_scope_contract(contract)
     existing = [
@@ -1022,9 +1571,15 @@ def _scope_drafting(context: StepContext) -> dict[str, Any]:
 
 
 def _freeze_scope_contract(context: StepContext) -> dict[str, Any]:
-    draft = ScopeContractVersion.model_validate(
-        context.result("scope_drafting")["scope_contract"]
-    )
+    # The owner approval handler may enrich the draft after scope_drafting.
+    # Freeze the repository's latest draft instead of replaying the stale step
+    # output and silently discarding approved semantic fields.
+    draft = context.repository.latest_scope_contract(context.study_id)
+    if draft is None:
+        raise BlockedStepError(
+            "No Scope draft is available to freeze.",
+            kind="missing_scope_draft",
+        )
     frozen = context.repository.save_scope_contract(
         draft.model_copy(
             update={
@@ -1064,6 +1619,24 @@ def stage_one_handlers() -> dict[str, StepHandler]:
     return handlers
 
 
+def workflow_handlers() -> dict[str, StepHandler]:
+    """Return every connected Workflow v2 handler.
+
+    The lazy import keeps the scheduler primitives usable by the Stage 2 module
+    without introducing an import cycle.
+    """
+
+    from .stage_two import stage_two_handlers
+    from .stage_three import stage_three_handlers
+    from .stage_four import stage_four_handlers
+
+    handlers = stage_one_handlers()
+    handlers.update(stage_two_handlers())
+    handlers.update(stage_three_handlers())
+    handlers.update(stage_four_handlers())
+    return handlers
+
+
 def _unconnected_retrieval_handler(context: StepContext) -> dict[str, Any]:
     raise BlockedStepError(
         (
@@ -1081,6 +1654,7 @@ def create_project_discovery_study(
     title: str | None = None,
     include_external: bool = True,
     identity: str | None = None,
+    entry_mode: EntryMode = EntryMode.PROJECT_TO_PAPER,
 ) -> tuple[str, str]:
     root = Path(source_root).resolve()
     if not root.is_dir():
@@ -1096,7 +1670,7 @@ def create_project_discovery_study(
     study = repository.create_study(
         project.project_id,
         title or f"{root.name} discovery",
-        entry_mode=EntryMode.PROJECT_TO_PAPER,
+        entry_mode=entry_mode,
         study_id=stable_id("study", project.project_id, "discovery", suffix),
         settings={"include_external_discovery": include_external},
     )
@@ -1581,6 +2155,7 @@ def execute_discovery_repair(
             predecessor.settings.get("include_external_discovery", True)
         ),
         identity=f"successor:{repair.repair_id}",
+        entry_mode=predecessor.entry_mode,
     )
     successor = repository.load_study(successor_study_id)
     repository.save_study(
@@ -1705,6 +2280,7 @@ def run_project_discovery(
     include_external: bool = True,
     identity: str | None = None,
     auto_repair: bool = True,
+    entry_mode: EntryMode = EntryMode.PROJECT_TO_PAPER,
 ) -> dict[str, Any]:
     repository = WorkflowRepository(repository_root)
     project_id, study_id = create_project_discovery_study(
@@ -1713,6 +2289,7 @@ def run_project_discovery(
         title=title,
         include_external=include_external,
         identity=identity,
+        entry_mode=entry_mode,
     )
     visited: set[str] = set()
     while study_id not in visited:
@@ -1801,6 +2378,7 @@ def approve_discovery_direction(
     *,
     decided_by: str = "project_owner",
     reason: str | None = None,
+    scope_overrides: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Select one portfolio direction, approve Scope v1, and resume the DAG."""
 
@@ -1839,13 +2417,52 @@ def approve_discovery_direction(
             "workflow": repository.snapshot(study_id),
         }
 
+    overrides = dict(scope_overrides or {})
+    allowed_override_fields = {
+        "direction",
+        "research_question",
+        "scope_in",
+        "scope_out",
+        "candidate_contribution",
+    }
+    unknown_override_fields = set(overrides).difference(allowed_override_fields)
+    if unknown_override_fields:
+        raise ValueError(
+            "unsupported Scope override fields: "
+            + ", ".join(sorted(unknown_override_fields))
+        )
+    for field_name in ("direction", "research_question", "candidate_contribution"):
+        if field_name in overrides:
+            value = str(overrides[field_name]).strip()
+            if not value:
+                raise ValueError(f"{field_name} cannot be empty")
+            overrides[field_name] = value
+    for field_name in ("scope_in", "scope_out"):
+        if field_name in overrides:
+            value = overrides[field_name]
+            if isinstance(value, str):
+                value = [
+                    item.strip()
+                    for item in value.replace("\r", "\n").split("\n")
+                    if item.strip()
+                ]
+            if not isinstance(value, list) or not all(
+                isinstance(item, str) and item.strip() for item in value
+            ):
+                raise ValueError(f"{field_name} must contain non-empty text items")
+            overrides[field_name] = [item.strip() for item in value]
+
+    selected_values = {
+        "direction": selected.title[:300],
+        "research_question": selected.research_question[:1200],
+        "scope_in": selected.scope_in,
+        "scope_out": selected.scope_out,
+        "candidate_contribution": selected.candidate_contribution[:2000],
+    }
+    selected_values.update(overrides)
     updated = current.model_copy(
         update={
-            "direction": selected.title[:300],
-            "research_question": selected.research_question[:1200],
-            "scope_in": selected.scope_in,
-            "scope_out": selected.scope_out,
-            "candidate_contribution": selected.candidate_contribution[:2000],
+            **selected_values,
             "project_resource_ids": selected.local_evidence_paths,
             "literature_set_id": (
                 portfolio.resource_set_ids[0]
@@ -1856,6 +2473,11 @@ def approve_discovery_direction(
                 **current.field_diff,
                 "selected_direction_id": selected.direction_id,
                 "selected_primary_track_id": selected.primary_track_id,
+                "comparison_frame": selected.comparison_frame,
+                "academic_concepts": selected.academic_concepts,
+                "operational_definition": selected.operational_definition,
+                "owner_scope_overrides": overrides,
+                "owner_revision_reason": reason,
             },
             "created_by": decided_by,
         }
@@ -1879,7 +2501,11 @@ def approve_discovery_direction(
         decided_by=decided_by,
         reason=reason or f"Selected Discovery direction {direction_id}.",
     )
-    workflow = PersistentDAGScheduler(repository, stage_one_handlers()).run(study_id)
+    from .stage_two import ensure_stage_two_dag
+
+    PersistentDAGScheduler(repository, stage_one_handlers()).run(study_id)
+    ensure_stage_two_dag(repository, study_id)
+    workflow = PersistentDAGScheduler(repository, workflow_handlers()).run(study_id)
     frozen = repository.latest_scope_contract(study_id)
     return {
         "scope_contract": (

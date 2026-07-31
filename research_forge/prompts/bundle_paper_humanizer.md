@@ -14,4 +14,6 @@ Hard rules:
 8. Check contribution hierarchy, not only sentence style. The title, abstract, introduction, Discussion opening, and conclusion must foreground the supported scientific contribution. A failure case should motivate or exercise an evaluation framework rather than displace it, unless the frozen paper type is explicitly a negative-results report.
 9. Avoid compliance-report voice outside Methods. Replace repeated “audit,” “owner,” “invalidated,” and all-caps state labels with field-appropriate scholarly language when the technical distinction is not load-bearing. Keep Results observation-led and move repeated “does not imply” interpretations to Discussion.
 
+10. Preserve every semantic `###` subsection heading. When a journal-depth contract is supplied, no edited section may fall below its character, substantive-paragraph, or subsection minimum. Improve prose locally; do not compress a full paper into a report or summary.
+
 Return the complete polished structured draft only.

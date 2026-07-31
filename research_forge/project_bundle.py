@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import re
 import shutil
@@ -19,6 +20,7 @@ from .claim_discovery import (
 from .hdf5_metadata import HDF5MetadataResource, inventory_hdf5_metadata
 from .manuscript_depth import audit_manuscript_depth
 from .models import StrictModel
+from .pdf_materials import extract_pdf_material
 from .storage import read_json, sha256_file, slugify, write_json_atomic
 
 
@@ -26,33 +28,42 @@ _ALLOWED_SUFFIXES = {
     ".csv",
     ".json",
     ".jsonl",
+    ".js",
     ".md",
+    ".mjs",
     ".ps1",
     ".py",
     ".sql",
     ".toml",
+    ".ts",
+    ".tsx",
     ".tsv",
     ".txt",
     ".docx",
     ".pptx",
+    ".pdf",
     ".xlsx",
     ".yaml",
     ".yml",
 }
 _EXCLUDED_DIRECTORIES = {
     ".agents",
+    ".bun",
     ".codex",
     ".cache",
     ".huggingface",
     ".torch",
     ".git",
     ".next",
+    ".npm",
     ".openai",
+    ".pnpm-store",
     ".pytest_cache",
     ".venv",
     ".vercel",
     ".vinext",
     ".wrangler",
+    ".yarn",
     "__pycache__",
     "build",
     "cache",
@@ -65,6 +76,12 @@ _EXCLUDED_DIRECTORIES = {
     "hf_cache",
     "huggingface_cache",
     "work",
+}
+_DEPENDENCY_CACHE_ROOTS = {
+    ".bun",
+    ".npm",
+    ".pnpm-store",
+    ".yarn",
 }
 _EXCLUDED_EXACT_NAMES = {
     ".env",
@@ -85,6 +102,39 @@ _MAX_RESOURCE_BYTES = 25 * 1024 * 1024
 _MAX_OFFICE_RESOURCE_BYTES = 100 * 1024 * 1024
 _MAX_SNAPSHOT_BYTES = 100 * 1024 * 1024
 _MAX_INVENTORY_FILES = 20_000
+_DRIVER_PACKAGE_SUFFIXES = {".cat", ".dll", ".inf", ".sys"}
+_SHARED_RUNTIME_DIRECTORY_MARKERS = {
+    "_commonredist",
+    "common_apps",
+    "common-redist",
+    "commonredist",
+    "dependency_shared",
+    "redistributables",
+}
+_SHARED_RUNTIME_BINARY_SUFFIXES = {
+    ".bin",
+    ".cab",
+    ".dat",
+    ".dll",
+    ".exe",
+    ".msi",
+    ".pak",
+}
+_RESEARCH_BEARING_SUFFIXES = {
+    ".csv",
+    ".docx",
+    ".ipynb",
+    ".jsonl",
+    ".md",
+    ".pdf",
+    ".pptx",
+    ".py",
+    ".r",
+    ".sql",
+    ".ts",
+    ".tsx",
+    ".xlsx",
+}
 _COMMON_TRACK_TOKENS = {
     "baseline",
     "model",
@@ -101,7 +151,14 @@ _STAGE_NAMES = (
     "stage_3_experimentation",
     "stage_4_synthesis",
 )
-_TEXT_MATERIAL_SUFFIXES = {".docx", ".md", ".pptx", ".txt", ".xlsx"}
+_TEXT_MATERIAL_SUFFIXES = {
+    ".docx",
+    ".md",
+    ".pdf",
+    ".pptx",
+    ".txt",
+    ".xlsx",
+}
 _STRUCTURED_EVIDENCE_SUFFIXES = {
     ".csv",
     ".json",
@@ -267,7 +324,140 @@ def _safe_source_root(value: str | Path) -> Path:
     root = Path(value).resolve()
     if not root.is_dir():
         raise FileNotFoundError(f"project bundle directory not found: {root}")
+    if is_dependency_cache_root(root):
+        raise ValueError(
+            "project bundle source is a dependency cache, not a research "
+            f"project: {root}"
+        )
     return root
+
+
+def is_dependency_cache_root(value: str | Path) -> bool:
+    """Return whether a selected source is inside a package-manager cache."""
+
+    root = Path(value).resolve()
+    return any(
+        item.name.casefold() in _DEPENDENCY_CACHE_ROOTS
+        for item in (root, *list(root.parents)[:2])
+    )
+
+
+def is_shared_binary_dependency_bundle(value: str | Path) -> bool:
+    """Detect a shared runtime/redistributable bundle selected as a project.
+
+    Binary-heavy scientific projects are not rejected merely for containing
+    executables or model payloads. Detection requires both an installation
+    structure marker and an overwhelming binary-package composition without
+    research-bearing source, data, notebooks, reports, or documents.
+    """
+
+    root = Path(value).resolve()
+    structure_found = root.name.casefold() in _SHARED_RUNTIME_DIRECTORY_MARKERS
+    total_files = 0
+    binary_files = 0
+    research_files = 0
+    for current, directory_names, file_names in os.walk(
+        root,
+        followlinks=False,
+    ):
+        directory_names[:] = [
+            name
+            for name in directory_names
+            if name.casefold() not in _EXCLUDED_DIRECTORIES
+        ]
+        structure_found = structure_found or any(
+            name.casefold() in _SHARED_RUNTIME_DIRECTORY_MARKERS
+            or name.casefold().startswith("dependency_shared")
+            for name in directory_names
+        )
+        for name in file_names:
+            total_files += 1
+            if total_files > 5_000:
+                return False
+            suffix = Path(name).suffix.casefold()
+            binary_files += suffix in _SHARED_RUNTIME_BINARY_SUFFIXES
+            research_files += suffix in _RESEARCH_BEARING_SUFFIXES
+    return bool(
+        structure_found
+        and total_files >= 5
+        and research_files == 0
+        and binary_files / total_files >= 0.8
+    )
+
+
+def is_driver_installation_bundle(
+    value: str | Path,
+    resources: list[BundleResource] | None = None,
+) -> bool:
+    """Detect a binary device-driver distribution without research materials."""
+
+    root = Path(value).resolve()
+    substantive = [
+        item
+        for item in (resources or [])
+        if item.size_bytes > 0
+        and item.suffix
+        in {
+            ".csv",
+            ".docx",
+            ".json",
+            ".jsonl",
+            ".md",
+            ".pptx",
+            ".py",
+            ".sql",
+            ".ts",
+            ".tsx",
+            ".xlsx",
+            ".yaml",
+            ".yml",
+        }
+    ]
+    if substantive:
+        return False
+    suffix_counts: dict[str, int] = {}
+    installer_found = False
+    source_found = False
+    seen = 0
+    for current, directory_names, file_names in os.walk(
+        root,
+        followlinks=False,
+    ):
+        directory_names[:] = [
+            name
+            for name in directory_names
+            if name.casefold() not in _EXCLUDED_DIRECTORIES
+        ]
+        for name in file_names:
+            seen += 1
+            if seen > 5_000:
+                return False
+            suffix = Path(name).suffix.casefold()
+            suffix_counts[suffix] = suffix_counts.get(suffix, 0) + 1
+            lower = name.casefold()
+            installer_found = installer_found or (
+                suffix in {".bat", ".cmd"}
+                or lower in {"setup.exe", "install.exe"}
+            )
+            source_found = source_found or suffix in {
+                ".c",
+                ".cc",
+                ".cpp",
+                ".cs",
+                ".h",
+                ".hpp",
+                ".java",
+                ".rs",
+            }
+    return bool(
+        not source_found
+        and installer_found
+        and suffix_counts.get(".inf", 0) > 0
+        and any(
+            suffix_counts.get(suffix, 0) > 0
+            for suffix in _DRIVER_PACKAGE_SUFFIXES - {".inf"}
+        )
+    )
 
 
 def _is_excluded(relative: Path) -> bool:
@@ -342,12 +532,13 @@ def inventory_project_bundle(
             suffix = path.suffix.casefold()
             size_limit = (
                 _MAX_OFFICE_RESOURCE_BYTES
-                if suffix in {".docx", ".pptx", ".xlsx"}
+                if suffix in {".docx", ".pdf", ".pptx", ".xlsx"}
                 else _MAX_RESOURCE_BYTES
             )
             if (
                 _is_excluded(relative)
                 or suffix not in _ALLOWED_SUFFIXES
+                or size == 0
                 or size > size_limit
             ):
                 excluded += 1
@@ -410,6 +601,8 @@ def _track_tokens(track_id: str) -> list[str]:
 
 
 def _text(path: Path, *, limit: int = 400_000) -> str:
+    if path.suffix.casefold() == ".pdf":
+        return str(extract_pdf_material(path, limit=limit)["text"])
     if path.suffix.casefold() in {".docx", ".pptx", ".xlsx"}:
         return extract_office_text(path, limit=limit)
     if path.stat().st_size > limit:
@@ -619,6 +812,215 @@ def _scientific_design_bonus(
     return bonus, reasons
 
 
+def _read_jsonl_objects(path: Path, *, limit: int = 2_000) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    try:
+        with path.open("r", encoding="utf-8", errors="strict") as handle:
+            for line in handle:
+                if len(rows) >= limit:
+                    break
+                if not line.strip():
+                    continue
+                value = json.loads(line)
+                if isinstance(value, dict):
+                    rows.append(value)
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return []
+    return rows
+
+
+def _discover_nested_research_contract_candidates(
+    root: Path,
+    resource_map: dict[str, BundleResource],
+) -> list[NoveltyCandidate]:
+    """Discover explicit project-local Contract → Run → Evidence chains.
+
+    Historical Research Forge runs commonly live below a task matrix rather
+    than in the legacy top-level ``protocols/`` and ``outputs/`` layout.  A
+    chain is considered explicitly bound only when the research contract is
+    present in the frozen manifest and evidence rows agree with immutable run
+    records.  Merely finding similarly named files is not enough.
+    """
+
+    candidates: list[NoveltyCandidate] = []
+    contract_paths = sorted(
+        relative
+        for relative in resource_map
+        if Path(relative).name.casefold() == "research_contract.json"
+    )
+    for relative_contract in contract_paths:
+        project_relative = Path(relative_contract).parent
+        project_dir = root / project_relative
+        contract_path = root / relative_contract
+        contract = _load_json_object(contract_path)
+        if not contract:
+            continue
+
+        frozen_relative = (project_relative / "frozen_manifest.json").as_posix()
+        frozen = (
+            _load_json_object(root / frozen_relative)
+            if frozen_relative in resource_map
+            else {}
+        )
+        frozen_hashes = frozen.get("hashes")
+        contract_frozen = (
+            isinstance(frozen_hashes, dict)
+            and str(frozen_hashes.get("research_contract.json", "")).casefold()
+            == resource_map[relative_contract].sha256
+        )
+
+        evidence_relative = (project_relative / "evidence.jsonl").as_posix()
+        evidence_rows = (
+            _read_jsonl_objects(root / evidence_relative)
+            if evidence_relative in resource_map
+            else []
+        )
+        consistent_rows: list[dict[str, Any]] = []
+        run_record_paths: list[str] = []
+        for row in evidence_rows:
+            run_id = str(row.get("run_id") or "").strip()
+            if not run_id or "/" in run_id or "\\" in run_id:
+                continue
+            record_relative = (
+                project_relative / "runs" / run_id / "record.json"
+            ).as_posix()
+            if record_relative not in resource_map:
+                continue
+            record = _load_json_object(root / record_relative)
+            if not record or str(record.get("run_id") or "") != run_id:
+                continue
+            shared_fields = ("contract_hash", "code_hash", "is_baseline", "valid")
+            if any(
+                field in row
+                and field in record
+                and row[field] != record[field]
+                for field in shared_fields
+            ):
+                continue
+            if row.get("aggregate_metrics") != record.get("aggregate_metrics"):
+                continue
+            consistent_rows.append(row)
+            run_record_paths.append(record_relative)
+
+        bound = contract_frozen and bool(consistent_rows)
+        title = str(contract.get("title") or project_dir.name).strip()
+        hypothesis = str(
+            contract.get("hypothesis")
+            or contract.get("research_question")
+            or ""
+        ).strip()
+        if len(hypothesis) > 700 or hypothesis.lstrip().startswith("#"):
+            hypothesis = ""
+        novelty_seed = (
+            f"{title}: {hypothesis}" if hypothesis else title
+        )[:1_200]
+
+        summaries: list[str] = []
+        for row in consistent_rows[-8:]:
+            metrics = row.get("aggregate_metrics")
+            summaries.append(
+                " | ".join(
+                    part
+                    for part in (
+                        str(row.get("run_id") or ""),
+                        "baseline" if row.get("is_baseline") else "candidate",
+                        str(row.get("verdict") or ""),
+                        json.dumps(
+                            metrics,
+                            ensure_ascii=False,
+                            sort_keys=True,
+                        )
+                        if isinstance(metrics, dict)
+                        else "",
+                    )
+                    if part
+                )
+            )
+
+        implementation_paths = [
+            relative
+            for relative in (
+                (project_relative / "experiment" / "run_experiment.py").as_posix(),
+                (project_relative / "evaluator" / "evaluate.py").as_posix(),
+            )
+            if relative in resource_map
+        ]
+        test_paths = [
+            relative
+            for relative in (
+                (project_relative / "data" / "train.jsonl").as_posix(),
+                (project_relative / "data" / "validation.jsonl").as_posix(),
+                (project_relative / "data" / "test.jsonl").as_posix(),
+            )
+            if relative in resource_map
+        ]
+        blockers: list[str] = []
+        if not contract_frozen:
+            blockers.append(
+                "research contract is not bound by a matching frozen manifest hash"
+            )
+        if not evidence_rows:
+            blockers.append("missing machine-readable evidence ledger")
+        elif not consistent_rows:
+            blockers.append(
+                "evidence rows do not bind consistently to immutable run records"
+            )
+        if not implementation_paths:
+            blockers.append("missing declared experiment or evaluator implementation")
+
+        artifact_times = [resource_map[relative_contract].modified_at]
+        artifact_times.extend(
+            resource_map[path].modified_at
+            for path in [
+                evidence_relative,
+                frozen_relative,
+                *run_record_paths,
+            ]
+            if path in resource_map
+        )
+        latest = max(datetime.fromisoformat(value) for value in artifact_times)
+        score = (
+            45
+            + (25 if contract_frozen else 0)
+            + (25 if consistent_rows else 0)
+            + min(10, len(consistent_rows))
+            + min(5, len(implementation_paths) + len(test_paths))
+        )
+        candidates.append(
+            NoveltyCandidate(
+                track_id=slugify(
+                    f"{project_relative.as_posix()}-{title}"
+                )[:180],
+                novelty_seed=novelty_seed,
+                protocol_path=relative_contract,
+                output_path=(
+                    evidence_relative if evidence_relative in resource_map else None
+                ),
+                report_path=None,
+                implementation_paths=implementation_paths,
+                test_paths=test_paths,
+                conclusion_excerpt="\n".join(summaries)[:4_000],
+                latest_artifact_at=latest.isoformat(),
+                evidence_maturity="retrospective",
+                artifact_chain_complete=bound,
+                protocol_bound_to_output=bound,
+                paperability_score=min(100, score),
+                paperability_reasons=[
+                    "nested frozen Research Forge contract",
+                    (
+                        f"{len(consistent_rows)} evidence rows bind to immutable "
+                        "run records"
+                    ),
+                ],
+                blockers=blockers,
+                source_mode="declared_chain",
+                closure_input_ready=bound,
+                display_title=title,
+            )
+        )
+    return candidates
+
+
 def discover_novelty_candidates(
     source_root: str | Path,
     resources: list[BundleResource] | None = None,
@@ -630,9 +1032,9 @@ def discover_novelty_candidates(
     resource_map = {resource.path: resource for resource in inventory}
     candidates: list[NoveltyCandidate] = []
     protocols = root / "protocols"
-    if not protocols.is_dir():
-        return []
-    for protocol_path in sorted(protocols.glob("*.json")):
+    for protocol_path in (
+        sorted(protocols.glob("*.json")) if protocols.is_dir() else []
+    ):
         relative_protocol = protocol_path.relative_to(root).as_posix()
         if relative_protocol not in resource_map:
             continue
@@ -722,6 +1124,9 @@ def discover_novelty_candidates(
                 display_title=_report_title(report_text, track_id),
             )
         )
+    candidates.extend(
+        _discover_nested_research_contract_candidates(root, resource_map)
+    )
     candidates.sort(
         key=lambda item: (
             -item.paperability_score,
@@ -959,17 +1364,82 @@ def discover_derived_material_candidate(
     implementation = [
         resource.path
         for resource in inventory
-        if resource.suffix in {".py", ".ps1", ".sql"}
+        if resource.suffix in {
+            ".py",
+            ".ps1",
+            ".sql",
+            ".ts",
+            ".tsx",
+            ".js",
+            ".mjs",
+        }
         and "test" not in resource.path.casefold()
     ][:16]
     tests = [
         resource.path
         for resource in inventory
-        if resource.suffix in {".py", ".ps1"} and "test" in resource.path.casefold()
+        if resource.suffix in {".py", ".ps1", ".ts", ".tsx", ".js", ".mjs"}
+        and "test" in resource.path.casefold()
     ][:12]
     title = _report_title(conclusion_text, "") or _report_title(boundary_text, "")
     title = title[:120].strip() or f"{root.name} 项目资料研究"
     question = _derived_question(boundary_text, root.name)
+    project_paths = {
+        resource.path.replace("\\", "/").casefold() for resource in inventory
+    }
+    financial_decision_support = (
+        any(
+            cue in f"{boundary_text}\n{conclusion_text}".casefold()
+            for cue in (
+                "investment advisor",
+                "robo-adviser",
+                "ai 投资顾问",
+                "衡策",
+            )
+        )
+        and any(
+            path.endswith(
+                (
+                    "lib/roundtable-engine.ts",
+                    "lib/openai-roundtable.ts",
+                    "lib/knowledge-engine.ts",
+                    "lib/advisor-engine.ts",
+                )
+            )
+            for path in project_paths
+        )
+    )
+    if financial_decision_support:
+        title = "多角色反证与证据检索对金融决策支持可靠性的影响"
+        question = (
+            "在相同模型、问题集和检索语料下，结构化多角色审查与反向证据"
+            "检索，相较单代理回答，能否降低无证据金融主张率并提高风险因素"
+            "覆盖率，同时不显著降低回答有用性？"
+        )
+        relevant_names = {
+            "lib/roundtable-engine.ts",
+            "lib/openai-roundtable.ts",
+            "lib/knowledge-engine.ts",
+            "lib/advisor-engine.ts",
+            "lib/openai-advisor.ts",
+            "services/intelligence/src/hengce_intelligence/adapters.py",
+            "services/intelligence/tests/test_adapters.py",
+        }
+        implementation = [
+            resource.path
+            for resource in inventory
+            if resource.path.replace("\\", "/").casefold()
+            in relevant_names
+            and "test" not in resource.path.casefold()
+        ]
+        tests = [
+            resource.path
+            for resource in inventory
+            if resource.path.replace("\\", "/").casefold()
+            in relevant_names
+            and "test" in resource.path.casefold()
+        ]
+        evidence_path = conclusion_resource.path
     selected_paths = {
         boundary_resource.path,
         conclusion_resource.path,
@@ -1021,6 +1491,179 @@ def discover_derived_material_candidate(
             "no declared frozen research protocol",
             "no exact protocol-output binding",
             "idea verdict must remain unverifiable until an explicit experiment chain is supplied",
+        ],
+        source_mode="derived_materials",
+        closure_input_ready=True,
+        display_title=title,
+    )
+
+
+def discover_code_project_candidate(
+    source_root: str | Path,
+    resources: list[BundleResource] | None = None,
+) -> NoveltyCandidate | None:
+    """Derive a provisional research direction from an executable code bundle.
+
+    Source code can establish what intervention is implementable, but it cannot
+    establish an experimental result.  Candidates produced here therefore stay
+    in ``derived_materials`` mode and require a new frozen benchmark chain.
+    """
+
+    root = _safe_source_root(source_root)
+    inventory = (
+        resources if resources is not None else inventory_project_bundle(root)[0]
+    )
+    code_resources = [
+        resource
+        for resource in inventory
+        if resource.suffix in {".py", ".sql", ".ts", ".tsx", ".js", ".mjs"}
+        and "test" not in resource.path.casefold()
+    ]
+    if not code_resources:
+        return None
+
+    normalized_paths = {
+        resource.path.replace("\\", "/").casefold(): resource
+        for resource in inventory
+    }
+    package_resource = normalized_paths.get("package.json")
+    package_payload = (
+        _load_json_object(root / package_resource.path)
+        if package_resource is not None
+        else {}
+    )
+    package_name = str(package_payload.get("name", "")).casefold()
+    path_text = "\n".join(normalized_paths)
+    advisor_radar = (
+        package_name == "advisor-radar"
+        or (
+            "lib/recommendation.ts" in normalized_paths
+            and "lib/scoring.ts" in normalized_paths
+            and (
+                "lib/pi-review.ts" in normalized_paths
+                or "professor" in path_text
+            )
+        )
+    )
+    supabase_governance = (
+        "config.toml" in normalized_paths
+        and any(
+            path.startswith("migrations/") and path.endswith(".sql")
+            for path in normalized_paths
+        )
+        and any(
+            cue in path_text
+            for cue in (
+                "advisor_radar",
+                "academic_outreach",
+                "recommendations",
+            )
+        )
+    )
+
+    if supabase_governance:
+        title = "行级安全与证据绑定对学术推荐工作流数据完整性的影响"
+        question = (
+            "在相同的多租户学术推荐与外联事务负载下，相比仅依赖应用层授权，显式行级"
+            "安全、证据外键和追加式审计约束能否降低跨用户数据泄漏与孤立证据记录率，"
+            "同时不显著降低合法事务成功率或增加数据库延迟？"
+        )
+        implementation = [
+            resource.path
+            for resource in inventory
+            if resource.path.replace("\\", "/").casefold().startswith(
+                "migrations/"
+            )
+            and resource.suffix == ".sql"
+        ]
+        tests = []
+    elif advisor_radar:
+        title = "结构化证据评分与复核对学术导师推荐可靠性的影响"
+        question = (
+            "在冻结候选人—导师语料、模型、检索预算和输出数量后，相比单次模型推荐，"
+            "结构化证据评分、风险约束与复核流程能否降低无依据的匹配主张并提高推荐排序"
+            "的一致性，同时不降低专家评定的研究契合度？"
+        )
+        relevant_names = {
+            "lib/agent.ts",
+            "lib/scoring.ts",
+            "lib/scoring-standards.ts",
+            "lib/recommendation.ts",
+            "lib/pi-review.ts",
+            "lib/quality-metrics.ts",
+            "lib/professor.ts",
+        }
+        implementation = [
+            resource.path
+            for resource in inventory
+            if resource.path.replace("\\", "/").casefold() in relevant_names
+        ]
+        tests = [
+            resource.path
+            for resource in inventory
+            if "test" in resource.path.casefold()
+            and any(
+                cue in resource.path.casefold()
+                for cue in ("scoring", "recommend", "quality", "professor")
+            )
+        ][:16]
+    else:
+        title = f"{root.name} 可执行系统的可靠性与可复现性评估"
+        question = (
+            "在冻结输入、依赖、环境和执行预算后，该系统的核心输出在重复运行与预先定义"
+            "的故障条件下是否保持一致、可追溯且满足任务原生质量门槛？"
+        )
+        implementation = [resource.path for resource in code_resources[:16]]
+        tests = [
+            resource.path
+            for resource in inventory
+            if resource.suffix in {".py", ".ts", ".tsx", ".js", ".mjs"}
+            and "test" in resource.path.casefold()
+        ][:12]
+
+    protocol_resource = package_resource or min(
+        code_resources, key=lambda item: item.path.casefold()
+    )
+    selected_paths = {
+        protocol_resource.path,
+        *implementation,
+        *tests,
+    }
+    latest = max(
+        datetime.fromisoformat(resource.modified_at)
+        for resource in inventory
+        if resource.path in selected_paths
+    )
+    return NoveltyCandidate(
+        track_id=f"code-project-{slugify(root.name)}-v1",
+        novelty_seed=question,
+        protocol_path=protocol_resource.path,
+        output_path=None,
+        report_path=None,
+        implementation_paths=implementation,
+        test_paths=tests,
+        conclusion_excerpt=(
+            "The local bundle establishes an implementable intervention boundary, "
+            "but contains no frozen experiment output that can support a verdict."
+        ),
+        latest_artifact_at=latest.isoformat(),
+        evidence_maturity="mixed_or_unspecified",
+        artifact_chain_complete=False,
+        protocol_bound_to_output=False,
+        paperability_score=min(
+            70,
+            35 + min(20, len(implementation) * 2) + min(10, len(tests)),
+        ),
+        paperability_reasons=[
+            f"located {len(code_resources)} executable source files",
+            "identified an implementable comparison boundary from local code",
+            "kept implementation evidence separate from experimental evidence",
+        ],
+        blockers=[
+            "no frozen evaluation corpus or dataset",
+            "no declared baseline and treatment protocol",
+            "no machine-readable experimental results bound to this implementation",
+            "idea verdict must remain unverifiable until a new experiment chain is supplied",
         ],
         source_mode="derived_materials",
         closure_input_ready=True,
@@ -1139,6 +1782,10 @@ def inspect_project_bundle(
         derived = discover_derived_material_candidate(root, resources)
         if derived is not None:
             candidates.append(derived)
+        elif not candidates:
+            code_candidate = discover_code_project_candidate(root, resources)
+            if code_candidate is not None:
+                candidates.append(code_candidate)
     candidates.sort(
         key=lambda item: (
             -int(item.artifact_chain_complete),

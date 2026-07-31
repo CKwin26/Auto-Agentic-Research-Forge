@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "experiments": [
+    {
+      "experiment_id": "single-pass-v1",
+      "action_ids": ["action-single-pass"],
+      "title": "single-pass claim proposer",
+      "execution_backend": "isolated_candidate_evaluator",
+      "container_image": "python:3.12-slim",
+      "command": [
+        "{python}",
+        "candidate.py",
+        "--arm",
+        "baseline",
+        "--input",
+        "{data_file}",
+        "--output",
+        "{prediction_file}"
+      ],
+      "required_inputs": ["formal_candidate.jsonl"],
+      "candidate_code_paths": ["candidate.py"],
+      "evaluator_command": [
+        "{python}",
+        "evaluator.py",
+        "--predictions",
+        "{prediction_file}",
+        "--targets",
+        "{target_file}",
+        "--output",
+        "{metrics_file}"
+      ],
+      "evaluator_code_paths": ["evaluator.py"],
+      "evaluator_required_inputs": ["formal_targets.jsonl"],
+      "prediction_artifact_path": "predictions.jsonl",
+      "smoke_command": [
+        "{python}",
+        "runner.py",
+        "--arm",
+        "baseline",
+        "--task",
+        "{task_id}",
+        "--seed",
+        "{seed}",
+        "--input",
+        "smoke_dataset.csv",
+        "--output",
+        "{metrics_file}"
+      ],
+      "smoke_required_inputs": ["smoke_dataset.csv", "runner.py"],
+      "timeout_seconds": 30,
+      "network_access": false,
+      "artifacts": [
+        {
+          "path": "metrics.json",
+          "format": "json",
+          "required_keys": ["accuracy", "denominator", "sample_ids"]
+        }
+      ]
+    },
+    {
+      "experiment_id": "bounded-self-play-v1",
+      "action_ids": ["action-bounded-self-play"],
+      "title": "one-round proposer critic revision",
+      "execution_backend": "isolated_candidate_evaluator",
+      "container_image": "python:3.12-slim",
+      "command": [
+        "{python}",
+        "candidate.py",
+        "--arm",
+        "treatment",
+        "--input",
+        "{data_file}",
+        "--output",
+        "{prediction_file}"
+      ],
+      "required_inputs": ["formal_candidate.jsonl"],
+      "candidate_code_paths": ["candidate.py"],
+      "evaluator_command": [
+        "{python}",
+        "evaluator.py",
+        "--predictions",
+        "{prediction_file}",
+        "--targets",
+        "{target_file}",
+        "--output",
+        "{metrics_file}"
+      ],
+      "evaluator_code_paths": ["evaluator.py"],
+      "evaluator_required_inputs": ["formal_targets.jsonl"],
+      "prediction_artifact_path": "predictions.jsonl",
+      "smoke_command": [
+        "{python}",
+        "runner.py",
+        "--arm",
+        "treatment",
+        "--task",
+        "{task_id}",
+        "--seed",
+        "{seed}",
+        "--input",
+        "smoke_dataset.csv",
+        "--output",
+        "{metrics_file}"
+      ],
+      "smoke_required_inputs": ["smoke_dataset.csv", "runner.py"],
+      "timeout_seconds": 30,
+      "network_access": false,
+      "artifacts": [
+        {
+          "path": "metrics.json",
+          "format": "json",
+          "required_keys": ["accuracy", "denominator", "sample_ids"]
+        }
+      ]
+    }
+  ]
+}

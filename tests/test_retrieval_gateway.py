@@ -11,6 +11,7 @@ from research_forge.claim_discovery import TrendSignal
 from research_forge.cli import main as cli_main
 from research_forge.retrieval.domain.models import (
     ContractRef,
+    ExternalResource,
     MetadataVerificationStatus,
     NetworkMode,
     QueryPlan,
@@ -1009,6 +1010,118 @@ def test_github_explicit_research_methods_and_approved_archive() -> None:
             max_bytes=100_000,
             authorization_approved=False,
         )
+
+
+def test_gateway_acquires_exact_contract_approved_github_archive(
+    tmp_path: Path,
+) -> None:
+    sha = "c" * 40
+    archive_bytes = b"PK\x03\x04frozen-source"
+
+    def content_transport(request, *, max_bytes: int, url_validator):
+        url_validator(request.full_url)
+        assert max_bytes == 100_000
+        final_url = f"https://codeload.github.com/org/repo/zip/{sha}"
+        url_validator(final_url)
+        return archive_bytes, final_url, "application/zip", {}
+
+    adapter = GitHubResearchAdapter(
+        transport=lambda _request: {},
+        content_transport=content_transport,
+    )
+    gateway = RetrievalGateway(
+        str(tmp_path),
+        providers=ProviderRegistry([adapter]),
+        validate_workflow_context=False,
+    )
+    policy = RetrievalNetworkPolicy(
+        policy_id=retrieval_id(
+            "network-policy", "project-code", "approved-code-v1"
+        ),
+        mode=NetworkMode.PUBLIC_RESEARCH,
+        allowed_providers={"github"},
+        allowed_domains={"api.github.com"},
+        allowed_http_methods={"GET"},
+        allowed_resource_types={
+            ResourceType.CODE_REPOSITORY,
+            ResourceType.CODE_RELEASE,
+        },
+        allow_repository_download=True,
+        max_queries=1,
+        max_results=1,
+        max_bytes=100_000,
+        approved_by="project_owner",
+        approved_at="2026-07-26T00:00:00+00:00",
+    )
+    gateway.set_policy("project-code", policy)
+    resource = ExternalResource(
+        resource_id="resource-code-release",
+        resource_type=ResourceType.CODE_RELEASE,
+        canonical_identifier=f"github:org/repo@{sha}",
+        title="Pinned code release",
+        repository="org/repo",
+        commit=sha,
+        license="MIT",
+        providers=["github"],
+        metadata_verification_status=MetadataVerificationStatus.VERIFIED,
+        canonical_metadata_hash=__import__("hashlib").sha256(
+            f"org/repo@{sha}".encode("utf-8")
+        ).hexdigest(),
+    )
+    gateway.repository.save_resource(resource)
+    request = gateway.plan(
+        project_id="project-code",
+        study_id="study-code",
+        phase=RetrievalPhase.EXPERIMENTATION,
+        step_instance_id="step-" + "d" * 16,
+        purpose="fetch_pinned_code_revision",
+        queries=[resource.canonical_identifier],
+        providers=["github"],
+        resource_types=[ResourceType.CODE_RELEASE],
+        usage_role="approved_experiment_resource",
+        budget=RetrievalBudget(
+            max_queries=1,
+            max_results=1,
+            max_download_bytes=100_000,
+        ),
+        idempotency_key="exact-code-acquisition-v1",
+        contract_refs=[
+            ContractRef(
+                contract_type="research",
+                contract_id="study-code:research-v1",
+                version=1,
+            )
+        ],
+        freshness="live",
+        require_search_execution=False,
+    )
+
+    acquisition = gateway.acquire_approved_experiment_resource(
+        request_id=request.request_id,
+        resource_id=resource.resource_id,
+    )
+
+    assert acquisition.snapshot.content_level == "source_archive"
+    assert acquisition.snapshot.content_hash == __import__("hashlib").sha256(
+        archive_bytes
+    ).hexdigest()
+    assert acquisition.access_decision.model_processing_allowed is True
+    assert gateway.repository.load_artifact(
+        acquisition.artifact_id
+    ).producer == "provider:github"
+    report = json.loads(
+        Path(
+            gateway.repository.load_artifact(
+                acquisition.report_artifact_id
+            ).path
+        ).read_text(encoding="utf-8")
+    )
+    assert report["raw_bytes_frozen_before_consumption"] is True
+    assert report["executed"] is False
+    run = gateway.repository.run_for_request(request.request_id)
+    assert run is not None
+    assert run.execution_status is RetrievalStatus.SUCCEEDED
+    assert run.budget_usage.download_bytes == len(archive_bytes)
 
 
 def test_huggingface_explicit_search_methods_use_official_client_contract() -> None:

@@ -86,6 +86,20 @@ def _task_payload(value: str) -> dict[str, object]:
     return payload
 
 
+def _trusted_key_map(values: list[str] | None) -> dict[str, bytes]:
+    keys: dict[str, bytes] = {}
+    for value in values or []:
+        key_id, separator, path_value = value.partition("=")
+        if not separator or not key_id.strip() or not path_value.strip():
+            raise ValueError(
+                "trusted keys use KEY_ID=PUBLIC_KEY_PEM_PATH"
+            )
+        keys[key_id.strip()] = (
+            Path(path_value).expanduser().resolve().read_bytes()
+        )
+    return keys
+
+
 def _add_retrieval_policy_set_arguments(
     parser: argparse.ArgumentParser,
 ) -> None:
@@ -226,6 +240,21 @@ def _parser() -> argparse.ArgumentParser:
     workflow_inspect.add_argument("study_id")
     workflow_run = workflow_sub.add_parser("run-study")
     workflow_run.add_argument("study_id")
+    workflow_stage4_init = workflow_sub.add_parser("initialize-stage4")
+    workflow_stage4_init.add_argument("study_id")
+    workflow_stage4_init.add_argument(
+        "--venue-policy", default="generic-journal-v1"
+    )
+    workflow_stage4_inspect = workflow_sub.add_parser("inspect-stage4")
+    workflow_stage4_inspect.add_argument("study_id")
+    workflow_gate = workflow_sub.add_parser("decide-gate")
+    workflow_gate.add_argument("study_id")
+    workflow_gate.add_argument("gate_id")
+    gate_decision = workflow_gate.add_mutually_exclusive_group(required=True)
+    gate_decision.add_argument("--approve", action="store_true")
+    gate_decision.add_argument("--reject", action="store_true")
+    workflow_gate.add_argument("--decided-by", default="project_owner")
+    workflow_gate.add_argument("--reason")
     workflow_pause = workflow_sub.add_parser("pause-study")
     workflow_pause.add_argument("study_id")
     workflow_resume = workflow_sub.add_parser("resume-study")
@@ -233,11 +262,82 @@ def _parser() -> argparse.ArgumentParser:
     workflow_retry = workflow_sub.add_parser("retry-step")
     workflow_retry.add_argument("study_id")
     workflow_retry.add_argument("step_id")
+    workflow_retry.add_argument("--authorized-by")
+    workflow_retry.add_argument("--reason")
     workflow_migrate = workflow_sub.add_parser("migrate-run")
     workflow_migrate.add_argument("run_dir")
     workflow_verify = workflow_sub.add_parser("verify-completion")
     workflow_verify.add_argument("record")
     workflow_verify.add_argument("--artifact-root")
+
+    verify = sub.add_parser(
+        "verify", help="Run a standalone verifier without workflow state"
+    )
+    verify.add_argument(
+        "package", help="Signed Stage 3 .zip or .tar.zst package"
+    )
+
+    stage3 = sub.add_parser(
+        "stage3", help="Export portable Stage 3 trust artifacts"
+    )
+    stage3_sub = stage3.add_subparsers(
+        dest="stage3_command", required=True
+    )
+    stage3_export = stage3_sub.add_parser(
+        "export-completion",
+        help="Export a signed Stage 3 completion package",
+    )
+    stage3_export.add_argument("--study-id", required=True)
+    stage3_export.add_argument("--output", required=True)
+    stage3_export.add_argument("--private-key", required=True)
+    stage3_export.add_argument("--identity", required=True)
+    stage3_export.add_argument("--source-commit", required=True)
+    stage3_reproduction = stage3_sub.add_parser(
+        "build-reproduction-package",
+        help="Build a signed, policy-bound Stage 3 reproduction package",
+    )
+    stage3_reproduction.add_argument("--completion-package", required=True)
+    stage3_reproduction.add_argument("--policy", required=True)
+    stage3_reproduction.add_argument("--output", required=True)
+    stage3_reproduction.add_argument("--private-key", required=True)
+    stage3_reproduction.add_argument("--identity", required=True)
+    stage3_reproduction.add_argument("--key-id", required=True)
+    stage3_reproduction.add_argument("--source-commit", required=True)
+
+    verify_reproduction = sub.add_parser(
+        "verify-reproduction",
+        help="Verify a reproduction package against a trusted signer",
+    )
+    verify_reproduction.add_argument("package")
+    verify_reproduction.add_argument(
+        "--trusted-key",
+        action="append",
+        default=[],
+        help="Trusted signer as KEY_ID=PUBLIC_KEY_PEM_PATH",
+    )
+
+    reproduce = sub.add_parser(
+        "reproduce",
+        help="Run a local development replay; never awards RF-E2",
+    )
+    reproduce.add_argument("package")
+    reproduce.add_argument("--report", required=True)
+    reproduce.add_argument("--requested-by", required=True)
+    reproduce.add_argument(
+        "--trusted-key",
+        action="append",
+        default=[],
+        help="Trusted signer as KEY_ID=PUBLIC_KEY_PEM_PATH",
+    )
+    reproduce.add_argument("--timeout-seconds", type=int, default=3600)
+    reproduce.add_argument(
+        "replay_command",
+        nargs=argparse.REMAINDER,
+        help=(
+            "Command after --; use {package_root} and {result_json} "
+            "placeholders"
+        ),
+    )
 
     retrieval = sub.add_parser(
         "retrieval",
@@ -796,6 +896,53 @@ def _parser() -> argparse.ArgumentParser:
         "--format", choices=["png", "pdf", "svg"], help="Defaults to output suffix"
     )
     diagram_export.add_argument("--executable", help="Optional draw.io executable path")
+    diagram_ai_draft = diagram_sub.add_parser(
+        "ai-draft",
+        help=(
+            "Use the configured Research Forge model to turn one description into "
+            "a typed, editable draw.io concept figure"
+        ),
+    )
+    diagram_ai_draft.add_argument("prompt", help="Natural-language figure description")
+    diagram_ai_draft.add_argument(
+        "--output", required=True, help="Destination .drawio source"
+    )
+    diagram_ai_draft.add_argument(
+        "--evidence-context",
+        help="Optional UTF-8 text file containing the frozen evidence envelope",
+    )
+    diagram_ai_draft.add_argument(
+        "--claim-id",
+        action="append",
+        default=[],
+        help="Frozen claim ID allowed in the diagram (repeatable)",
+    )
+    diagram_mcp_config = diagram_sub.add_parser(
+        "mcp-config",
+        help="Write a pinned next-ai-draw-io MCP client configuration",
+    )
+    diagram_mcp_config.add_argument("--output", required=True)
+    diagram_mcp_config.add_argument(
+        "--command",
+        dest="mcp_command",
+        default="npx",
+        help="Executable used to launch the MCP server (default: npx)",
+    )
+    diagram_mcp_config.add_argument(
+        "--drawio-base-url",
+        help="Optional HTTPS or localhost draw.io embed URL",
+    )
+    diagram_audit = diagram_sub.add_parser(
+        "audit-ai-edit",
+        help="Audit a next-ai-draw-io edited source before publication reuse",
+    )
+    diagram_audit.add_argument("source")
+    diagram_audit.add_argument(
+        "--allow-number",
+        action="append",
+        default=[],
+        help="Frozen numeric token allowed in visible labels (repeatable)",
+    )
 
     terminology = sub.add_parser(
         "terminology",
@@ -1467,6 +1614,104 @@ def main(argv: list[str] | None = None) -> int:
                         ]
                     }
                 )
+        elif args.command == "verify":
+            from .stage_three_trust import (
+                verify_stage3_completion_package,
+            )
+
+            result = verify_stage3_completion_package(
+                Path(args.package).expanduser().resolve()
+            )
+            _print_json(result)
+            if not result["passed"]:
+                return 2
+        elif args.command == "verify-reproduction":
+            from .reproduction_checker import (
+                verify_reproduction_package,
+            )
+
+            result = verify_reproduction_package(
+                Path(args.package).expanduser().resolve(),
+                trusted_control_plane_keys=_trusted_key_map(
+                    args.trusted_key
+                ),
+            )
+            _print_json(result)
+            if not result["trusted"]:
+                return 2
+        elif args.command == "reproduce":
+            from .reproduction_launcher import (
+                run_local_development_reproduction,
+            )
+
+            replay_command = list(args.replay_command)
+            if replay_command[:1] == ["--"]:
+                replay_command = replay_command[1:]
+            if not replay_command:
+                raise ValueError(
+                    "reproduce requires a development replay command after --"
+                )
+            result = run_local_development_reproduction(
+                package_path=Path(args.package).expanduser().resolve(),
+                command=replay_command,
+                trusted_control_plane_keys=_trusted_key_map(
+                    args.trusted_key
+                ),
+                requested_by=args.requested_by,
+                report_output=Path(args.report).expanduser().resolve(),
+                timeout_seconds=args.timeout_seconds,
+            )
+            _print_json(result)
+            if result["status"] not in {
+                "development_validation_completed",
+            }:
+                return 2
+        elif args.command == "stage3":
+            from .stage_three_trust import (
+                export_stage3_completion_package,
+            )
+
+            if args.stage3_command == "export-completion":
+                _print_json(
+                    export_stage3_completion_package(
+                        repository_root=Path(
+                            args.workflow_root
+                        ).expanduser().resolve(),
+                        study_id=args.study_id,
+                        output_path=Path(
+                            args.output
+                        ).expanduser().resolve(),
+                        private_key_path=Path(
+                            args.private_key
+                        ).expanduser().resolve(),
+                        identity=args.identity,
+                        source_commit=args.source_commit,
+                    )
+                )
+            elif args.stage3_command == "build-reproduction-package":
+                from .reproduction_domain import ReproductionPolicy
+                from .reproduction_package import (
+                    build_reproduction_package,
+                )
+
+                policy = ReproductionPolicy.model_validate(
+                    read_json(Path(args.policy).expanduser().resolve())
+                )
+                _print_json(
+                    build_reproduction_package(
+                        stage3_package_path=Path(
+                            args.completion_package
+                        ).expanduser().resolve(),
+                        policy=policy,
+                        output_path=Path(args.output).expanduser().resolve(),
+                        private_key_pem=Path(
+                            args.private_key
+                        ).expanduser().resolve().read_bytes(),
+                        signing_identity=args.identity,
+                        signing_key_id=args.key_id,
+                        source_commit=args.source_commit,
+                    )
+                )
         elif args.command == "workflow":
             from .workflow_domain import WorkflowRepository, verify_completion_record
 
@@ -1494,13 +1739,61 @@ def main(argv: list[str] | None = None) -> int:
             elif args.workflow_command == "run-study":
                 from .workflow_scheduler import (
                     PersistentDAGScheduler,
-                    stage_one_handlers,
+                    workflow_handlers,
                 )
 
                 _print_json(
-                    PersistentDAGScheduler(repository, stage_one_handlers()).run(
+                    PersistentDAGScheduler(repository, workflow_handlers()).run(
                         args.study_id
                     )
+                )
+            elif args.workflow_command == "initialize-stage4":
+                from .stage_four import (
+                    ensure_stage_four_dag,
+                    stage4_read_model,
+                )
+                from .workflow_scheduler import (
+                    PersistentDAGScheduler,
+                    workflow_handlers,
+                )
+
+                ensure_stage_four_dag(
+                    repository,
+                    args.study_id,
+                    venue_policy_id=args.venue_policy,
+                )
+                PersistentDAGScheduler(
+                    repository,
+                    workflow_handlers(),
+                    recover_interrupted=True,
+                ).run(args.study_id)
+                _print_json(stage4_read_model(repository, args.study_id))
+            elif args.workflow_command == "inspect-stage4":
+                from .stage_four import stage4_read_model
+
+                _print_json(stage4_read_model(repository, args.study_id))
+            elif args.workflow_command == "decide-gate":
+                from .workflow_scheduler import (
+                    PersistentDAGScheduler,
+                    workflow_handlers,
+                )
+
+                gate = repository.decide_gate(
+                    args.study_id,
+                    args.gate_id,
+                    approve=bool(args.approve),
+                    decided_by=args.decided_by,
+                    reason=args.reason,
+                )
+                workflow_state = PersistentDAGScheduler(
+                    repository,
+                    workflow_handlers(),
+                ).run(args.study_id)
+                _print_json(
+                    {
+                        "gate": gate.model_dump(mode="json"),
+                        "workflow": workflow_state,
+                    }
                 )
             elif args.workflow_command == "pause-study":
                 _print_json(
@@ -1509,25 +1802,30 @@ def main(argv: list[str] | None = None) -> int:
             elif args.workflow_command == "resume-study":
                 from .workflow_scheduler import (
                     PersistentDAGScheduler,
-                    stage_one_handlers,
+                    workflow_handlers,
                 )
 
                 repository.resume_study(args.study_id)
                 _print_json(
                     PersistentDAGScheduler(
                         repository,
-                        stage_one_handlers(),
+                        workflow_handlers(),
                         recover_interrupted=True,
                     ).run(args.study_id)
                 )
             elif args.workflow_command == "retry-step":
                 from .workflow_scheduler import (
                     PersistentDAGScheduler,
-                    stage_one_handlers,
+                    workflow_handlers,
                 )
 
-                scheduler = PersistentDAGScheduler(repository, stage_one_handlers())
-                scheduler.retry_step(args.study_id, args.step_id)
+                scheduler = PersistentDAGScheduler(repository, workflow_handlers())
+                scheduler.retry_step(
+                    args.study_id,
+                    args.step_id,
+                    authorized_by=args.authorized_by,
+                    reason=args.reason,
+                )
                 _print_json(scheduler.run(args.study_id))
             elif args.workflow_command == "migrate-run":
                 from .workflow_migration import migrate_bundle_run
@@ -2330,23 +2628,62 @@ def main(argv: list[str] | None = None) -> int:
                     )
                 )
         elif args.command == "diagram":
-            from .drawio_backend import export_drawio, find_drawio
+            if args.diagram_command == "export":
+                from .drawio_backend import export_drawio, find_drawio
 
-            output = export_drawio(
-                args.source,
-                args.output,
-                format=args.format,
-                executable=args.executable,
-            )
-            _print_json(
-                {
-                    "source": str(Path(args.source).resolve()),
-                    "output": str(output),
-                    "drawio": str(Path(args.executable).resolve())
-                    if args.executable
-                    else str(find_drawio()),
-                }
-            )
+                output = export_drawio(
+                    args.source,
+                    args.output,
+                    format=args.format,
+                    executable=args.executable,
+                )
+                _print_json(
+                    {
+                        "source": str(Path(args.source).resolve()),
+                        "output": str(output),
+                        "drawio": str(Path(args.executable).resolve())
+                        if args.executable
+                        else str(find_drawio()),
+                    }
+                )
+            elif args.diagram_command == "ai-draft":
+                from .ai_drawio import create_ai_drawio
+
+                evidence_context = (
+                    Path(args.evidence_context).resolve().read_text(encoding="utf-8")
+                    if args.evidence_context
+                    else ""
+                )
+                _print_json(
+                    asyncio.run(
+                        create_ai_drawio(
+                            args.prompt,
+                            args.output,
+                            evidence_context=evidence_context,
+                            evidence_claim_ids=args.claim_id,
+                            cwd=Path.cwd(),
+                        )
+                    )
+                )
+            elif args.diagram_command == "mcp-config":
+                from .ai_drawio import write_next_ai_drawio_mcp_config
+
+                output = write_next_ai_drawio_mcp_config(
+                    args.output,
+                    command=args.mcp_command,
+                    drawio_base_url=args.drawio_base_url,
+                )
+                _print_json({"output": str(output), "contains_provider_key": False})
+            else:
+                from .ai_drawio import audit_ai_edited_drawio
+
+                audit = audit_ai_edited_drawio(
+                    args.source,
+                    allowed_numeric_tokens=set(args.allow_number),
+                )
+                _print_json(audit.model_dump(mode="json"))
+                if not audit.passed:
+                    return 2
         elif args.command == "terminology":
             from .terminology import import_terminology_review, prepare_terminology
 

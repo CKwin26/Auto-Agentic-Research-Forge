@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "experiments": [
+    {
+      "experiment_id": "baseline-v1",
+      "action_ids": ["action-baseline"],
+      "title": "constant-zero baseline",
+      "command": [
+        "{python}",
+        "runner.py",
+        "--arm",
+        "baseline",
+        "--task",
+        "quick-demo",
+        "--seed",
+        "1",
+        "--input",
+        "formal_dataset.csv",
+        "--output",
+        "{metrics_file}"
+      ],
+      "required_inputs": ["formal_dataset.csv", "runner.py"],
+      "timeout_seconds": 30,
+      "network_access": false,
+      "artifacts": [
+        {
+          "path": "metrics.json",
+          "format": "json",
+          "required_keys": ["accuracy", "denominator", "sample_ids"]
+        }
+      ]
+    },
+    {
+      "experiment_id": "treatment-v1",
+      "action_ids": ["action-treatment"],
+      "title": "registered signal reader",
+      "command": [
+        "{python}",
+        "runner.py",
+        "--arm",
+        "treatment",
+        "--task",
+        "quick-demo",
+        "--seed",
+        "1",
+        "--input",
+        "formal_dataset.csv",
+        "--output",
+        "{metrics_file}"
+      ],
+      "required_inputs": ["formal_dataset.csv", "runner.py"],
+      "timeout_seconds": 30,
+      "network_access": false,
+      "artifacts": [
+        {
+          "path": "metrics.json",
+          "format": "json",
+          "required_keys": ["accuracy", "denominator", "sample_ids"]
+        }
+      ]
+    }
+  ]
+}

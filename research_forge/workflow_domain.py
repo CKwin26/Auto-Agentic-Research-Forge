@@ -51,6 +51,56 @@ class ExecutionStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
+class StepAcceptanceStatus(StrEnum):
+    """Acceptance of a step artifact, independent of executor termination."""
+
+    PENDING = "pending"
+    OUTPUT_PRODUCED = "output_produced"
+    SCHEMA_VALIDATED = "schema_validated"
+    SCIENTIFIC_POSTCONDITION_PASSED = "scientific_postcondition_passed"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+
+
+class ProtocolStatus(StrEnum):
+    DRAFT = "draft"
+    COMPILING = "compiling"
+    BLOCKED = "blocked"
+    EXECUTABLE = "executable"
+    FROZEN_EXECUTABLE = "frozen_executable"
+    SUPERSEDED = "superseded"
+
+
+class AnalysisEligibilityStatus(StrEnum):
+    NOT_ADJUDICABLE = "not_adjudicable"
+    QUALIFIED = "qualified"
+    DISQUALIFIED = "disqualified"
+
+
+class EvidenceMaturity(StrEnum):
+    EXPLORATORY = "exploratory"
+    ADAPTIVE_REUSE = "adaptive_reuse"
+    PROSPECTIVE = "prospective"
+    REPLICATED = "replicated"
+
+
+class PublicationMode(StrEnum):
+    NONE = "none"
+    PROTOCOL_REPORT = "protocol_report"
+    BOUNDARY_REPORT = "boundary_report"
+    RESULTS_MANUSCRIPT = "results_manuscript"
+
+
+class ResourceLifecycleStatus(StrEnum):
+    PLANNED = "planned"
+    DISCOVERED = "discovered"
+    SELECTED = "selected"
+    MATERIALIZED = "materialized"
+    SCHEMA_VALIDATED = "schema_validated"
+    SEMANTICALLY_VALIDATED = "semantically_validated"
+    FROZEN = "frozen"
+
+
 class GateStatus(StrEnum):
     NOT_REQUIRED = "not_required"
     AWAITING_USER = "awaiting_user"
@@ -62,6 +112,9 @@ class GateType(StrEnum):
     SCOPE_APPROVAL = "scope_approval"
     RESEARCH_CONTRACT = "research_contract"
     REPAIR_OR_HIGH_COST_RUN = "repair_or_high_cost_run"
+    PUBLICATION_NARRATIVE = "publication_narrative"
+    VISUAL_ARGUMENT = "visual_argument"
+    AUTHOR_VOICE = "author_voice"
     FINAL_SUBMISSION = "final_submission"
 
 
@@ -93,6 +146,7 @@ class ArtifactRole(StrEnum):
     LITERATURE_DECISION = "literature_decision"
     MANUSCRIPT = "manuscript"
     AUDIT = "audit"
+    FEASIBILITY = "feasibility"
     OTHER = "other"
 
 
@@ -171,6 +225,13 @@ class AuthorApprovalStatus(StrEnum):
     REJECTED = "rejected"
 
 
+class IntegrityGateStatus(StrEnum):
+    PENDING = "pending"
+    PASSED = "passed"
+    FAILED = "failed"
+    BLOCKED = "blocked"
+
+
 class DiagnosticOwner(StrEnum):
     IDEA_VALIDATION = "idea_validation"
     EVIDENCE_PACKAGING = "evidence_packaging"
@@ -183,6 +244,131 @@ class DiagnosticOwner(StrEnum):
 class RunKind(StrEnum):
     EXPERIMENTAL = "experimental"
     ANALYTIC = "analytic"
+    FEASIBILITY_PROBE = "feasibility_probe"
+
+
+class Stage3Profile(StrEnum):
+    DETERMINISTIC_SIMULATION_V1 = "deterministic_simulation_v1"
+    TABULAR_ML_V1 = "tabular_ml_v1"
+    BENCHMARK_PREDICTION_V1 = "benchmark_prediction_v1"
+    EXISTING_PYTHON_PROJECT_V1 = "existing_python_project_v1"
+    COMPUTATIONAL_PAIRED_COMPARISON_V1 = (
+        "computational_paired_comparison_v1"
+    )
+    COMPUTATIONAL_PAIRED_COMPARISON_V2 = (
+        "computational_paired_comparison_v2"
+    )
+    PAIRED_BINARY_INDEPENDENT_V1 = "paired_binary_independent_v1"
+    PAIRED_BINARY_CLUSTERED_V1 = "paired_binary_clustered_v1"
+    PAIRED_MULTI_ENDPOINT_V1 = "paired_multi_endpoint_v1"
+    UNPAIRED_TWO_GROUP_CONTINUOUS_V1 = (
+        "unpaired_two_group_continuous_v1"
+    )
+    PAIRED_MULTI_ARM_ABLATION_V1 = "paired_multi_arm_ablation_v1"
+
+
+class Stage3BuildMode(StrEnum):
+    READY_MADE_EXPERIMENT = "ready_made_experiment"
+    BUILD_FROM_BLUEPRINT = "build_from_blueprint"
+
+
+class ProfileCapabilityStatus(StrEnum):
+    SUPPORTED = "supported"
+    SUPPORTED_WITH_BUILD = "supported_with_build"
+    UNSUPPORTED = "unsupported"
+
+
+class BuildAssetStrategy(StrEnum):
+    REUSE = "reuse"
+    ADAPT = "adapt"
+    RETRIEVE = "retrieve"
+    GENERATE = "generate"
+    IMPLEMENT = "implement"
+
+
+class ExecutionTrustLevel(StrEnum):
+    PLATFORM_TEMPLATE = "platform_template"
+    TRUSTED_LOCAL_PROJECT = "trusted_local_project"
+    THIRD_PARTY_CODE = "third_party_code"
+    AI_GENERATED_CODE = "ai_generated_code"
+    UNKNOWN_BINARY = "unknown_binary"
+
+
+class RunCellStatus(StrEnum):
+    PLANNED = "planned"
+    AWAITING_APPROVAL = "awaiting_approval"
+    READY = "ready"
+    QUEUED = "queued"
+    RUNNING = "running"
+    PAUSED = "paused"
+    SUCCEEDED = "succeeded"
+    FAILED_TRANSIENT = "failed_transient"
+    BLOCKED = "blocked"
+    INVALIDATED = "invalidated"
+    SUPERSEDED = "superseded"
+    CANCELLED = "cancelled"
+
+
+class Stage3FailureClass(StrEnum):
+    NONE = "none"
+    TRANSIENT = "transient"
+    PROTOCOL = "protocol"
+    SCHEMA = "schema"
+    INTEGRITY = "integrity"
+    SCIENTIFIC_DESIGN = "scientific_design"
+    PERMISSION = "permission"
+    CANCELLED = "cancelled"
+
+
+class QualificationStatus(StrEnum):
+    QUALIFIED = "qualified"
+    DISQUALIFIED = "disqualified"
+    INCOMPLETE = "incomplete"
+
+
+class FormalExposureType(StrEnum):
+    AGGREGATE_METRICS = "aggregate_metrics"
+    VERDICT_ONLY = "verdict_only"
+    SAMPLE_ERRORS = "sample_errors"
+
+
+class ConfirmatoryStatus(StrEnum):
+    UNTOUCHED = "untouched"
+    CONFIRMATORY_USED = "confirmatory_used"
+    ADAPTIVE_REUSE = "adaptive_reuse"
+    EXHAUSTED = "exhausted"
+
+
+class AssuranceStatus(StrEnum):
+    PASSED = "passed"
+    CONDITIONAL = "conditional"
+    FAILED = "failed"
+
+
+class LeakageCheckStatus(StrEnum):
+    PASSED = "passed"
+    NOT_APPLICABLE = "not_applicable"
+    REQUIRES_REVIEW = "requires_review"
+    FAILED = "failed"
+
+
+class EvidenceReproductionLevel(StrEnum):
+    BOUNDARY_ONLY = "L0_boundary_only"
+    EVIDENCE_CHAIN_VERIFIED = "L1_evidence_chain_verified"
+    CLEAN_ROOM_REPRODUCED = "L2_clean_room_reproduced"
+    INDEPENDENTLY_REPRODUCED = "L3_independently_reproduced"
+    EXTERNALLY_REPLICATED = "L4_externally_replicated"
+
+
+class EvidenceRelation(StrEnum):
+    QUALIFIES = "qualifies"
+    MATERIALIZES = "materializes"
+    PRODUCED = "produced"
+    EVALUATED_BY = "evaluated_by"
+    SUPPORTS = "supports"
+    REFUTES = "refutes"
+    QUALIFIES_VERDICT = "qualifies_verdict"
+    AGGREGATES_TO = "aggregates_to"
 
 
 class NetworkPolicy(StrictModel):
@@ -298,6 +484,11 @@ class StepInstance(StrictModel):
     step_type: str = Field(pattern=r"^[a-z][a-z0-9_]{1,99}$")
     phase: Phase
     status: ExecutionStatus = ExecutionStatus.QUEUED
+    acceptance_status: StepAcceptanceStatus = StepAcceptanceStatus.PENDING
+    output_produced: bool = False
+    schema_validated: bool = False
+    scientific_postcondition_passed: bool | None = None
+    acceptance_checks: dict[str, bool] = Field(default_factory=dict)
     executor_type: ExecutorType
     depends_on: list[str] = Field(default_factory=list)
     parent_step_id: str | None = None
@@ -306,12 +497,15 @@ class StepInstance(StrictModel):
     max_retries: int = Field(default=3, ge=0, le=10)
     input_artifact_ids: list[str] = Field(default_factory=list)
     output_artifact_ids: list[str] = Field(default_factory=list)
+    parameters: dict[str, Any] = Field(default_factory=dict)
     expected_output: str | None = None
     blocker: dict[str, Any] | None = None
     audit_event_ids: list[str] = Field(default_factory=list)
     started_at: str | None = None
     updated_at: str = Field(default_factory=utc_now)
     completed_at: str | None = None
+    lease_id: str | None = None
+    fencing_token: int = Field(default=0, ge=0)
 
 
 class GateRecord(StrictModel):
@@ -334,11 +528,20 @@ class ScopeContractVersion(StrictModel):
     study_id: str
     version: int = Field(ge=1)
     status: ArtifactStatus = ArtifactStatus.DRAFT
+    contract_level: Literal["direction", "specific_topic"] = "direction"
+    parent_direction_id: str | None = None
     direction: str
     research_question: str
     scope_in: list[str]
     scope_out: list[str]
     candidate_contribution: str
+    unit_of_analysis: str | None = None
+    study_design: str | None = None
+    population_or_corpus: str | None = None
+    primary_outcome: str | None = None
+    comparison: str | None = None
+    feasibility_basis: list[str] = Field(default_factory=list)
+    unresolved_conditions: list[str] = Field(default_factory=list)
     project_resource_ids: list[str] = Field(default_factory=list)
     literature_set_id: str | None = None
     predecessor_version: int | None = None
@@ -355,12 +558,78 @@ class Hypothesis(StrictModel):
     decision_rule: dict[str, Any]
 
 
+class ModelSelectionPlan(StrictModel):
+    schema_version: int = 1
+    search_space: dict[str, Any] = Field(default_factory=dict)
+    number_of_trials: int = Field(default=1, ge=1)
+    selection_metric: str = "frozen_primary_metric"
+    selection_split: str = "none"
+    early_stopping_rule: dict[str, Any] = Field(
+        default_factory=lambda: {"enabled": False}
+    )
+    checkpoint_selection_rule: str = "fixed_final_checkpoint"
+    random_search_seed: int = 0
+    tuning_budget: dict[str, Any] = Field(default_factory=dict)
+    final_refit_policy: str = "no_refit"
+    formal_results_may_influence_selection: Literal[False] = False
+
+
+class ArmFairnessContract(StrictModel):
+    schema_version: int = 1
+    shared_resources: list[str] = Field(
+        default_factory=lambda: [
+            "data",
+            "splits",
+            "evaluator",
+            "runtime",
+        ]
+    )
+    allowed_budget_difference: float = Field(default=0.0, ge=0)
+    training_compute_budget: dict[str, Any] = Field(default_factory=dict)
+    inference_compute_budget: dict[str, Any] = Field(default_factory=dict)
+    pretraining_policy: str = "same_or_explicitly_declared"
+    external_model_policy: str = "declared_only"
+    hyperparameter_tuning_parity: Literal[True] = True
+    failure_handling: str = "same_rule_for_both_arms"
+    partitions: dict[str, str] = Field(
+        default_factory=lambda: {
+            "smoke": "engineering_only",
+            "development_tuning": "selection_only",
+            "formal_confirmation": "verdict_only",
+        }
+    )
+
+
+class AttemptSelectionPolicy(StrictModel):
+    schema_version: int = 1
+    canonical_attempt: Literal[
+        "first_qualified_successful_attempt"
+    ] = "first_qualified_successful_attempt"
+    rerun_after_success_forbidden: Literal[True] = True
+    fixed_seed_required: Literal[True] = True
+    retain_failed_outputs: Literal[True] = True
+    best_or_latest_selection_forbidden: Literal[True] = True
+    manual_rerun_requires_intervention_record: Literal[True] = True
+    implementation_change_requires_successor: Literal[True] = True
+    nondeterminism_policy: str = "record_and_escalate"
+
+
 class ResearchContractVersion(StrictModel):
     schema_version: int = 1
     study_id: str
     version: int = Field(ge=1)
     scope_version: int = Field(ge=1)
     status: ArtifactStatus = ArtifactStatus.DRAFT
+    protocol_status: ProtocolStatus = ProtocolStatus.DRAFT
+    compile_report_id: str | None = None
+    unresolved_placeholders: list[str] = Field(default_factory=list)
+    run_specification_ids: list[str] = Field(default_factory=list)
+    dataset_specification_id: str | None = None
+    algorithm_specification_ids: list[str] = Field(default_factory=list)
+    evaluation_specification_id: str | None = None
+    analysis_specification_id: str | None = None
+    executable_run_dag_id: str | None = None
+    dry_run_report_id: str | None = None
     hypotheses: list[Hypothesis] = Field(min_length=1)
     data_boundary: dict[str, Any]
     metrics: list[dict[str, Any]] = Field(min_length=1)
@@ -372,6 +641,32 @@ class ResearchContractVersion(StrictModel):
     runtime_binding: dict[str, Any]
     evaluator_policy: dict[str, Any]
     eligibility_rules: list[dict[str, Any]] = Field(default_factory=list)
+    experiment_profile: Stage3Profile | None = None
+    profile_parameters: dict[str, Any] = Field(default_factory=dict)
+    splits: list[str] = Field(default_factory=lambda: ["default"])
+    replicates: int = Field(default=1, ge=1, le=10_000)
+    output_schema: dict[str, Any] = Field(default_factory=dict)
+    statistical_rules: dict[str, Any] = Field(default_factory=dict)
+    estimand: dict[str, Any] = Field(default_factory=dict)
+    data_requirements: dict[str, Any] = Field(default_factory=dict)
+    implementation_requirements: dict[str, Any] = Field(
+        default_factory=dict
+    )
+    scientific_validity_contract: dict[str, Any] = Field(
+        default_factory=dict
+    )
+    environment_requirements: dict[str, Any] = Field(default_factory=dict)
+    resource_policy: dict[str, Any] = Field(default_factory=dict)
+    budget_security: dict[str, Any] = Field(default_factory=dict)
+    model_selection_plan: ModelSelectionPlan = Field(
+        default_factory=ModelSelectionPlan
+    )
+    arm_fairness_contract: ArmFairnessContract = Field(
+        default_factory=ArmFairnessContract
+    )
+    attempt_selection_policy: AttemptSelectionPolicy = Field(
+        default_factory=AttemptSelectionPolicy
+    )
     predecessor_version: int | None = None
     field_diff: dict[str, Any] = Field(default_factory=dict)
     created_by: str = "project_owner"
@@ -386,6 +681,16 @@ class ResearchContractVersion(StrictModel):
             )
         if len(self.seeds) != len(set(self.seeds)):
             raise ValueError("research contract seeds must be unique")
+        if len(self.splits) != len(set(self.splits)):
+            raise ValueError("research contract splits must be unique")
+        if (
+            self.model_selection_plan.number_of_trials > 1
+            and self.model_selection_plan.selection_split
+            in {"formal", "formal_confirmation", "test"}
+        ):
+            raise ValueError(
+                "model selection cannot use the formal confirmation split"
+            )
         return self
 
 
@@ -426,12 +731,617 @@ class ResearchRun(StrictModel):
     contract_version: int = Field(ge=1)
     kind: RunKind
     status: ExecutionStatus = ExecutionStatus.QUEUED
+    run_cell_id: str | None = None
     predecessor_run_id: str | None = None
     repair_contract_id: str | None = None
     reused_artifact_ids: list[str] = Field(default_factory=list)
     output_artifact_ids: list[str] = Field(default_factory=list)
+    purpose: Literal[
+        "formal_experiment",
+        "formal_analysis",
+        "feasibility_only",
+    ] = "formal_experiment"
+    evidence_eligible: bool = True
+    formal_run_eligible: bool = True
     created_at: str = Field(default_factory=utc_now)
     completed_at: str | None = None
+
+
+class Stage3HandoffPackage(StrictModel):
+    schema_version: int = 3
+    handoff_id: str = Field(pattern=r"^stage3-handoff-[a-f0-9]{16}$")
+    study_id: str
+    scope_version: int = Field(ge=1)
+    contract_version: int = Field(ge=1)
+    profile: Stage3Profile
+    handoff_stage: Literal["build", "formal_execution"] = "formal_execution"
+    build_mode: Stage3BuildMode = Stage3BuildMode.READY_MADE_EXPERIMENT
+    scientific_specification_seal_id: str | None = None
+    experiment_blueprint_id: str | None = None
+    mvp_feasibility_receipt_id: str | None = None
+    execution_package_seal_id: str | None = None
+    lock_artifact_ids: dict[str, str] = Field(default_factory=dict)
+    experiment_manifest_path: str | None = None
+    experiment_manifest_sha256: str | None = Field(
+        default=None, pattern=r"^[a-f0-9]{64}$"
+    )
+    execution_root: str | None = None
+    resource_artifact_ids: list[str] = Field(default_factory=list)
+    predecessor_handoff_id: str | None = None
+    repair_contract_id: str | None = None
+    admitted_at: str = Field(default_factory=utc_now)
+
+    @model_validator(mode="after")
+    def validate_handoff_level(self) -> "Stage3HandoffPackage":
+        if self.handoff_stage == "build":
+            missing = [
+                name
+                for name, value in (
+                    (
+                        "scientific_specification_seal_id",
+                        self.scientific_specification_seal_id,
+                    ),
+                    ("experiment_blueprint_id", self.experiment_blueprint_id),
+                    (
+                        "mvp_feasibility_receipt_id",
+                        self.mvp_feasibility_receipt_id,
+                    ),
+                )
+                if not value
+            ]
+            if missing:
+                raise ValueError(
+                    "build handoff is missing: " + ", ".join(missing)
+                )
+        elif (
+            len(self.lock_artifact_ids) < 5
+            or not self.experiment_manifest_path
+            or not self.experiment_manifest_sha256
+        ):
+            raise ValueError(
+                "formal execution handoff requires frozen locks and manifest"
+            )
+        elif self.schema_version >= 3 and not self.execution_root:
+            raise ValueError(
+                "formal execution handoff requires an execution_root"
+            )
+        return self
+
+
+class EstimandSpecification(StrictModel):
+    population: str = Field(min_length=1)
+    experimental_unit: str = Field(min_length=1)
+    pairing_key: list[str] = Field(min_length=1)
+    outcome: str = Field(min_length=1)
+    contrast: str = Field(min_length=1)
+    aggregation_hierarchy: list[str] = Field(min_length=1)
+    weighting_policy: str = Field(min_length=1)
+    variance_unit: str = Field(min_length=1)
+
+
+class ExperimentBlueprint(StrictModel):
+    schema_version: int = 1
+    blueprint_id: str = Field(pattern=r"^blueprint-[a-f0-9]{16}$")
+    study_id: str
+    contract_version: int = Field(ge=1)
+    profile: Stage3Profile
+    estimand: EstimandSpecification
+    data_requirements: dict[str, Any]
+    preprocessing_requirements: list[str] = Field(default_factory=list)
+    baseline_requirements: dict[str, Any]
+    treatment_requirements: dict[str, Any]
+    allowed_arm_delta: list[str] = Field(min_length=1)
+    runner_requirements: dict[str, Any]
+    raw_output_fields: list[str] = Field(min_length=1)
+    environment_requirements: dict[str, Any]
+    resource_routes: list[dict[str, Any]] = Field(min_length=1)
+    smoke_test_requirements: list[str] = Field(min_length=1)
+    completion_criteria: list[str] = Field(min_length=1)
+    created_at: str = Field(default_factory=utc_now)
+
+
+class MVPFeasibilityReceipt(StrictModel):
+    schema_version: int = 1
+    receipt_id: str = Field(pattern=r"^mvp-receipt-[a-f0-9]{16}$")
+    study_id: str
+    contract_version: int = Field(ge=1)
+    purpose: Literal["feasibility_only"] = "feasibility_only"
+    evidence_eligible: Literal[False] = False
+    formal_run_eligible: Literal[False] = False
+    prototype_resource_ids: list[str] = Field(default_factory=list)
+    smoke_case_ids: list[str] = Field(min_length=1)
+    metric_computable: bool
+    schema_feasible: bool
+    resource_feasible: bool
+    reproducible_seed_probe: bool
+    runtime_estimate_seconds: float | None = Field(default=None, ge=0)
+    memory_estimate_bytes: int | None = Field(default=None, ge=0)
+    temporary_implementation_notes: list[str] = Field(default_factory=list)
+    unresolved_assumptions: list[str] = Field(default_factory=list)
+    may_support: list[str] = Field(
+        default_factory=lambda: [
+            "runtime_estimation",
+            "metric_computability",
+            "schema_feasibility",
+            "resource_feasibility",
+        ]
+    )
+    may_not_support: list[str] = Field(
+        default_factory=lambda: [
+            "hypothesis_verdict",
+            "study_verdict",
+            "formal_effect_estimate",
+        ]
+    )
+    created_at: str = Field(default_factory=utc_now)
+
+
+class ScientificSpecificationSeal(StrictModel):
+    schema_version: int = 1
+    seal_id: str = Field(pattern=r"^scientific-seal-[a-f0-9]{16}$")
+    study_id: str
+    scope_version: int = Field(ge=1)
+    contract_version: int = Field(ge=1)
+    scope_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    contract_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    blueprint_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    decision_rules_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    immutable: Literal[True] = True
+    frozen_at: str = Field(default_factory=utc_now)
+
+
+class ExperimentBuildItem(StrictModel):
+    build_item_id: str = Field(pattern=r"^build-item-[a-f0-9]{16}$")
+    asset_type: Literal[
+        "dataset",
+        "dataset_adapter",
+        "baseline",
+        "treatment",
+        "evaluator",
+        "environment",
+        "experiment_manifest",
+    ]
+    strategy: BuildAssetStrategy
+    source: dict[str, Any] = Field(default_factory=dict)
+    license: str | None = None
+    acceptance_checks: list[str] = Field(min_length=1)
+    estimated_cost: dict[str, Any] = Field(default_factory=dict)
+    risks: list[str] = Field(default_factory=list)
+
+
+class ExperimentBuildPlan(StrictModel):
+    schema_version: int = 1
+    build_plan_id: str = Field(pattern=r"^build-plan-[a-f0-9]{16}$")
+    study_id: str
+    handoff_id: str
+    contract_version: int = Field(ge=1)
+    profile: Stage3Profile
+    capability_status: ProfileCapabilityStatus
+    build_mode: Stage3BuildMode
+    items: list[ExperimentBuildItem] = Field(min_length=1)
+    research_contract_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    created_at: str = Field(default_factory=utc_now)
+
+
+class ExecutionPackageSeal(StrictModel):
+    schema_version: int = 1
+    seal_id: str = Field(pattern=r"^execution-seal-[a-f0-9]{16}$")
+    study_id: str
+    contract_version: int = Field(ge=1)
+    scientific_specification_seal_id: str
+    lock_artifact_ids: dict[str, str] = Field(min_length=8)
+    smoke_test_artifact_id: str
+    conformance_checks: dict[str, bool] = Field(min_length=1)
+    trust_level: ExecutionTrustLevel
+    isolated_execution_required: bool
+    package_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    immutable: Literal[True] = True
+    frozen_at: str = Field(default_factory=utc_now)
+
+    @model_validator(mode="after")
+    def all_conformance_checks_pass(self) -> "ExecutionPackageSeal":
+        if not all(self.conformance_checks.values()):
+            raise ValueError(
+                "execution package cannot freeze before conformance passes"
+            )
+        if self.trust_level in {
+            ExecutionTrustLevel.THIRD_PARTY_CODE,
+            ExecutionTrustLevel.AI_GENERATED_CODE,
+        } and not self.isolated_execution_required:
+            raise ValueError(
+                "third-party or generated code requires isolated execution"
+            )
+        return self
+
+
+class RunCell(StrictModel):
+    schema_version: int = 1
+    run_cell_id: str = Field(pattern=r"^run-cell-[a-f0-9]{16}$")
+    study_id: str
+    plan_id: str = Field(pattern=r"^run-plan-[a-f0-9]{16}$")
+    contract_version: int = Field(ge=1)
+    task_id: str = Field(min_length=1, max_length=300)
+    split_id: str = Field(min_length=1, max_length=300)
+    arm_id: str = Field(pattern=r"^[a-z][a-z0-9_]{1,63}$")
+    seed: int
+    replicate: int = Field(ge=1)
+    action_id: str = Field(pattern=r"^action-[a-zA-Z0-9._-]{1,119}$")
+    experiment_id: str = Field(min_length=2, max_length=120)
+    input_bindings: dict[str, str] = Field(default_factory=dict)
+    expected_output_schema: dict[str, Any] = Field(min_length=1)
+    resource_profile: dict[str, Any] = Field(default_factory=dict)
+    dependency_ids: list[str] = Field(default_factory=list)
+    pair_block_id: str | None = None
+    pair_position: int = Field(default=1, ge=1, le=16)
+    scheduled_after_run_cell_id: str | None = Field(
+        default=None, pattern=r"^run-cell-[a-f0-9]{16}$"
+    )
+    execution_manifest_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    status: RunCellStatus = RunCellStatus.PLANNED
+
+
+class RunPlan(StrictModel):
+    schema_version: int = 1
+    plan_id: str = Field(pattern=r"^run-plan-[a-f0-9]{16}$")
+    study_id: str
+    handoff_id: str = Field(pattern=r"^stage3-handoff-[a-f0-9]{16}$")
+    contract_version: int = Field(ge=1)
+    profile: Stage3Profile
+    compiler_version: str = "stage3-compiler-v1"
+    concurrency: int = Field(ge=1, le=128)
+    cells: list[RunCell] = Field(min_length=2)
+    plan_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    created_at: str = Field(default_factory=utc_now)
+
+    @model_validator(mode="after")
+    def validate_matrix(self) -> "RunPlan":
+        ids = [item.run_cell_id for item in self.cells]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Run Plan contains duplicate run_cell_id values")
+        if any(item.plan_id != self.plan_id for item in self.cells):
+            raise ValueError("RunCell plan_id does not match RunPlan")
+        if any(item.study_id != self.study_id for item in self.cells):
+            raise ValueError("RunCell study_id does not match RunPlan")
+        return self
+
+
+class ExecutionAttempt(StrictModel):
+    schema_version: int = 1
+    attempt_id: str = Field(pattern=r"^attempt-[a-f0-9]{16}$")
+    study_id: str
+    run_cell_id: str = Field(pattern=r"^run-cell-[a-f0-9]{16}$")
+    attempt_number: int = Field(ge=1)
+    status: RunCellStatus
+    started_at: str
+    finished_at: str | None = None
+    exit_status: int | None = None
+    input_hashes: dict[str, str] = Field(default_factory=dict)
+    environment_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    code_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    stdout_artifact_id: str | None = None
+    stderr_artifact_id: str | None = None
+    output_artifact_ids: list[str] = Field(default_factory=list)
+    isolation_attestations: dict[str, Any] = Field(default_factory=dict)
+    resource_telemetry: dict[str, Any] = Field(default_factory=dict)
+    canonical: bool = False
+    lease_id: str | None = None
+    fencing_token: int | None = Field(default=None, ge=1)
+    idempotency_key: str | None = None
+    failure_class: Stage3FailureClass = Stage3FailureClass.NONE
+    failure_detail: str | None = None
+
+
+class ResultEnvelope(StrictModel):
+    schema_version: int = 1
+    result_id: str = Field(pattern=r"^result-[a-f0-9]{16}$")
+    study_id: str
+    run_cell_id: str = Field(pattern=r"^run-cell-[a-f0-9]{16}$")
+    attempt_id: str | None = Field(
+        default=None, pattern=r"^attempt-[a-f0-9]{16}$"
+    )
+    output_artifact_ids: list[str] = Field(min_length=1)
+    metrics: dict[str, float] = Field(default_factory=dict)
+    denominator: int | float | None = Field(default=None, gt=0)
+    sample_ids: list[str] = Field(default_factory=list)
+    analysis_rows: list[dict[str, Any]] = Field(default_factory=list)
+    abstentions: int = Field(default=0, ge=0)
+    reused_from_result_id: str | None = None
+    created_at: str = Field(default_factory=utc_now)
+
+    @model_validator(mode="after")
+    def validate_origin(self) -> "ResultEnvelope":
+        if (self.attempt_id is None) == (self.reused_from_result_id is None):
+            raise ValueError(
+                "result must reference exactly one execution attempt "
+                "or predecessor result"
+            )
+        return self
+
+
+class EvaluationRecord(StrictModel):
+    schema_version: int = 1
+    evaluation_id: str = Field(pattern=r"^evaluation-[a-f0-9]{16}$")
+    study_id: str
+    plan_id: str = Field(pattern=r"^run-plan-[a-f0-9]{16}$")
+    contract_version: int = Field(ge=1)
+    qualification_status: QualificationStatus
+    qualification_checks: dict[str, bool] = Field(default_factory=dict)
+    excluded_run_cell_ids: list[str] = Field(default_factory=list)
+    exclusion_reason_counts: dict[str, int] = Field(default_factory=dict)
+    metric_name: str
+    baseline_estimate: float | None = None
+    treatment_estimate: float | None = None
+    paired_effect: float | None = None
+    paired_variance: float | None = Field(default=None, ge=0)
+    pair_count: int = Field(default=0, ge=0)
+    independent_unit_count: int = Field(default=0, ge=0)
+    variance_unit: str = "registered_pair"
+    aggregation_hierarchy: list[str] = Field(default_factory=list)
+    exposure_record_id: str | None = None
+    confirmatory_status: ConfirmatoryStatus = ConfirmatoryStatus.UNTOUCHED
+    statistical_assurance_report_id: str | None = None
+    secondary_implementation_effect: float | None = None
+    secondary_implementation_matches: bool | None = None
+    confidence_interval: tuple[float, float] | None = None
+    arm_estimates: dict[str, float] = Field(default_factory=dict)
+    contrast_estimates: dict[str, dict[str, Any]] = Field(
+        default_factory=dict
+    )
+    statistical_rule: dict[str, Any] = Field(default_factory=dict)
+    decision: HypothesisVerdictStatus
+    rationale: str
+    result_ids: list[str] = Field(default_factory=list)
+    created_at: str = Field(default_factory=utc_now)
+
+    @model_validator(mode="after")
+    def disqualified_cannot_decide(self) -> "EvaluationRecord":
+        if (
+            self.qualification_status is not QualificationStatus.QUALIFIED
+            and self.decision
+            in {
+                HypothesisVerdictStatus.SUPPORTED,
+                HypothesisVerdictStatus.REFUTED,
+            }
+        ):
+            raise ValueError(
+                "unqualified evaluation cannot support or refute a hypothesis"
+            )
+        return self
+
+
+class FormalEvaluationExposureRecord(StrictModel):
+    schema_version: int = 1
+    exposure_id: str = Field(pattern=r"^formal-exposure-[a-f0-9]{16}$")
+    dataset_version: str
+    split_id: str
+    target_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    study_id: str
+    plan_id: str = Field(pattern=r"^run-plan-[a-f0-9]{16}$")
+    exposure_type: FormalExposureType
+    revealed_fields: list[str] = Field(default_factory=list)
+    first_exposed_at: str = Field(default_factory=utc_now)
+    prior_exposure_count: int = Field(default=0, ge=0)
+    result_influenced_successor: bool = False
+    confirmatory_status: ConfirmatoryStatus
+
+
+class HumanInterventionRecord(StrictModel):
+    schema_version: int = 1
+    intervention_id: str = Field(
+        pattern=r"^human-intervention-[a-f0-9]{16}$"
+    )
+    study_id: str
+    plan_id: str = Field(pattern=r"^run-plan-[a-f0-9]{16}$")
+    run_cell_id: str | None = Field(
+        default=None, pattern=r"^run-cell-[a-f0-9]{16}$"
+    )
+    intervention_type: str
+    reason: str
+    authorized_by: str
+    created_at: str = Field(default_factory=utc_now)
+
+
+class StatisticalAssuranceReport(StrictModel):
+    schema_version: int = 1
+    report_id: str = Field(pattern=r"^stat-assurance-[a-f0-9]{16}$")
+    study_id: str
+    contract_version: int = Field(ge=1)
+    profile: Stage3Profile
+    status: AssuranceStatus
+    checks: dict[str, bool] = Field(min_length=1)
+    variance_unit: str
+    aggregation_hierarchy: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    implementation_version: str = "paired-profile-assurance-v1"
+    created_at: str = Field(default_factory=utc_now)
+
+
+class LeakageAuditReport(StrictModel):
+    schema_version: int = 1
+    report_id: str = Field(pattern=r"^leakage-audit-[a-f0-9]{16}$")
+    study_id: str
+    contract_version: int = Field(ge=1)
+    checks: dict[str, LeakageCheckStatus] = Field(min_length=1)
+    findings: list[str] = Field(default_factory=list)
+    blocking: bool = False
+    created_at: str = Field(default_factory=utc_now)
+
+
+class ScientificClaimEnvelope(StrictModel):
+    schema_version: int = 1
+    claim_envelope_id: str = Field(
+        pattern=r"^claim-envelope-[a-f0-9]{16}$"
+    )
+    study_id: str
+    plan_id: str = Field(pattern=r"^run-plan-[a-f0-9]{16}$")
+    allowed_claim: str
+    population: str
+    tasks: list[str] = Field(min_length=1)
+    intervention: str
+    comparator: str
+    outcome: str
+    effect_estimate: float | None = None
+    interval: tuple[float, float] | None = None
+    evidence_level: EvidenceReproductionLevel = (
+        EvidenceReproductionLevel.EVIDENCE_CHAIN_VERIFIED
+    )
+    confirmatory_status: ConfirmatoryStatus
+    known_limitations: list[str] = Field(default_factory=list)
+    maximum_claim_tier: str = "controlled_effect"
+    publication_mode: PublicationMode = PublicationMode.RESULTS_MANUSCRIPT
+    scientific_validity_report_ids: list[str] = Field(default_factory=list)
+    prohibited_generalizations: list[str] = Field(
+        default_factory=lambda: [
+            "causal effects outside the frozen design",
+            "state-of-the-art performance",
+            "unseen populations",
+            "production reliability",
+        ]
+    )
+    created_at: str = Field(default_factory=utc_now)
+
+
+class ComponentDefectNotice(StrictModel):
+    schema_version: int = 1
+    notice_id: str = Field(pattern=r"^component-defect-[a-f0-9]{16}$")
+    component_digest: str = Field(pattern=r"^[a-f0-9]{64}$")
+    component_name: str
+    description: str = Field(min_length=5)
+    severity: Literal["low", "medium", "high", "critical"]
+    reported_by: str
+    created_at: str = Field(default_factory=utc_now)
+
+
+class ResearchErratum(StrictModel):
+    schema_version: int = 1
+    erratum_id: str = Field(pattern=r"^research-erratum-[a-f0-9]{16}$")
+    study_id: str
+    notice_id: str = Field(pattern=r"^component-defect-[a-f0-9]{16}$")
+    affected_artifact_ids: list[str] = Field(default_factory=list)
+    affected_verdict_ids: list[str] = Field(default_factory=list)
+    verdict_overlay_status: Literal["under_review"] = "under_review"
+    historical_records_preserved: Literal[True] = True
+    created_at: str = Field(default_factory=utc_now)
+
+
+class GlobalImpactAnalysis(StrictModel):
+    schema_version: int = 1
+    analysis_id: str = Field(pattern=r"^global-impact-[a-f0-9]{16}$")
+    notice_id: str = Field(pattern=r"^component-defect-[a-f0-9]{16}$")
+    affected_study_ids: list[str] = Field(default_factory=list)
+    affected_artifact_ids_by_study: dict[str, list[str]] = Field(
+        default_factory=dict
+    )
+    affected_verdict_ids_by_study: dict[str, list[str]] = Field(
+        default_factory=dict
+    )
+    suggested_actions: list[str] = Field(
+        default_factory=lambda: [
+            "review affected verdicts",
+            "propose bounded repair contracts",
+            "create successor runs where scientific outputs are affected",
+        ]
+    )
+    created_at: str = Field(default_factory=utc_now)
+
+
+class EvidenceEdge(StrictModel):
+    schema_version: int = 1
+    edge_id: str = Field(pattern=r"^evidence-edge-[a-f0-9]{16}$")
+    study_id: str
+    source_id: str
+    target_id: str
+    relation_type: EvidenceRelation
+    source_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    target_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    created_by: str
+    qualification_status: QualificationStatus
+    created_at: str = Field(default_factory=utc_now)
+
+
+class DiagnosticReport(StrictModel):
+    schema_version: int = 1
+    diagnostic_id: str = Field(pattern=r"^stage3-diagnostic-[a-f0-9]{16}$")
+    study_id: str
+    plan_id: str = Field(pattern=r"^run-plan-[a-f0-9]{16}$")
+    earliest_preventable_step_type: str
+    failure_class: Stage3FailureClass
+    system_invalidation_artifact_ids: list[str] = Field(default_factory=list)
+    system_findings: list[str] = Field(default_factory=list)
+    ai_root_cause_hypotheses: list[str] = Field(default_factory=list)
+    created_at: str = Field(default_factory=utc_now)
+
+
+class SuccessorRun(StrictModel):
+    schema_version: int = 1
+    successor_id: str = Field(pattern=r"^successor-[a-f0-9]{16}$")
+    study_id: str
+    predecessor_plan_id: str = Field(pattern=r"^run-plan-[a-f0-9]{16}$")
+    successor_plan_id: str = Field(pattern=r"^run-plan-[a-f0-9]{16}$")
+    repair_contract_id: str = Field(pattern=r"^repair-[a-f0-9]{16}$")
+    reused_artifact_ids: list[str] = Field(default_factory=list)
+    invalidated_artifact_ids: list[str] = Field(default_factory=list)
+    created_at: str = Field(default_factory=utc_now)
+
+
+class ScientificSuccessorRequest(StrictModel):
+    schema_version: int = 1
+    request_id: str = Field(
+        pattern=r"^scientific-successor-[a-f0-9]{16}$"
+    )
+    study_id: str
+    predecessor_contract_version: int = Field(ge=1)
+    predecessor_plan_id: str = Field(pattern=r"^run-plan-[a-f0-9]{16}$")
+    diagnostic_id: str = Field(
+        pattern=r"^stage3-diagnostic-[a-f0-9]{16}$"
+    )
+    changed_contract_fields: list[str] = Field(min_length=1)
+    rationale: list[str] = Field(min_length=1)
+    required_actions: list[str] = Field(
+        default_factory=lambda: [
+            "create Research Contract vNext",
+            "obtain project-owner contract approval",
+            "freeze a new scientific specification seal",
+            "build and freeze a new execution package",
+            "run a new formal paired matrix",
+        ]
+    )
+    historical_run_ids_preserved: list[str] = Field(default_factory=list)
+    historical_verdict_ids_preserved: list[str] = Field(default_factory=list)
+    status: Literal["proposed"] = "proposed"
+    created_at: str = Field(default_factory=utc_now)
+
+
+class Stage3CompletionPackage(StrictModel):
+    schema_version: int = 1
+    completion_id: str = Field(pattern=r"^stage3-completion-[a-f0-9]{16}$")
+    study_id: str
+    plan_id: str = Field(pattern=r"^run-plan-[a-f0-9]{16}$")
+    handoff_id: str = Field(pattern=r"^stage3-handoff-[a-f0-9]{16}$")
+    evaluation_ids: list[str] = Field(min_length=1)
+    evidence_edge_ids: list[str] = Field(min_length=1)
+    hypothesis_verdict_ids: list[str] = Field(min_length=1)
+    study_verdict_id: str
+    qualification_status: QualificationStatus
+    artifact_hashes: dict[str, str] = Field(min_length=1)
+    exposure_record_ids: list[str] = Field(default_factory=list)
+    statistical_assurance_report_id: str | None = None
+    leakage_audit_report_id: str | None = None
+    claim_envelope_id: str | None = None
+    evidence_level: EvidenceReproductionLevel = (
+        EvidenceReproductionLevel.EVIDENCE_CHAIN_VERIFIED
+    )
+    confirmatory_status: ConfirmatoryStatus = ConfirmatoryStatus.UNTOUCHED
+    execution_status: ExecutionStatus = ExecutionStatus.SUCCEEDED
+    analysis_eligibility: AnalysisEligibilityStatus = (
+        AnalysisEligibilityStatus.QUALIFIED
+    )
+    scientific_verdict_status: StudyVerdictStatus | None = None
+    evidence_maturity: EvidenceMaturity = EvidenceMaturity.PROSPECTIVE
+    publication_mode: PublicationMode = PublicationMode.RESULTS_MANUSCRIPT
+    blocking_issue_report_id: str | None = None
+    contract_amendment_required: bool = False
+    created_at: str = Field(default_factory=utc_now)
 
 
 class LiteratureSetVersion(StrictModel):
@@ -597,12 +1507,34 @@ class RepairContract(StrictModel):
     created_at: str = Field(default_factory=utc_now)
 
 
-class ReadinessAssessment(StrictModel):
+class PublicationIntegrityGates(StrictModel):
     schema_version: int = 1
+    scientific_integrity: IntegrityGateStatus = IntegrityGateStatus.PENDING
+    narrative_integrity: IntegrityGateStatus = IntegrityGateStatus.PENDING
+    humanization_integrity: IntegrityGateStatus = IntegrityGateStatus.PENDING
+    visual_integrity: IntegrityGateStatus = IntegrityGateStatus.PENDING
+
+    def all_passed(self) -> bool:
+        return all(
+            value is IntegrityGateStatus.PASSED
+            for value in (
+                self.scientific_integrity,
+                self.narrative_integrity,
+                self.humanization_integrity,
+                self.visual_integrity,
+            )
+        )
+
+
+class ReadinessAssessment(StrictModel):
+    schema_version: int = 2
     study_id: str
     system_publication_readiness: SystemReadiness
     ai_scientific_review: AIReviewStatus = AIReviewStatus.PENDING
     author_publication_approval: AuthorApprovalStatus = AuthorApprovalStatus.PENDING
+    integrity_gates: PublicationIntegrityGates = Field(
+        default_factory=PublicationIntegrityGates
+    )
     system_checks: dict[str, bool] = Field(default_factory=dict)
     blockers: list[str] = Field(default_factory=list)
     assessed_at: str = Field(default_factory=utc_now)
@@ -614,6 +1546,7 @@ class ReadinessAssessment(StrictModel):
             self.system_publication_readiness is SystemReadiness.CONDITIONS_MET
             and self.ai_scientific_review is AIReviewStatus.PASSED
             and self.author_publication_approval is AuthorApprovalStatus.APPROVED
+            and self.integrity_gates.all_passed()
         )
         object.__setattr__(self, "publication_ready", value)
         return self
@@ -925,6 +1858,7 @@ class WorkflowRepository:
         depends_on: list[str] | None = None,
         parent_step_id: str | None = None,
         task_group: str | None = None,
+        parameters: dict[str, Any] | None = None,
         expected_output: str | None = None,
     ) -> StepInstance:
         study = self.load_study(study_id)
@@ -943,6 +1877,7 @@ class WorkflowRepository:
             depends_on=dependencies,
             parent_step_id=parent_step_id,
             task_group=task_group,
+            parameters=dict(parameters or {}),
             expected_output=expected_output,
         )
         write_json_atomic(self._study_dir(study_id) / "steps" / f"{step_id}.json", step)
@@ -975,9 +1910,24 @@ class WorkflowRepository:
         result: dict[str, Any],
         *,
         predecessor_artifact_id: str | None = None,
+        lease_id: str | None = None,
+        fencing_token: int | None = None,
     ) -> ArtifactRecord:
         """Persist a node result and register it as a first-class DAG artifact."""
-        self.load_step(study_id, step_id)
+        step = self.load_step(study_id, step_id)
+        if lease_id is not None or (
+            fencing_token is not None and fencing_token > 0
+        ):
+            if (
+                step.lease_id != lease_id
+                or step.fencing_token != fencing_token
+                or step.status
+                not in {ExecutionStatus.RUNNING, ExecutionStatus.RETRYING}
+            ):
+                raise ValueError(
+                    "expired or mismatched execution lease cannot publish "
+                    "a step result"
+                )
         path = self._study_dir(study_id) / "step_results" / f"{step_id}.json"
         write_json_atomic(path, result)
         artifact = self.register_artifact(
@@ -1023,8 +1973,31 @@ class WorkflowRepository:
         blocker: dict[str, Any] | None = None,
         input_artifact_ids: list[str] | None = None,
         output_artifact_ids: list[str] | None = None,
+        acceptance_status: StepAcceptanceStatus | None = None,
+        output_produced: bool | None = None,
+        schema_validated: bool | None = None,
+        scientific_postcondition_passed: bool | None = None,
+        acceptance_checks: dict[str, bool] | None = None,
+        lease_id: str | None = None,
+        fencing_token: int | None = None,
     ) -> StepInstance:
         step = self.load_step(study_id, step_id)
+        if lease_id is not None or (
+            fencing_token is not None and fencing_token > 0
+        ):
+            if (
+                step.lease_id != lease_id
+                or step.fencing_token != fencing_token
+                or step.status
+                not in {
+                    ExecutionStatus.RUNNING,
+                    ExecutionStatus.RETRYING,
+                }
+            ):
+                raise ValueError(
+                    "expired or mismatched execution lease cannot update "
+                    "step status"
+                )
         study = self.load_study(study_id)
         if (
             status in {ExecutionStatus.RUNNING, ExecutionStatus.RETRYING}
@@ -1054,6 +2027,8 @@ class WorkflowRepository:
         if status in {ExecutionStatus.RUNNING, ExecutionStatus.RETRYING}:
             update["attempt"] = step.attempt + 1
             update["started_at"] = step.started_at or utc_now()
+            update["lease_id"] = f"lease-{uuid.uuid4().hex[:16]}"
+            update["fencing_token"] = step.fencing_token + 1
         if status in {
             ExecutionStatus.SUCCEEDED,
             ExecutionStatus.FAILED,
@@ -1064,6 +2039,18 @@ class WorkflowRepository:
             update["input_artifact_ids"] = input_artifact_ids
         if output_artifact_ids is not None:
             update["output_artifact_ids"] = output_artifact_ids
+        if acceptance_status is not None:
+            update["acceptance_status"] = acceptance_status
+        if output_produced is not None:
+            update["output_produced"] = output_produced
+        if schema_validated is not None:
+            update["schema_validated"] = schema_validated
+        if scientific_postcondition_passed is not None:
+            update["scientific_postcondition_passed"] = (
+                scientific_postcondition_passed
+            )
+        if acceptance_checks is not None:
+            update["acceptance_checks"] = acceptance_checks
         event_id = self._event(
             study_id,
             "step_status_changed",
@@ -1099,6 +2086,38 @@ class WorkflowRepository:
                 }
             ),
             "study_execution_updated",
+        )
+        return updated
+
+    def update_step_parameters(
+        self,
+        study_id: str,
+        step_id: str,
+        parameters: dict[str, Any],
+    ) -> StepInstance:
+        """Replace parameters before execution while preserving an audit trail."""
+
+        step = self.load_step(study_id, step_id)
+        if step.status is not ExecutionStatus.QUEUED or step.attempt:
+            raise ValueError(
+                "step parameters can only change before the first attempt"
+            )
+        event_id = self._event(
+            study_id,
+            "step_parameters_changed",
+            step_instance_id=step_id,
+            parameter_keys=sorted(parameters),
+        )
+        updated = step.model_copy(
+            update={
+                "parameters": dict(parameters),
+                "updated_at": utc_now(),
+                "audit_event_ids": [*step.audit_event_ids, event_id],
+            }
+        )
+        write_json_atomic(
+            self._study_dir(study_id) / "steps" / f"{step_id}.json",
+            updated,
         )
         return updated
 
@@ -1285,6 +2304,18 @@ class WorkflowRepository:
                         "a frozen research contract requires a new version"
                     )
                 return existing
+        if (
+            contract.status is ArtifactStatus.FROZEN
+            and contract.schema_version >= 2
+            and contract.protocol_status
+            is not ProtocolStatus.FROZEN_EXECUTABLE
+        ):
+            raise ValueError(
+                "a Research Contract may freeze only after contract "
+                "compilation and a non-evidentiary dry run"
+            )
+        if path.is_file():
+            existing = ResearchContractVersion.model_validate(read_json(path))
             if contract.status is ArtifactStatus.FROZEN and not self._gate_approved(
                 contract.study_id,
                 GateType.RESEARCH_CONTRACT,
@@ -1384,6 +2415,843 @@ class WorkflowRepository:
         self._event(run.study_id, "research_run_saved", run_id=run.run_id)
         return run
 
+    def load_research_run(self, study_id: str, run_id: str) -> ResearchRun:
+        return ResearchRun.model_validate(
+            read_json(
+                self._study_dir(study_id) / "runs" / run_id / "run.json"
+            )
+        )
+
+    def list_research_runs(self, study_id: str) -> list[ResearchRun]:
+        self.load_study(study_id)
+        return [
+            ResearchRun.model_validate(read_json(path))
+            for path in sorted(
+                (self._study_dir(study_id) / "runs").glob("run-*/run.json")
+            )
+        ]
+
+    def save_experiment_blueprint(
+        self, blueprint: ExperimentBlueprint
+    ) -> ExperimentBlueprint:
+        self.load_study(blueprint.study_id)
+        path = (
+            self._study_dir(blueprint.study_id)
+            / "stage3"
+            / "specifications"
+            / f"{blueprint.blueprint_id}.json"
+        )
+        if path.is_file():
+            existing = ExperimentBlueprint.model_validate(read_json(path))
+            stable_existing = existing.model_dump(
+                mode="json", exclude={"created_at"}
+            )
+            stable_new = blueprint.model_dump(
+                mode="json", exclude={"created_at"}
+            )
+            if stable_existing != stable_new:
+                raise ValueError("Experiment Blueprint is immutable")
+            return existing
+        write_json_atomic(path, blueprint)
+        self._event(
+            blueprint.study_id,
+            "experiment_blueprint_saved",
+            blueprint_id=blueprint.blueprint_id,
+        )
+        return blueprint
+
+    def load_experiment_blueprint(
+        self, study_id: str, blueprint_id: str
+    ) -> ExperimentBlueprint:
+        return ExperimentBlueprint.model_validate(
+            read_json(
+                self._study_dir(study_id)
+                / "stage3"
+                / "specifications"
+                / f"{blueprint_id}.json"
+            )
+        )
+
+    def save_mvp_feasibility_receipt(
+        self, receipt: MVPFeasibilityReceipt
+    ) -> MVPFeasibilityReceipt:
+        self.load_study(receipt.study_id)
+        path = (
+            self._study_dir(receipt.study_id)
+            / "stage3"
+            / "specifications"
+            / f"{receipt.receipt_id}.json"
+        )
+        if path.is_file():
+            existing = MVPFeasibilityReceipt.model_validate(read_json(path))
+            stable_existing = existing.model_dump(
+                mode="json", exclude={"created_at"}
+            )
+            stable_new = receipt.model_dump(
+                mode="json", exclude={"created_at"}
+            )
+            if stable_existing != stable_new:
+                raise ValueError("MVP Feasibility Receipt is immutable")
+            return existing
+        write_json_atomic(path, receipt)
+        self._event(
+            receipt.study_id,
+            "mvp_feasibility_receipt_saved",
+            receipt_id=receipt.receipt_id,
+        )
+        return receipt
+
+    def load_mvp_feasibility_receipt(
+        self, study_id: str, receipt_id: str
+    ) -> MVPFeasibilityReceipt:
+        return MVPFeasibilityReceipt.model_validate(
+            read_json(
+                self._study_dir(study_id)
+                / "stage3"
+                / "specifications"
+                / f"{receipt_id}.json"
+            )
+        )
+
+    def save_scientific_specification_seal(
+        self, seal: ScientificSpecificationSeal
+    ) -> ScientificSpecificationSeal:
+        self.load_study(seal.study_id)
+        path = (
+            self._study_dir(seal.study_id)
+            / "stage3"
+            / "specifications"
+            / f"{seal.seal_id}.json"
+        )
+        if path.is_file():
+            existing = ScientificSpecificationSeal.model_validate(
+                read_json(path)
+            )
+            stable_existing = existing.model_dump(
+                mode="json", exclude={"frozen_at"}
+            )
+            stable_new = seal.model_dump(
+                mode="json", exclude={"frozen_at"}
+            )
+            if stable_existing != stable_new:
+                raise ValueError("Scientific Specification Seal is immutable")
+            return existing
+        write_json_atomic(path, seal)
+        self._event(
+            seal.study_id,
+            "scientific_specification_sealed",
+            seal_id=seal.seal_id,
+        )
+        return seal
+
+    def load_scientific_specification_seal(
+        self, study_id: str, seal_id: str
+    ) -> ScientificSpecificationSeal:
+        return ScientificSpecificationSeal.model_validate(
+            read_json(
+                self._study_dir(study_id)
+                / "stage3"
+                / "specifications"
+                / f"{seal_id}.json"
+            )
+        )
+
+    def save_experiment_build_plan(
+        self, plan: ExperimentBuildPlan
+    ) -> ExperimentBuildPlan:
+        self.load_study(plan.study_id)
+        path = (
+            self._study_dir(plan.study_id)
+            / "stage3"
+            / "build_plans"
+            / f"{plan.build_plan_id}.json"
+        )
+        if path.is_file():
+            existing = ExperimentBuildPlan.model_validate(read_json(path))
+            stable_existing = existing.model_dump(
+                mode="json", exclude={"created_at"}
+            )
+            stable_new = plan.model_dump(
+                mode="json", exclude={"created_at"}
+            )
+            if stable_existing != stable_new:
+                raise ValueError("Experiment Build Plan is immutable")
+            return existing
+        write_json_atomic(path, plan)
+        self._event(
+            plan.study_id,
+            "experiment_build_plan_saved",
+            build_plan_id=plan.build_plan_id,
+        )
+        return plan
+
+    def load_experiment_build_plan(
+        self, study_id: str, build_plan_id: str
+    ) -> ExperimentBuildPlan:
+        return ExperimentBuildPlan.model_validate(
+            read_json(
+                self._study_dir(study_id)
+                / "stage3"
+                / "build_plans"
+                / f"{build_plan_id}.json"
+            )
+        )
+
+    def list_experiment_build_plans(
+        self, study_id: str
+    ) -> list[ExperimentBuildPlan]:
+        self.load_study(study_id)
+        return [
+            ExperimentBuildPlan.model_validate(read_json(path))
+            for path in sorted(
+                (
+                    self._study_dir(study_id)
+                    / "stage3"
+                    / "build_plans"
+                ).glob("build-plan-*.json")
+            )
+        ]
+
+    def save_execution_package_seal(
+        self, seal: ExecutionPackageSeal
+    ) -> ExecutionPackageSeal:
+        self.load_study(seal.study_id)
+        path = (
+            self._study_dir(seal.study_id)
+            / "stage3"
+            / "execution_packages"
+            / f"{seal.seal_id}.json"
+        )
+        if path.is_file() and read_json(path) != seal.model_dump(mode="json"):
+            raise ValueError("Execution Package Seal is immutable")
+        write_json_atomic(path, seal)
+        self._event(
+            seal.study_id,
+            "execution_package_sealed",
+            seal_id=seal.seal_id,
+        )
+        return seal
+
+    def load_execution_package_seal(
+        self, study_id: str, seal_id: str
+    ) -> ExecutionPackageSeal:
+        return ExecutionPackageSeal.model_validate(
+            read_json(
+                self._study_dir(study_id)
+                / "stage3"
+                / "execution_packages"
+                / f"{seal_id}.json"
+            )
+        )
+
+    def save_stage3_handoff(
+        self, handoff: Stage3HandoffPackage
+    ) -> Stage3HandoffPackage:
+        self.load_study(handoff.study_id)
+        root = self._study_dir(handoff.study_id) / "stage3"
+        path = root / "handoffs" / f"{handoff.handoff_id}.json"
+        current_path = root / "handoff.json"
+        if path.is_file():
+            existing = Stage3HandoffPackage.model_validate(read_json(path))
+            stable_existing = existing.model_dump(
+                mode="json", exclude={"admitted_at"}
+            )
+            stable_new = handoff.model_dump(
+                mode="json", exclude={"admitted_at"}
+            )
+            if stable_existing != stable_new:
+                raise ValueError(
+                    "Stage 3 handoff is immutable; create a successor"
+                )
+            return existing
+        if current_path.is_file():
+            current = Stage3HandoffPackage.model_validate(
+                read_json(current_path)
+            )
+            if handoff.predecessor_handoff_id != current.handoff_id:
+                raise ValueError(
+                    "a new Stage 3 handoff must link its predecessor"
+                )
+        write_json_atomic(path, handoff)
+        write_json_atomic(current_path, handoff)
+        self._event(
+            handoff.study_id,
+            "stage3_handoff_admitted",
+            handoff_id=handoff.handoff_id,
+        )
+        return handoff
+
+    def load_stage3_handoff(self, study_id: str) -> Stage3HandoffPackage:
+        return Stage3HandoffPackage.model_validate(
+            read_json(self._study_dir(study_id) / "stage3" / "handoff.json")
+        )
+
+    def save_run_plan(self, plan: RunPlan) -> RunPlan:
+        self.load_study(plan.study_id)
+        path = (
+            self._study_dir(plan.study_id)
+            / "stage3"
+            / "run_plans"
+            / f"{plan.plan_id}.json"
+        )
+        if path.is_file():
+            existing = RunPlan.model_validate(read_json(path))
+            stable_existing = existing.model_dump(
+                mode="json", exclude={"created_at"}
+            )
+            stable_new = plan.model_dump(mode="json", exclude={"created_at"})
+            if stable_existing != stable_new:
+                raise ValueError("Run Plan is immutable")
+            return existing
+        write_json_atomic(path, plan)
+        self._event(
+            plan.study_id,
+            "stage3_run_plan_saved",
+            plan_id=plan.plan_id,
+            plan_hash=plan.plan_hash,
+        )
+        return plan
+
+    def load_run_plan(self, study_id: str, plan_id: str) -> RunPlan:
+        return RunPlan.model_validate(
+            read_json(
+                self._study_dir(study_id)
+                / "stage3"
+                / "run_plans"
+                / f"{plan_id}.json"
+            )
+        )
+
+    def list_run_plans(self, study_id: str) -> list[RunPlan]:
+        self.load_study(study_id)
+        return sorted([
+            RunPlan.model_validate(read_json(path))
+            for path in sorted(
+                (
+                    self._study_dir(study_id) / "stage3" / "run_plans"
+                ).glob("run-plan-*.json")
+            )
+        ], key=lambda item: item.created_at)
+
+    def save_execution_attempt(
+        self, attempt: ExecutionAttempt
+    ) -> ExecutionAttempt:
+        self.load_study(attempt.study_id)
+        path = (
+            self._study_dir(attempt.study_id)
+            / "stage3"
+            / "attempts"
+            / f"{attempt.attempt_id}.json"
+        )
+        if path.is_file():
+            existing = ExecutionAttempt.model_validate(read_json(path))
+            if existing.model_dump(mode="json") != attempt.model_dump(
+                mode="json"
+            ):
+                raise ValueError("execution attempts are append-only")
+            return existing
+        write_json_atomic(path, attempt)
+        self._event(
+            attempt.study_id,
+            "stage3_execution_attempt_saved",
+            attempt_id=attempt.attempt_id,
+            run_cell_id=attempt.run_cell_id,
+        )
+        return attempt
+
+    def list_execution_attempts(
+        self, study_id: str, run_cell_id: str | None = None
+    ) -> list[ExecutionAttempt]:
+        self.load_study(study_id)
+        attempts = [
+            ExecutionAttempt.model_validate(read_json(path))
+            for path in sorted(
+                (
+                    self._study_dir(study_id) / "stage3" / "attempts"
+                ).glob("attempt-*.json")
+            )
+        ]
+        if run_cell_id is not None:
+            attempts = [
+                item for item in attempts
+                if item.run_cell_id == run_cell_id
+            ]
+        return attempts
+
+    def save_result_envelope(
+        self, result: ResultEnvelope
+    ) -> ResultEnvelope:
+        self.load_study(result.study_id)
+        existing_for_cell = [
+            item
+            for item in self.list_result_envelopes(result.study_id)
+            if item.run_cell_id == result.run_cell_id
+        ]
+        if existing_for_cell and all(
+            item.result_id != result.result_id for item in existing_for_cell
+        ):
+            raise ValueError(
+                "a RunCell already has its canonical result; create a "
+                "successor plan instead of selecting a later attempt"
+            )
+        path = (
+            self._study_dir(result.study_id)
+            / "stage3"
+            / "results"
+            / f"{result.result_id}.json"
+        )
+        if path.is_file() and read_json(path) != result.model_dump(mode="json"):
+            raise ValueError("result envelopes are immutable")
+        write_json_atomic(path, result)
+        return result
+
+    def list_result_envelopes(self, study_id: str) -> list[ResultEnvelope]:
+        self.load_study(study_id)
+        return [
+            ResultEnvelope.model_validate(read_json(path))
+            for path in sorted(
+                (
+                    self._study_dir(study_id) / "stage3" / "results"
+                ).glob("result-*.json")
+            )
+        ]
+
+    def save_evaluation_record(
+        self, evaluation: EvaluationRecord
+    ) -> EvaluationRecord:
+        self.load_study(evaluation.study_id)
+        path = (
+            self._study_dir(evaluation.study_id)
+            / "stage3"
+            / "evaluations"
+            / f"{evaluation.evaluation_id}.json"
+        )
+        if (
+            path.is_file()
+            and read_json(path) != evaluation.model_dump(mode="json")
+        ):
+            raise ValueError("evaluation records are immutable")
+        write_json_atomic(path, evaluation)
+        return evaluation
+
+    def list_evaluation_records(
+        self, study_id: str
+    ) -> list[EvaluationRecord]:
+        self.load_study(study_id)
+        return sorted([
+            EvaluationRecord.model_validate(read_json(path))
+            for path in sorted(
+                (
+                    self._study_dir(study_id) / "stage3" / "evaluations"
+                ).glob("evaluation-*.json")
+            )
+        ], key=lambda item: item.created_at)
+
+    def save_formal_exposure(
+        self, exposure: FormalEvaluationExposureRecord
+    ) -> FormalEvaluationExposureRecord:
+        self.load_study(exposure.study_id)
+        path = (
+            self._study_dir(exposure.study_id)
+            / "stage3"
+            / "exposures"
+            / f"{exposure.exposure_id}.json"
+        )
+        if path.is_file() and read_json(path) != exposure.model_dump(
+            mode="json"
+        ):
+            raise ValueError("formal exposure records are append-only")
+        write_json_atomic(path, exposure)
+        self._event(
+            exposure.study_id,
+            "formal_evaluation_exposed",
+            exposure_id=exposure.exposure_id,
+            target_hash=exposure.target_hash,
+            confirmatory_status=exposure.confirmatory_status.value,
+        )
+        return exposure
+
+    def list_formal_exposures(
+        self,
+        study_id: str | None = None,
+        *,
+        target_hash: str | None = None,
+    ) -> list[FormalEvaluationExposureRecord]:
+        roots = (
+            [self._study_dir(study_id)]
+            if study_id is not None
+            else [
+                path for path in (self.root / "studies").glob("*")
+                if path.is_dir()
+            ]
+        )
+        records = [
+            FormalEvaluationExposureRecord.model_validate(read_json(path))
+            for root in roots
+            for path in sorted(
+                (root / "stage3" / "exposures").glob(
+                    "formal-exposure-*.json"
+                )
+            )
+        ]
+        if target_hash is not None:
+            records = [
+                item for item in records
+                if item.target_hash == target_hash
+            ]
+        return sorted(records, key=lambda item: item.first_exposed_at)
+
+    def save_statistical_assurance_report(
+        self, report: StatisticalAssuranceReport
+    ) -> StatisticalAssuranceReport:
+        self.load_study(report.study_id)
+        path = (
+            self._study_dir(report.study_id)
+            / "stage3"
+            / "assurance"
+            / f"{report.report_id}.json"
+        )
+        if path.is_file() and read_json(path) != report.model_dump(mode="json"):
+            raise ValueError("statistical assurance reports are immutable")
+        write_json_atomic(path, report)
+        return report
+
+    def list_statistical_assurance_reports(
+        self, study_id: str
+    ) -> list[StatisticalAssuranceReport]:
+        self.load_study(study_id)
+        return [
+            StatisticalAssuranceReport.model_validate(read_json(path))
+            for path in sorted(
+                (
+                    self._study_dir(study_id) / "stage3" / "assurance"
+                ).glob("stat-assurance-*.json")
+            )
+        ]
+
+    def save_leakage_audit_report(
+        self, report: LeakageAuditReport
+    ) -> LeakageAuditReport:
+        self.load_study(report.study_id)
+        path = (
+            self._study_dir(report.study_id)
+            / "stage3"
+            / "leakage_audits"
+            / f"{report.report_id}.json"
+        )
+        if path.is_file() and read_json(path) != report.model_dump(mode="json"):
+            raise ValueError("leakage audit reports are immutable")
+        write_json_atomic(path, report)
+        return report
+
+    def list_leakage_audit_reports(
+        self, study_id: str
+    ) -> list[LeakageAuditReport]:
+        self.load_study(study_id)
+        return [
+            LeakageAuditReport.model_validate(read_json(path))
+            for path in sorted(
+                (
+                    self._study_dir(study_id)
+                    / "stage3"
+                    / "leakage_audits"
+                ).glob("leakage-audit-*.json")
+            )
+        ]
+
+    def save_claim_envelope(
+        self, envelope: ScientificClaimEnvelope
+    ) -> ScientificClaimEnvelope:
+        self.load_study(envelope.study_id)
+        path = (
+            self._study_dir(envelope.study_id)
+            / "stage3"
+            / "claim_envelopes"
+            / f"{envelope.claim_envelope_id}.json"
+        )
+        if path.is_file() and read_json(path) != envelope.model_dump(
+            mode="json"
+        ):
+            raise ValueError("scientific claim envelopes are immutable")
+        write_json_atomic(path, envelope)
+        return envelope
+
+    def list_claim_envelopes(
+        self, study_id: str
+    ) -> list[ScientificClaimEnvelope]:
+        self.load_study(study_id)
+        return [
+            ScientificClaimEnvelope.model_validate(read_json(path))
+            for path in sorted(
+                (
+                    self._study_dir(study_id)
+                    / "stage3"
+                    / "claim_envelopes"
+                ).glob("claim-envelope-*.json")
+            )
+        ]
+
+    def save_human_intervention(
+        self, intervention: HumanInterventionRecord
+    ) -> HumanInterventionRecord:
+        self.load_study(intervention.study_id)
+        path = (
+            self._study_dir(intervention.study_id)
+            / "stage3"
+            / "human_interventions"
+            / f"{intervention.intervention_id}.json"
+        )
+        if path.is_file() and read_json(path) != intervention.model_dump(
+            mode="json"
+        ):
+            raise ValueError("human intervention records are append-only")
+        write_json_atomic(path, intervention)
+        return intervention
+
+    def record_component_defect(
+        self, notice: ComponentDefectNotice
+    ) -> GlobalImpactAnalysis:
+        """Record a shared defect and append under-review overlays per Study."""
+
+        notice_path = (
+            self.root
+            / "component_defects"
+            / f"{notice.notice_id}.json"
+        )
+        if notice_path.is_file() and read_json(
+            notice_path
+        ) != notice.model_dump(mode="json"):
+            raise ValueError("component defect notices are immutable")
+        write_json_atomic(notice_path, notice)
+        artifacts_by_study: dict[str, list[str]] = {}
+        verdicts_by_study: dict[str, list[str]] = {}
+        for study in self.list_studies():
+            artifacts = self.list_artifacts(study.study_id)
+            direct = {
+                item.artifact_id
+                for item in artifacts
+                if item.sha256 == notice.component_digest
+            }
+            if not direct:
+                continue
+            impacted = affected_artifacts(
+                direct, self.list_dependencies(study.study_id)
+            )
+            artifacts_by_study[study.study_id] = sorted(impacted)
+            verdict_ids = sorted(
+                str(payload["verdict_id"])
+                for path in (
+                    self._study_dir(study.study_id) / "verdicts"
+                ).glob("*.json")
+                for payload in [read_json(path)]
+                if payload.get("verdict_id")
+            )
+            verdicts_by_study[study.study_id] = verdict_ids
+            erratum = ResearchErratum(
+                erratum_id=stable_id(
+                    "research-erratum",
+                    study.study_id,
+                    notice.notice_id,
+                ),
+                study_id=study.study_id,
+                notice_id=notice.notice_id,
+                affected_artifact_ids=sorted(impacted),
+                affected_verdict_ids=verdict_ids,
+            )
+            write_json_atomic(
+                self._study_dir(study.study_id)
+                / "errata"
+                / f"{erratum.erratum_id}.json",
+                erratum,
+            )
+            self._event(
+                study.study_id,
+                "component_defect_under_review",
+                notice_id=notice.notice_id,
+                erratum_id=erratum.erratum_id,
+            )
+        analysis = GlobalImpactAnalysis(
+            analysis_id=stable_id(
+                "global-impact",
+                notice.notice_id,
+                notice.component_digest,
+            ),
+            notice_id=notice.notice_id,
+            affected_study_ids=sorted(artifacts_by_study),
+            affected_artifact_ids_by_study=artifacts_by_study,
+            affected_verdict_ids_by_study=verdicts_by_study,
+        )
+        write_json_atomic(
+            self.root
+            / "component_defects"
+            / f"{analysis.analysis_id}.json",
+            analysis,
+        )
+        return analysis
+
+    def save_evidence_edge(self, edge: EvidenceEdge) -> EvidenceEdge:
+        self.load_study(edge.study_id)
+        path = (
+            self._study_dir(edge.study_id)
+            / "stage3"
+            / "evidence_edges"
+            / f"{edge.edge_id}.json"
+        )
+        if path.is_file() and read_json(path) != edge.model_dump(mode="json"):
+            raise ValueError("evidence edges are immutable")
+        write_json_atomic(path, edge)
+        return edge
+
+    def list_evidence_edges(self, study_id: str) -> list[EvidenceEdge]:
+        self.load_study(study_id)
+        return [
+            EvidenceEdge.model_validate(read_json(path))
+            for path in sorted(
+                (
+                    self._study_dir(study_id) / "stage3" / "evidence_edges"
+                ).glob("evidence-edge-*.json")
+            )
+        ]
+
+    def save_stage3_diagnostic(
+        self, diagnostic: DiagnosticReport
+    ) -> DiagnosticReport:
+        self.load_study(diagnostic.study_id)
+        path = (
+            self._study_dir(diagnostic.study_id)
+            / "stage3"
+            / "diagnostics"
+            / f"{diagnostic.diagnostic_id}.json"
+        )
+        if (
+            path.is_file()
+            and read_json(path) != diagnostic.model_dump(mode="json")
+        ):
+            raise ValueError("Stage 3 diagnostics are append-only")
+        write_json_atomic(path, diagnostic)
+        return diagnostic
+
+    def list_stage3_diagnostics(
+        self, study_id: str
+    ) -> list[DiagnosticReport]:
+        self.load_study(study_id)
+        return [
+            DiagnosticReport.model_validate(read_json(path))
+            for path in sorted(
+                (
+                    self._study_dir(study_id)
+                    / "stage3"
+                    / "diagnostics"
+                ).glob("stage3-diagnostic-*.json")
+            )
+        ]
+
+    def save_successor_run(self, successor: SuccessorRun) -> SuccessorRun:
+        self.load_study(successor.study_id)
+        path = (
+            self._study_dir(successor.study_id)
+            / "stage3"
+            / "successors"
+            / f"{successor.successor_id}.json"
+        )
+        if path.is_file() and read_json(path) != successor.model_dump(
+            mode="json"
+        ):
+            raise ValueError("successor lineage is append-only")
+        write_json_atomic(path, successor)
+        return successor
+
+    def list_successor_runs(self, study_id: str) -> list[SuccessorRun]:
+        self.load_study(study_id)
+        return [
+            SuccessorRun.model_validate(read_json(path))
+            for path in sorted(
+                (
+                    self._study_dir(study_id) / "stage3" / "successors"
+                ).glob("successor-*.json")
+            )
+        ]
+
+    def save_scientific_successor_request(
+        self, request: ScientificSuccessorRequest
+    ) -> ScientificSuccessorRequest:
+        self.load_study(request.study_id)
+        path = (
+            self._study_dir(request.study_id)
+            / "stage3"
+            / "scientific_successors"
+            / f"{request.request_id}.json"
+        )
+        if path.is_file() and read_json(path) != request.model_dump(
+            mode="json"
+        ):
+            raise ValueError("scientific successor requests are append-only")
+        write_json_atomic(path, request)
+        self._event(
+            request.study_id,
+            "scientific_successor_requested",
+            request_id=request.request_id,
+        )
+        return request
+
+    def list_scientific_successor_requests(
+        self, study_id: str
+    ) -> list[ScientificSuccessorRequest]:
+        self.load_study(study_id)
+        return [
+            ScientificSuccessorRequest.model_validate(read_json(path))
+            for path in sorted(
+                (
+                    self._study_dir(study_id)
+                    / "stage3"
+                    / "scientific_successors"
+                ).glob("scientific-successor-*.json")
+            )
+        ]
+
+    def save_stage3_completion(
+        self, package: Stage3CompletionPackage
+    ) -> Stage3CompletionPackage:
+        self.load_study(package.study_id)
+        path = (
+            self._study_dir(package.study_id)
+            / "stage3"
+            / "completion"
+            / f"{package.completion_id}.json"
+        )
+        if path.is_file() and read_json(path) != package.model_dump(
+            mode="json"
+        ):
+            raise ValueError("Stage 3 completion packages are immutable")
+        write_json_atomic(path, package)
+        self._event(
+            package.study_id,
+            "stage3_completion_saved",
+            completion_id=package.completion_id,
+        )
+        return package
+
+    def list_stage3_completions(
+        self, study_id: str
+    ) -> list[Stage3CompletionPackage]:
+        """Return immutable completion packages in creation order.
+
+        Completion identifiers are content-derived, so filename order is not
+        chronological and must not determine the current claim authority.
+        """
+
+        self.load_study(study_id)
+        packages = [
+            Stage3CompletionPackage.model_validate(read_json(path))
+            for path in (
+                self._study_dir(study_id) / "stage3" / "completion"
+            ).glob("stage3-completion-*.json")
+        ]
+        return sorted(
+            packages,
+            key=lambda item: (item.created_at, item.completion_id),
+        )
+
     def save_literature_set(
         self, literature: LiteratureSetVersion
     ) -> LiteratureSetVersion:
@@ -1403,6 +3271,19 @@ class WorkflowRepository:
             version=literature.version,
         )
         return literature
+
+    def list_literature_sets(
+        self, study_id: str
+    ) -> list[LiteratureSetVersion]:
+        self.load_study(study_id)
+        return [
+            LiteratureSetVersion.model_validate(read_json(path))
+            for path in sorted(
+                (self._study_dir(study_id) / "literature").glob(
+                    "literature-*-v*.json"
+                )
+            )
+        ]
 
     def save_evidence_chain(self, chain: EvidenceChain) -> EvidenceChain:
         self.load_study(chain.study_id)
@@ -1867,41 +3748,93 @@ def verify_completion_record(
 
 __all__ = [
     "AIReviewStatus",
+    "AnalysisEligibilityStatus",
     "AdjudicationRecord",
+    "ArmFairnessContract",
     "ArtifactDependency",
     "ArtifactRecord",
     "ArtifactRole",
     "ArtifactStatus",
     "AuthorApprovalStatus",
+    "AssuranceStatus",
+    "AttemptSelectionPolicy",
+    "BuildAssetStrategy",
     "CompletionRecord",
+    "ComponentDefectNotice",
     "DiagnosticOwner",
+    "DiagnosticReport",
+    "ConfirmatoryStatus",
     "EntryMode",
     "EvidenceChain",
     "EvidenceChainLevel",
+    "EvidenceEdge",
+    "EvidenceRelation",
+    "EvidenceReproductionLevel",
+    "EvidenceMaturity",
+    "EstimandSpecification",
+    "ExecutionPackageSeal",
+    "ExecutionTrustLevel",
+    "ExperimentBlueprint",
+    "ExperimentBuildItem",
+    "ExperimentBuildPlan",
+    "EvaluationRecord",
+    "ExecutionAttempt",
     "ExecutionStatus",
     "ExecutorType",
     "GateRecord",
     "GateStatus",
     "GateType",
+    "GlobalImpactAnalysis",
+    "FormalEvaluationExposureRecord",
+    "FormalExposureType",
+    "HumanInterventionRecord",
     "Hypothesis",
     "HypothesisRole",
     "HypothesisVerdict",
     "HypothesisVerdictStatus",
+    "IntegrityGateStatus",
     "NetworkPolicy",
+    "MVPFeasibilityReceipt",
+    "ModelSelectionPlan",
     "Phase",
+    "ProtocolStatus",
     "ProjectRecord",
+    "ProfileCapabilityStatus",
     "PublicationApproval",
+    "PublicationIntegrityGates",
+    "PublicationMode",
     "ReadinessAssessment",
     "RepairContract",
     "RepairStatus",
+    "ResourceLifecycleStatus",
+    "QualificationStatus",
+    "LeakageAuditReport",
+    "LeakageCheckStatus",
     "ResearchContractVersion",
+    "ResearchErratum",
+    "ResearchRun",
     "ResearchSupportLevel",
+    "ResultEnvelope",
+    "RunCell",
+    "RunCellStatus",
+    "RunPlan",
     "ScopeContractVersion",
+    "ScientificSpecificationSeal",
+    "ScientificClaimEnvelope",
+    "ScientificSuccessorRequest",
+    "Stage3BuildMode",
+    "Stage3CompletionPackage",
+    "Stage3FailureClass",
+    "Stage3HandoffPackage",
+    "Stage3Profile",
+    "StatisticalAssuranceReport",
     "StepInstance",
+    "StepAcceptanceStatus",
     "StudyLifecycle",
     "StudyRecord",
     "StudyVerdict",
     "StudyVerdictStatus",
+    "SuccessorRun",
     "SystemReadiness",
     "WorkflowRepository",
     "WorkflowDiagnostic",

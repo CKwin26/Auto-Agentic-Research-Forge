@@ -9,12 +9,43 @@ from research_forge.paper_authoring import (
     OutlineNode,
     RoleReview,
     TableSlot,
+    academicize_publication_text,
     build_paper_artifacts,
     decide_panel,
     materialize_artifact_callouts,
+    publication_code_identifiers,
+    publication_internal_tokens,
+    validate_publication_title,
     validate_outline,
 )
 from research_forge.paper_pipeline import GENERIC_JOURNAL_ARTICLE
+
+
+def test_publication_text_uses_scholarly_terms_without_changing_audit_source() -> None:
+    source = (
+        "evaluator_policy uses frozen statistical rules; "
+        "decision=unverifiable for formal-primary-task-b6b855d916b9ad5f."
+    )
+
+    rendered = academicize_publication_text(source)
+
+    assert "evaluator_policy" not in rendered
+    assert "frozen statistical rules" not in rendered
+    assert "decision=unverifiable" not in rendered
+    assert "formal-primary-task-b6b855d916b9ad5f" not in rendered
+    assert source.startswith("evaluator_policy")
+
+
+def test_publication_token_audit_ignores_citations_but_flags_internal_fields() -> None:
+    text = (
+        "[resource-12345678] paper_assets/figures/result.svg "
+        "resource_selection_id=internal"
+    )
+
+    assert publication_internal_tokens(text) == [
+        "resource_selection_id",
+        "resource_selection_id=internal",
+    ]
 
 
 def _map() -> EvidenceClaimMap:
@@ -98,7 +129,6 @@ def test_outline_and_artifacts_remain_bound_to_frozen_claims(tmp_path: Path) -> 
         contract=GENERIC_JOURNAL_ARTICLE,
         evidence_claim_map=evidence,
     )
-
     manifest = build_paper_artifacts(
         tmp_path,
         outline=outline,
@@ -118,6 +148,40 @@ def test_outline_and_artifacts_remain_bound_to_frozen_claims(tmp_path: Path) -> 
     assert "![图 1" in rendered
     assert "Table: " in rendered
     assert "| `numeric-001` |" in rendered
+
+
+def test_reader_facing_title_rejects_internal_code_identifiers(
+    tmp_path: Path,
+) -> None:
+    evidence = _map()
+    outline = _outline().model_copy(
+        update={
+            "title": (
+                "dual_quality_top5 与 v3_tech_quality_top5 的注册比较"
+            )
+        }
+    )
+
+    violations = validate_outline(
+        outline,
+        contract=GENERIC_JOURNAL_ARTICLE,
+        evidence_claim_map=evidence,
+    )
+
+    assert publication_code_identifiers(outline.title) == [
+        "dual_quality_top5",
+        "v3_tech_quality_top5",
+    ]
+    assert any("internal implementation or audit identifiers" in item for item in violations)
+
+
+def test_publication_title_validation_accepts_natural_academic_title() -> None:
+    assert not validate_publication_title(
+        "双重标准排序能否提升高收益事件识别？一项预注册配对评估"
+    )
+    assert validate_publication_title(
+        "dual_quality_top5 与 v3_tech_quality_top5 的比较"
+    )
 
 
 def test_panel_veto_and_abstention_rules_are_deterministic() -> None:

@@ -1,0 +1,119 @@
+schema_version: 1
+suite_name: Research Forge Capability Benchmark
+counting_rule: 12 core scientific cases plus 2 clean-room replay extensions
+cases:
+  - case_id: capbench-openml-classification
+    category: positive
+    title: OpenML tabular classification
+    profile: tabular_ml_v1
+    expected_outcome: complete executable contract, run, evaluation, and verdict
+    status: controlled_e2e
+    evidence: [tests/test_openml_capability_benchmark.py, docs/openml-capability-benchmark-2026-07-31.md]
+    notes: Three official numeric binary-classification tasks ran on OpenML repeat 0/fold 0/sample 0 with frozen hashes and independent metric revalidation.
+  - case_id: capbench-openml-regression
+    category: positive
+    title: OpenML tabular regression
+    profile: tabular_ml_v1
+    expected_outcome: complete executable contract, run, evaluation, and verdict
+    status: controlled_e2e
+    evidence: [tests/test_openml_capability_benchmark.py, docs/openml-capability-benchmark-2026-07-31.md]
+    notes: Two official numeric regression tasks ran on OpenML repeat 0/fold 0/sample 0 with frozen hashes and independent metric revalidation.
+  - case_id: capbench-deterministic-simulation
+    category: positive
+    title: Deterministic simulation with known effect
+    profile: deterministic_simulation_v1
+    expected_outcome: recover the registered effect and deterministic verdict
+    status: component_tested
+    evidence: [tests/test_deterministic_simulation_profile.py#test_known_effect_is_recovered_and_supported]
+    notes: Known-effect paired kernel and independent evaluator are tested; formal isolated packaging remains in development.
+  - case_id: capbench-existing-python-reproduction
+    category: positive
+    title: Existing Python project reproduction
+    profile: existing_python_project_v1
+    expected_outcome: resolve entrypoint, reproduce output, and bind result hashes
+    status: real_case_validated
+    evidence: [tests/test_existing_project_replay.py, docs/existing-python-project-real-case-validation-2026-07-31.md]
+    notes: Two non-prebuilt Python projects passed sealed same-host Docker replays; this validates the narrow replay utility, not the complete Stage 2 to Stage 3 scientific profile or external reproduction.
+
+  - case_id: capbench-missing-label-builder
+    category: negative
+    title: Missing authoritative label builder
+    profile: contract_compiler
+    expected_outcome: blocked before contract freeze
+    status: component_tested
+    evidence: [tests/test_contract_compiler.py]
+    notes: Covered by target-rule and data-boundary compiler checks.
+  - case_id: capbench-metric-name-no-formula
+    category: negative
+    title: Metric display name without formula
+    profile: contract_compiler
+    expected_outcome: METRIC_FORMULA_MISSING
+    status: component_tested
+    evidence: [tests/test_contract_compiler.py#test_metric_name_without_explicit_formula_cannot_compile]
+    notes: Compiler must not infer a formula from words such as accuracy or latency.
+  - case_id: capbench-target-leakage
+    category: negative
+    title: Target leakage in feature columns
+    profile: contract_compiler
+    expected_outcome: TARGET_LEAKAGE
+    status: component_tested
+    evidence: [tests/test_contract_compiler.py#test_target_column_cannot_also_be_a_feature]
+    notes: Target or label fields cannot appear in the frozen feature set.
+  - case_id: capbench-identical-arms
+    category: negative
+    title: Identical baseline and treatment arms
+    profile: contract_compiler
+    expected_outcome: ARM_DELTA_MISSING
+    status: component_tested
+    evidence: [tests/test_contract_compiler.py#test_identical_arms_fail_the_scientific_contribution_gate]
+    notes: The Scientific Contribution Gate must reject a null intervention design.
+
+  - case_id: capbench-verdict-supported
+    category: verdict
+    title: Supported primary hypothesis fixture
+    profile: verdict_aggregation
+    expected_outcome: supported
+    status: component_tested
+    evidence: [tests/test_capability_verdict_fixtures.py#test_single_primary_verdict_fixture]
+    notes: Isolated parameterized fixture verifies a supported primary hypothesis aggregates to supported.
+  - case_id: capbench-verdict-refuted
+    category: verdict
+    title: Refuted primary hypothesis fixture
+    profile: verdict_aggregation
+    expected_outcome: refuted
+    status: component_tested
+    evidence: [tests/test_capability_verdict_fixtures.py#test_single_primary_verdict_fixture]
+    notes: Isolated parameterized fixture verifies a refuted primary hypothesis aggregates to refuted.
+  - case_id: capbench-verdict-mixed
+    category: verdict
+    title: Mixed primary hypotheses fixture
+    profile: verdict_aggregation
+    expected_outcome: mixed
+    status: component_tested
+    evidence: [tests/test_capability_verdict_fixtures.py#test_mixed_primary_verdict_fixture]
+    notes: Isolated fixture verifies conflicting primary hypothesis outcomes aggregate to mixed.
+  - case_id: capbench-verdict-inconclusive
+    category: verdict
+    title: Inconclusive threshold fixture
+    profile: verdict_aggregation
+    expected_outcome: inconclusive
+    status: component_tested
+    evidence: [tests/test_capability_verdict_fixtures.py#test_single_primary_verdict_fixture]
+    notes: Isolated parameterized fixture verifies a threshold-inconclusive primary result remains inconclusive.
+
+  - case_id: capbench-clean-room-package-a
+    category: clean_room
+    title: Clean-room replay package A
+    profile: reproduction
+    expected_outcome: ephemeral worker recomputes and matches the frozen scientific summary from sealed inputs only
+    status: controlled_e2e
+    evidence: [tests/test_clean_room_replay.py, docs/clean-room-replay-acceptance-2026-07-31.md]
+    notes: A fresh network-disabled read-only Docker worker completed the replay with full coverage and comparison; no external verifier receipt exists, so RF-E2 and C5 are not awarded.
+  - case_id: capbench-clean-room-package-b
+    category: clean_room
+    title: Clean-room replay package B
+    profile: reproduction
+    expected_outcome: second sealed package independently exercises the same clean-room invariants and frozen comparator
+    status: controlled_e2e
+    evidence: [tests/test_clean_room_replay.py, docs/clean-room-replay-acceptance-2026-07-31.md]
+    notes: The second distinct package also completed with full coverage and matching results; the local Docker trust domain is still not an external organization or KMS-backed verifier.

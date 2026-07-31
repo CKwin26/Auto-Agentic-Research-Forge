@@ -72,6 +72,18 @@ class ReadinessService:
             for key, value in payload.get("capability_tests", {}).items()
         }
 
+    def _deployment_health(self) -> dict[str, bool]:
+        path = self.repository.root / "readiness-validation.json"
+        if not path.is_file():
+            return {}
+        payload = read_json(path)
+        if not self._recent(str(payload.get("generated_at") or "")):
+            return {}
+        return {
+            str(key): bool(value)
+            for key, value in payload.get("capability_health", {}).items()
+        }
+
     def _migration_ready(self) -> bool:
         schema = read_json(self.repository.root / "schema.json")
         migrations = set(schema.get("migrations", []))
@@ -164,6 +176,7 @@ class ReadinessService:
     def evaluate(self) -> ReadinessReport:
         checked_at = utc_now()
         test_evidence = self._test_evidence()
+        deployment_health = self._deployment_health()
         migration_ready = self._migration_ready()
         results: list[CapabilityReadiness] = []
         for capability, candidates in _CAPABILITY_PROVIDERS.items():
@@ -232,6 +245,17 @@ class ReadinessService:
                             "recent hash-bound acquisition/evidence artifact "
                             "satisfies this capability"
                         ),
+                    }
+                )
+            if (
+                capability not in _ARTIFACT_HEALTH_REQUIRED
+                and deployment_health.get(capability.value)
+            ):
+                health_records.append(
+                    {
+                        "provider": capability.value,
+                        "status": "ready",
+                        "reason": "recent bounded deployment validation passed",
                     }
                 )
             health_verified = any(

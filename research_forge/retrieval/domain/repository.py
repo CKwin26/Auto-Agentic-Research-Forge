@@ -343,7 +343,18 @@ class RetrievalRepository:
         policy_context: dict[str, Any] | None = None,
     ) -> RetrievalArtifact:
         safe_extension = extension.casefold().lstrip(".")
-        if safe_extension not in {"pdf", "zip", "tar", "gz", "bin"}:
+        if safe_extension not in {
+            "pdf",
+            "zip",
+            "tar",
+            "gz",
+            "bin",
+            "arff",
+            "csv",
+            "json",
+            "parquet",
+            "pq",
+        }:
             raise ValueError("unsupported binary artifact extension")
         digest = __import__("hashlib").sha256(content).hexdigest()
         lineage = list(input_artifact_ids or [])

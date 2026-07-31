@@ -1,0 +1,38 @@
+from ..base import ExperimentProfileBundle, ProfileCertificationStatus
+from ...workflow_domain import Stage3Profile
+
+BUNDLE = ExperimentProfileBundle(
+    profile_id=Stage3Profile.COMPUTATIONAL_PAIRED_COMPARISON_V2,
+    profile_version="2.0.0",
+    certification_status=ProfileCertificationStatus.CERTIFIED,
+    design_id="paired_two_arm_v1",
+    outcome_id="continuous_outcome_v1",
+    estimand_id="paired_mean_difference_v1",
+    estimator_id="paired_mean_estimator_v1",
+    inference_id="cluster_bootstrap_continuous_v1",
+    missingness_id="block_on_missing_pair_v1",
+    multiplicity_id="single_primary_hypothesis_v1",
+    verdict_policy_id="superiority_threshold_v1",
+    contract_schema_id="computational_paired_contract_v2",
+    run_plan_compiler_id="paired_two_arm_compiler_v2",
+    candidate_schema_id="sample_level_continuous_v2",
+    analysis_table_id="paired_cluster_analysis_table_v2",
+    qualification_id="paired_cluster_qualification_v2",
+    evaluator_id="independent_sample_metric_v2",
+    claim_envelope_id="paired_cluster_claim_envelope_v2",
+    repair_policy_id="bounded_scientific_successor_v2",
+    reproduction_comparator_id="computational_paired_comparison_v2",
+    assurance_suite_id="paired_continuous_cluster_assurance_v2",
+    frontend_renderer_id="paired_cluster_matrix_v2",
+    required_contract_fields=(
+        "estimand",
+        "variance_unit",
+        "aggregation_hierarchy",
+        "model_selection_plan",
+        "arm_fairness_contract",
+        "inference_spec",
+    ),
+    supported_data_types=("jsonl", "parquet"),
+    builder_plugins=("computational_paired_comparison_codex_v2",),
+    notes=("Cluster-aware sample-level paired continuous analysis.",),
+)

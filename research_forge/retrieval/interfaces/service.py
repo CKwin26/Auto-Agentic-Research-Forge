@@ -317,6 +317,634 @@ class RetrievalGateway:
             report_artifact_id=report.artifact_id,
         )
 
+    def acquire_approved_experiment_resource(
+        self,
+        *,
+        request_id: str,
+        resource_id: str,
+    ) -> AcquisitionExecution:
+        """Acquire one exact contract-approved, revision-pinned code archive.
+
+        This is an acquisition operation, not an open search.  The request
+        must carry the experimentation phase, frozen Research Contract
+        reference, exact resource type, owner-approved network policy and a
+        positive byte budget.  Raw bytes are frozen before any consumer may
+        inspect or normalize them.
+        """
+
+        request = self.repository.load_request(request_id)
+        plan = self.repository.load_query_plan(request.query_plan_id)
+        policy = self.repository.load_network_policy(request.network_policy_id)
+        if request.phase is not RetrievalPhase.EXPERIMENTATION:
+            raise PermissionError(
+                "experiment resource acquisition requires experimentation phase"
+            )
+        if not any(
+            item.contract_type == "research" for item in request.contract_refs
+        ):
+            raise PermissionError(
+                "experiment resource acquisition requires Research Contract binding"
+            )
+        if plan.require_search_execution:
+            raise PermissionError(
+                "exact acquisition request must disable open search execution"
+            )
+        decision = self.policy_engine.evaluate(
+            request, policy, sanitized=bool(plan.sanitized_queries)
+        )
+        self.repository.save_policy_decision(decision)
+        if decision.outcome is not PolicyOutcome.ALLOW:
+            raise PermissionError("; ".join(decision.reasons))
+        resource = self.repository.load_resource(resource_id)
+        if resource.resource_type not in request.requested_resource_types:
+            raise PermissionError(
+                "resource type is outside the acquisition request"
+            )
+        if resource.resource_type not in {
+            ResourceType.CODE_REPOSITORY,
+            ResourceType.CODE_RELEASE,
+        }:
+            raise ValueError(
+                "bounded online acquisition currently supports pinned code archives"
+            )
+        if not policy.allow_repository_download:
+            raise PermissionError(
+                "project policy does not authorize repository downloads"
+            )
+        if "GET" not in policy.allowed_http_methods:
+            raise PermissionError("project policy does not authorize GET")
+        if "github" not in resource.providers:
+            raise ValueError(
+                "pinned code acquisition currently requires a GitHub resource"
+            )
+        if "github" not in decision.allowed_providers:
+            raise PermissionError("GitHub provider is not authorized")
+        repository_name = str(resource.repository or "").strip()
+        commit = str(resource.commit or "").strip()
+        if not repository_name or len(commit) != 40:
+            raise ValueError(
+                "GitHub acquisition requires repository and full commit SHA"
+            )
+        max_bytes = min(
+            value
+            for value in (
+                request.budget.max_download_bytes,
+                policy.max_bytes,
+                decision.effective_budget.max_download_bytes,
+            )
+            if value > 0
+        ) if any(
+            value > 0
+            for value in (
+                request.budget.max_download_bytes,
+                policy.max_bytes,
+                decision.effective_budget.max_download_bytes,
+            )
+        ) else 0
+        if max_bytes <= 0:
+            raise PermissionError(
+                "repository acquisition requires a positive byte budget"
+            )
+        existing = [
+            item
+            for item in self.repository.list_snapshots(resource_id)
+            if item.content_level == "source_archive"
+            and item.provider == "github"
+        ]
+        if existing:
+            snapshot = existing[-1]
+            artifact = self.repository.load_artifact(
+                snapshot.raw_response_artifact_id
+            )
+            reports = [
+                item
+                for item in self.repository.list_artifacts(request.study_id)
+                if item.kind == "experiment_resource_acquisition_report"
+                and item.step_instance_id == request.step_instance_id
+            ]
+            if not reports:
+                raise ValueError(
+                    "existing source archive lacks its acquisition report"
+                )
+            access = [
+                item
+                for item in self.repository.list_access_decisions(resource_id)
+                if item.full_text_available
+            ]
+            if not access:
+                raise ValueError(
+                    "existing source archive lacks its access decision"
+                )
+            return AcquisitionExecution(
+                request_id=request_id,
+                resource_id=resource_id,
+                snapshot=snapshot,
+                access_decision=access[-1],
+                artifact_id=artifact.artifact_id,
+                report_artifact_id=reports[-1].artifact_id,
+            )
+        adapter = self.providers.get("github")
+        if adapter.http_method not in policy.allowed_http_methods:
+            raise PermissionError(
+                "provider HTTP method is not authorized by project policy"
+            )
+        if policy.allowed_domains and not adapter.domains.issubset(
+            policy.allowed_domains
+        ):
+            raise PermissionError(
+                "provider domain is not authorized by project policy"
+            )
+        try:
+            content = adapter.download_approved_archive(
+                full_name=repository_name,
+                commit_sha=commit,
+                max_bytes=max_bytes,
+                authorization_approved=True,
+            )
+        except ProviderFailure as exc:
+            failed_run = RetrievalRun(
+                run_id=retrieval_id("retrieval-run", request.request_id),
+                request_id=request_id,
+                execution_status=RetrievalStatus.FAILED,
+                policy_decision_id=decision.decision_id,
+                started_at=utc_now(),
+                completed_at=utc_now(),
+                error_classification=exc.classification,
+            )
+            self.repository.save_run(failed_run)
+            self._audit(
+                request,
+                failed_run,
+                response_status="failed",
+                failure_reason=_safe_provider_failure_reason(
+                    exc, exc.classification
+                ),
+            )
+            raise
+        policy_context = {
+            "network_policy_id": policy.policy_id,
+            "request_id": request_id,
+            "phase": request.phase.value,
+            "contract_refs": [
+                item.model_dump(mode="json") for item in request.contract_refs
+            ],
+        }
+        artifact = self.repository.write_binary_artifact(
+            project_id=request.project_id,
+            study_id=request.study_id,
+            step_instance_id=request.step_instance_id,
+            kind="approved_code_source_archive",
+            content=content.content,
+            producer="provider:github",
+            extension="zip",
+            policy_context=policy_context,
+        )
+        access_decision = ContentRightsPolicy().decide(
+            resource_id=resource_id,
+            access_mode=AccessMode.OPEN_ACCESS,
+            full_text_available=True,
+            license_id=resource.license,
+        )
+        if not access_decision.persistent_storage_allowed:
+            raise PermissionError(
+                "content-rights policy denied persistent archive storage"
+            )
+        self.repository.save_access_decision(access_decision)
+        snapshot = ResourceSnapshot(
+            snapshot_id=retrieval_id(
+                "snapshot",
+                resource_id,
+                commit,
+                artifact.content_hash,
+                access_decision.decision_id,
+            ),
+            resource_id=resource_id,
+            content_level="source_archive",
+            raw_response_artifact_id=artifact.artifact_id,
+            normalized_content_artifact_id=artifact.artifact_id,
+            provider="github",
+            content_hash=artifact.content_hash,
+            mime_type=content.mime_type or "application/zip",
+            byte_size=len(content.content),
+            license_status=resource.license or "unknown",
+            access_status="retrieved",
+            access_mode="open_access",
+            model_processing_allowed=(
+                access_decision.model_processing_allowed
+            ),
+        )
+        self.repository.save_snapshot(snapshot)
+        report = self.repository.write_artifact(
+            project_id=request.project_id,
+            study_id=request.study_id,
+            step_instance_id=request.step_instance_id,
+            kind="experiment_resource_acquisition_report",
+            value={
+                "request_id": request_id,
+                "resource_id": resource_id,
+                "provider": "github",
+                "repository": repository_name,
+                "commit": commit,
+                "snapshot_id": snapshot.snapshot_id,
+                "content_hash": artifact.content_hash,
+                "byte_size": len(content.content),
+                "license": resource.license,
+                "access_decision_id": access_decision.decision_id,
+                "raw_bytes_frozen_before_consumption": True,
+                "executed": False,
+            },
+            producer="experiment_resource_acquisition",
+            input_artifact_ids=[artifact.artifact_id],
+            policy_context=policy_context,
+        )
+        run = RetrievalRun(
+            run_id=retrieval_id("retrieval-run", request.request_id),
+            request_id=request_id,
+            execution_status=RetrievalStatus.SUCCEEDED,
+            policy_decision_id=decision.decision_id,
+            started_at=utc_now(),
+            completed_at=utc_now(),
+            budget_usage=BudgetUsage(
+                queries=0,
+                results=1,
+                download_bytes=len(content.content),
+            ),
+            output_artifact_ids=[
+                artifact.artifact_id,
+                report.artifact_id,
+            ],
+        )
+        self.repository.save_run(run)
+        self._audit(
+            request,
+            run,
+            response_status="succeeded",
+            warnings=[
+                "exact pinned code acquisition; no open search executed",
+                "downloaded source was not executed",
+            ],
+        )
+        return AcquisitionExecution(
+            request_id=request_id,
+            resource_id=resource_id,
+            snapshot=snapshot,
+            access_decision=access_decision,
+            artifact_id=artifact.artifact_id,
+            report_artifact_id=report.artifact_id,
+        )
+
+    def acquire_approved_dataset(
+        self,
+        *,
+        request_id: str,
+        resource_id: str,
+    ) -> AcquisitionExecution:
+        """Freeze one exact OpenML dataset authorized by a Research Contract.
+
+        Dataset discovery and scientific selection must already be complete.
+        This method performs no open search: it downloads the exact versioned
+        resource, freezes raw bytes, checks the provider checksum, and records
+        the access/contract basis before Stage 3 may consume the artifact.
+        """
+
+        request = self.repository.load_request(request_id)
+        plan = self.repository.load_query_plan(request.query_plan_id)
+        policy = self.repository.load_network_policy(request.network_policy_id)
+        if request.phase is not RetrievalPhase.EXPERIMENTATION:
+            raise PermissionError(
+                "dataset acquisition requires experimentation phase"
+            )
+        if request.purpose != "fetch_approved_dataset":
+            raise PermissionError(
+                "dataset acquisition requires fetch_approved_dataset purpose"
+            )
+        research_refs = [
+            item
+            for item in request.contract_refs
+            if item.contract_type == "research"
+        ]
+        if not research_refs:
+            raise PermissionError(
+                "dataset acquisition requires Research Contract binding"
+            )
+        if not any(
+            item.field in {"approved_resource_ids", "dataset", "resources"}
+            for item in research_refs
+        ):
+            raise PermissionError(
+                "Research Contract must explicitly bind its approved dataset field"
+            )
+        if plan.require_search_execution:
+            raise PermissionError(
+                "exact dataset acquisition must disable open search execution"
+            )
+        decision = self.policy_engine.evaluate(
+            request, policy, sanitized=bool(plan.sanitized_queries)
+        )
+        self.repository.save_policy_decision(decision)
+        if decision.outcome is not PolicyOutcome.ALLOW:
+            raise PermissionError("; ".join(decision.reasons))
+        if not policy.allow_dataset_download:
+            raise PermissionError(
+                "project policy does not authorize dataset downloads"
+            )
+        if "GET" not in policy.allowed_http_methods:
+            raise PermissionError("project policy does not authorize GET")
+        if "openml" not in decision.allowed_providers:
+            raise PermissionError("OpenML provider is not authorized")
+
+        resource = self.repository.load_resource(resource_id)
+        if resource.resource_type is not ResourceType.DATASET:
+            raise ValueError("approved dataset acquisition requires a dataset")
+        if ResourceType.DATASET not in request.requested_resource_types:
+            raise PermissionError(
+                "dataset is outside the acquisition request resource types"
+            )
+        if "openml" not in resource.providers:
+            raise ValueError(
+                "approved dataset acquisition currently requires an OpenML resource"
+            )
+        if (
+            resource.metadata_verification_status
+            is not MetadataVerificationStatus.VERIFIED
+        ):
+            raise ValueError(
+                "OpenML dataset metadata must be verified before acquisition"
+            )
+        dataset_identifier = str(resource.dataset_identifier or "").strip()
+        version = str(resource.metadata.get("version") or "").strip()
+        source_url = str(resource.metadata.get("download_url") or "").strip()
+        expected_md5 = str(resource.metadata.get("md5_checksum") or "").strip().lower()
+        if not dataset_identifier.startswith("openml-dataset:") or not version:
+            raise ValueError("OpenML dataset identity must be version-pinned")
+        if not source_url:
+            raise ValueError("OpenML dataset has no official download URL")
+        if not __import__("re").fullmatch(r"[0-9a-f]{32}", expected_md5):
+            raise ValueError("OpenML dataset requires an authoritative MD5 checksum")
+        if plan.sanitized_queries != [dataset_identifier]:
+            raise PermissionError(
+                "exact acquisition query must equal the versioned dataset identity"
+            )
+
+        adapter = self.providers.get("openml")
+        if adapter.http_method not in policy.allowed_http_methods:
+            raise PermissionError(
+                "provider HTTP method is not authorized by project policy"
+            )
+        if policy.allowed_domains and not adapter.domains.issubset(
+            policy.allowed_domains
+        ):
+            raise PermissionError(
+                "OpenML provider domains are not authorized by project policy"
+            )
+        max_bytes = (
+            min(
+                value
+                for value in (
+                    request.budget.max_download_bytes,
+                    policy.max_bytes,
+                    decision.effective_budget.max_download_bytes,
+                )
+                if value > 0
+            )
+            if any(
+                value > 0
+                for value in (
+                    request.budget.max_download_bytes,
+                    policy.max_bytes,
+                    decision.effective_budget.max_download_bytes,
+                )
+            )
+            else 0
+        )
+        if max_bytes <= 0:
+            raise PermissionError(
+                "dataset acquisition requires a positive byte budget"
+            )
+
+        # A contract-bound exact resource request and an owner-approved
+        # dataset-download policy authorize local model processing.  They do
+        # not imply redistribution or training-data rights.
+        access_decision = ContentRightsPolicy().decide(
+            resource_id=resource_id,
+            access_mode=AccessMode.OPEN_ACCESS,
+            full_text_available=True,
+            license_id=resource.license,
+            model_processing_explicitly_allowed=True,
+        )
+        if not access_decision.persistent_storage_allowed:
+            raise PermissionError(
+                "content-rights policy denied persistent dataset storage"
+            )
+        self.repository.save_access_decision(access_decision)
+        policy_context = {
+            "network_policy_id": policy.policy_id,
+            "request_id": request_id,
+            "phase": request.phase.value,
+            "contract_refs": [
+                item.model_dump(mode="json") for item in request.contract_refs
+            ],
+            "dataset_identifier": dataset_identifier,
+            "dataset_version": version,
+        }
+
+        existing = [
+            item
+            for item in self.repository.list_snapshots(resource_id)
+            if item.content_level == "dataset_file"
+            and item.provider == "openml"
+        ]
+        reused = bool(existing)
+        if reused:
+            snapshot = existing[-1]
+            artifact = self.repository.load_artifact(
+                snapshot.raw_response_artifact_id
+            )
+            artifact_path = __import__("pathlib").Path(artifact.path)
+            sha256 = hashlib.sha256()
+            md5 = hashlib.md5(usedforsecurity=False)
+            with artifact_path.open("rb") as stream:
+                while chunk := stream.read(1024 * 1024):
+                    sha256.update(chunk)
+                    md5.update(chunk)
+            if (
+                sha256.hexdigest() != artifact.content_hash
+                or artifact.content_hash != snapshot.content_hash
+                or md5.hexdigest() != expected_md5
+            ):
+                raise ProviderFailure(
+                    "frozen OpenML dataset failed integrity revalidation",
+                    ProviderErrorClass.METADATA_CONFLICT,
+                )
+            byte_size = artifact_path.stat().st_size
+            final_url = source_url
+            mime_type = snapshot.mime_type
+        else:
+            try:
+                content = adapter.fetch_content(
+                    source_url,
+                    max_bytes=max_bytes,
+                    allow_proxy_fake_ip=policy.allow_proxy_fake_ip,
+                )
+            except ProviderFailure as exc:
+                failed_run = RetrievalRun(
+                    run_id=retrieval_id("retrieval-run", request.request_id),
+                    request_id=request_id,
+                    execution_status=RetrievalStatus.FAILED,
+                    policy_decision_id=decision.decision_id,
+                    started_at=utc_now(),
+                    completed_at=utc_now(),
+                    error_classification=exc.classification,
+                )
+                self.repository.save_run(failed_run)
+                self._audit(
+                    request,
+                    failed_run,
+                    response_status="failed",
+                    failure_reason=_safe_provider_failure_reason(
+                        exc, exc.classification
+                    ),
+                )
+                raise
+            observed_md5 = __import__("hashlib").md5(
+                content.content, usedforsecurity=False
+            ).hexdigest()
+            if observed_md5 != expected_md5:
+                failed_run = RetrievalRun(
+                    run_id=retrieval_id("retrieval-run", request.request_id),
+                    request_id=request_id,
+                    execution_status=RetrievalStatus.FAILED,
+                    policy_decision_id=decision.decision_id,
+                    started_at=utc_now(),
+                    completed_at=utc_now(),
+                    error_classification=ProviderErrorClass.METADATA_CONFLICT,
+                )
+                self.repository.save_run(failed_run)
+                self._audit(
+                    request,
+                    failed_run,
+                    response_status="failed",
+                    failure_reason=(
+                        "metadata_conflict: downloaded OpenML bytes do not match "
+                        "the frozen provider checksum"
+                    ),
+                )
+                raise ProviderFailure(
+                    "downloaded OpenML dataset checksum mismatch",
+                    ProviderErrorClass.METADATA_CONFLICT,
+                )
+            path_suffix = urllib.parse.urlparse(content.final_url).path.rsplit(".", 1)
+            extension = (
+                path_suffix[-1].casefold()
+                if len(path_suffix) == 2
+                and path_suffix[-1].casefold() in {"arff", "csv", "json", "parquet", "pq"}
+                else "bin"
+            )
+            artifact = self.repository.write_binary_artifact(
+                project_id=request.project_id,
+                study_id=request.study_id,
+                step_instance_id=request.step_instance_id,
+                kind="approved_openml_dataset",
+                content=content.content,
+                producer="provider:openml",
+                extension=extension,
+                policy_context=policy_context,
+            )
+            byte_size = len(content.content)
+            final_url = content.final_url
+            mime_type = content.mime_type or "application/octet-stream"
+            snapshot = ResourceSnapshot(
+                snapshot_id=retrieval_id(
+                    "snapshot",
+                    resource_id,
+                    dataset_identifier,
+                    version,
+                    artifact.content_hash,
+                    access_decision.decision_id,
+                ),
+                resource_id=resource_id,
+                content_level="dataset_file",
+                raw_response_artifact_id=artifact.artifact_id,
+                normalized_content_artifact_id=artifact.artifact_id,
+                provider="openml",
+                content_hash=artifact.content_hash,
+                mime_type=mime_type,
+                byte_size=byte_size,
+                license_status=resource.license or "unknown",
+                access_status="retrieved",
+                access_mode="open_access",
+                model_processing_allowed=access_decision.model_processing_allowed,
+            )
+            self.repository.save_snapshot(snapshot)
+
+        report = self.repository.write_artifact(
+            project_id=request.project_id,
+            study_id=request.study_id,
+            step_instance_id=request.step_instance_id,
+            kind="openml_dataset_acquisition_report",
+            value={
+                "request_id": request_id,
+                "resource_id": resource_id,
+                "provider": "openml",
+                "dataset_identifier": dataset_identifier,
+                "version": version,
+                "source_url": source_url,
+                "final_url": final_url,
+                "snapshot_id": snapshot.snapshot_id,
+                "content_hash": artifact.content_hash,
+                "provider_md5": expected_md5,
+                "provider_md5_verified": True,
+                "byte_size": byte_size,
+                "mime_type": mime_type,
+                "license": resource.license,
+                "access_decision_id": access_decision.decision_id,
+                "raw_bytes_frozen_before_consumption": True,
+                "model_processing_basis": (
+                    "exact Research Contract binding plus owner-approved local "
+                    "dataset acquisition policy"
+                ),
+                "redistribution_authorized": access_decision.redistribution_allowed,
+                "executed": False,
+                "reused_existing_snapshot": reused,
+            },
+            producer="openml_dataset_acquisition",
+            input_artifact_ids=[artifact.artifact_id],
+            policy_context=policy_context,
+        )
+        run = RetrievalRun(
+            run_id=retrieval_id("retrieval-run", request.request_id),
+            request_id=request_id,
+            execution_status=RetrievalStatus.SUCCEEDED,
+            policy_decision_id=decision.decision_id,
+            started_at=utc_now(),
+            completed_at=utc_now(),
+            budget_usage=BudgetUsage(
+                queries=0,
+                results=1,
+                download_bytes=0 if reused else byte_size,
+            ),
+            output_artifact_ids=[artifact.artifact_id, report.artifact_id],
+        )
+        self.repository.save_run(run)
+        self._audit(
+            request,
+            run,
+            response_status="succeeded",
+            warnings=[
+                "exact versioned OpenML dataset acquisition; no open search executed",
+                "downloaded dataset was frozen but not executed",
+                *( ["reused existing frozen dataset snapshot"] if reused else [] ),
+            ],
+        )
+        return AcquisitionExecution(
+            request_id=request_id,
+            resource_id=resource_id,
+            snapshot=snapshot,
+            access_decision=access_decision,
+            artifact_id=artifact.artifact_id,
+            report_artifact_id=report.artifact_id,
+        )
+
     def get_policy(self, project_id: str) -> RetrievalNetworkPolicy:
         policy = self.repository.policy_for_project(project_id)
         if policy is not None:
@@ -1549,6 +2177,7 @@ class RetrievalGateway:
         target_id: str,
         target_field: str,
         contract_refs: list[ContractRef] | None = None,
+        snapshot_id: str | None = None,
     ) -> ResourceUseBinding:
         from ..policy.profiles import STAGE_PROFILES
 
@@ -1570,12 +2199,20 @@ class RetrievalGateway:
             item.contract_type == "repair" for item in (contract_refs or [])
         ):
             raise ValueError("promotion into repair requires repair contract")
+        effective_snapshot_id = snapshot_id or source.snapshot_id
+        effective_snapshot = self.repository.load_snapshot(
+            effective_snapshot_id
+        )
+        if effective_snapshot.resource_id != source.resource_id:
+            raise ValueError(
+                "promoted snapshot must belong to the source resource"
+            )
         promoted = source.model_copy(
             update={
                 "binding_id": retrieval_id(
                     "binding",
                     source.resource_id,
-                    source.snapshot_id,
+                    effective_snapshot_id,
                     source.study_id,
                     target_phase.value,
                     step_instance_id,
@@ -1584,6 +2221,7 @@ class RetrievalGateway:
                     target_id,
                     target_field,
                 ),
+                "snapshot_id": effective_snapshot_id,
                 "phase": target_phase,
                 "step_instance_id": step_instance_id,
                 "purpose": purpose,

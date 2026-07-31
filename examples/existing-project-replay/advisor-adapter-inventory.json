@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "case_id": "advisor-adapter-inventory-real-project-v1",
+  "source_files": [
+    "services/intelligence/src/hengce_intelligence/__init__.py",
+    "services/intelligence/src/hengce_intelligence/adapters.py",
+    "services/intelligence/tests/test_adapters.py"
+  ],
+  "container_image": "python:3.12-slim",
+  "command": [
+    "python",
+    "-c",
+    "import sys,unittest;sys.path.insert(0,'services/intelligence/src');suite=unittest.defaultTestLoader.discover('services/intelligence/tests');result=unittest.TextTestRunner(verbosity=2).run(suite);raise SystemExit(0 if result.wasSuccessful() else 1)"
+  ],
+  "parser": "unittest_v1",
+  "result_path": null,
+  "expected_metrics": {
+    "tests_run": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "pass_rate": 1
+  },
+  "metric_tolerances": {},
+  "timeout_seconds": 120,
+  "clean_replays": 2
+}

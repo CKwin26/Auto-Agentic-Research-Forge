@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "contract_id": "quality-contract-controlled-acceptance-v1",
+  "dataset_sha256": "35797f40101955bd5ee268db08bd3a64f36bba46431578ba247b0d8ed6123c04",
+  "file_format": "csv",
+  "semantic_authority": "structural_only",
+  "expectations": [
+    {
+      "expectation_id": "columns",
+      "kind": "columns_match_set",
+      "columns": ["sample_id", "feature_a", "feature_b", "label"]
+    },
+    {
+      "expectation_id": "sample-id-not-null",
+      "kind": "not_null",
+      "column": "sample_id"
+    },
+    {
+      "expectation_id": "sample-id-unique",
+      "kind": "unique",
+      "column": "sample_id"
+    },
+    {
+      "expectation_id": "label-binary",
+      "kind": "in_set",
+      "column": "label",
+      "value_set": [0, 1]
+    },
+    {
+      "expectation_id": "feature-a-range",
+      "kind": "between",
+      "column": "feature_a",
+      "min_value": 0,
+      "max_value": 1
+    },
+    {
+      "expectation_id": "row-count",
+      "kind": "row_count_between",
+      "min_value": 4,
+      "max_value": 4
+    }
+  ]
+}
