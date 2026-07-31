@@ -45,6 +45,7 @@ nli = [
 scientific-validation = [
   "great-expectations==1.19.1",
   "openml==0.15.1",
+  "pyshacl>=0.30,<1",
   "roc-validator==0.11.3",
   "scikit-learn>=1.6,<2",
 ]
