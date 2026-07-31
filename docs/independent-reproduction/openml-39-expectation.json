@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "expectation_id": "rf-public-openml-39-hidden-target-v1",
+  "package_sha256": "8c788149ac3a892e8e83d6f3d217d7671d50d507094611317ca273d7943a0eab",
+  "baseline_accuracy": 0.5714285714285714,
+  "treatment_accuracy": 0.9047619047619048,
+  "paired_effect": 0.33333333333333337,
+  "verdict": "supported",
+  "numeric_tolerance": 1e-12
+}

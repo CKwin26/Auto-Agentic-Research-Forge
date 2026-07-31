@@ -316,6 +316,30 @@ def _parser() -> argparse.ArgumentParser:
         help="Trusted signer as KEY_ID=PUBLIC_KEY_PEM_PATH",
     )
 
+    verify_independent_receipt = sub.add_parser(
+        "verify-independent-replay-receipt",
+        help=(
+            "Verify an external scientific replay receipt; C5 requires an "
+            "explicit maintainer identity-independence approval"
+        ),
+    )
+    verify_independent_receipt.add_argument("receipt")
+    verify_independent_receipt.add_argument("--expectation", required=True)
+    verify_independent_receipt.add_argument(
+        "--trusted-key",
+        action="append",
+        default=[],
+        help="Trusted external operator key as KEY_ID=PUBLIC_KEY_PEM_PATH",
+    )
+    verify_independent_receipt.add_argument(
+        "--project-owner-identity", action="append", default=[]
+    )
+    verify_independent_receipt.add_argument(
+        "--approve-independent-identity",
+        action="store_true",
+        help="Maintainer attests that operator identity and signing key are independent",
+    )
+
     reproduce = sub.add_parser(
         "reproduce",
         help="Run a local development replay; never awards RF-E2",
@@ -1638,6 +1662,31 @@ def main(argv: list[str] | None = None) -> int:
             )
             _print_json(result)
             if not result["trusted"]:
+                return 2
+        elif args.command == "verify-independent-replay-receipt":
+            from .independent_replay_receipt import (
+                IndependentReplayExpectation,
+                IndependentScientificReplayReceipt,
+                verify_independent_replay_receipt,
+            )
+
+            receipt = IndependentScientificReplayReceipt.model_validate(
+                read_json(Path(args.receipt).expanduser().resolve())
+            )
+            expectation = IndependentReplayExpectation.model_validate(
+                read_json(Path(args.expectation).expanduser().resolve())
+            )
+            result = verify_independent_replay_receipt(
+                receipt,
+                expectation=expectation,
+                trusted_public_keys=_trusted_key_map(args.trusted_key),
+                project_owner_identities=set(args.project_owner_identity),
+                identity_independence_approved=(
+                    args.approve_independent_identity
+                ),
+            )
+            _print_json(result.model_dump(mode="json"))
+            if not result.c5_eligible:
                 return 2
         elif args.command == "reproduce":
             from .reproduction_launcher import (
