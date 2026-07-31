@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 import stat
 import subprocess
@@ -169,6 +170,14 @@ def run_isolated_command(
         max_bytes=selected.max_input_bytes,
     )
     output.mkdir(parents=True, exist_ok=True)
+    # The container deliberately runs as an unprivileged fixed UID.  A fresh
+    # POSIX host directory is normally 0755 and therefore not writable through
+    # the bind mount by UID 65534.  Grant write/search only for the duration of
+    # this isolated run, then restore the host directory to a read-only-for-
+    # others mode.  Windows bind mounts do not use POSIX mode bits.
+    restore_output_mode = os.name != "nt"
+    if restore_output_mode:
+        output.chmod(0o733)
     docker = shutil.which(selected.docker_executable)
     if docker is None:
         candidate = Path(selected.docker_executable)
@@ -231,16 +240,20 @@ def run_isolated_command(
         selected.image,
         *command,
     ]
-    completed = subprocess.run(
-        docker_command,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=selected.timeout_seconds,
-        shell=False,
-        check=False,
-    )
+    try:
+        completed = subprocess.run(
+            docker_command,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=selected.timeout_seconds,
+            shell=False,
+            check=False,
+        )
+    finally:
+        if restore_output_mode:
+            output.chmod(0o755)
     output_size = _directory_size(output)
     if output_size > selected.max_output_bytes:
         raise RuntimeError(
