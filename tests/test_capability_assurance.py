@@ -21,9 +21,17 @@ def test_product_catalog_maps_22_features_to_all_18_registry_capabilities() -> N
     assert len(report.items) == 18
 
 
-def test_layered_audit_reports_fresh_replay_and_real_case_counts() -> None:
+def test_layered_audit_reports_fresh_replay_and_real_case_counts(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        assurance_module,
+        "_run_capability_replay",
+        lambda _root, _selectors: 0,
+    )
     report = audit_capability_assurance(
         ROOT,
+        execute_replay=True,
         now=datetime(2026, 8, 15, tzinfo=timezone.utc),
     )
 
@@ -32,8 +40,8 @@ def test_layered_audit_reports_fresh_replay_and_real_case_counts() -> None:
     assert report.real_case_validated == "6/18"
     assert report.release_evidence_ceiling == "E3_real_case"
     assert report.external_validation_required is False
-    assert not report.replay_executed
-    assert all(item.replay_status == "verified_pass" for item in report.items)
+    assert report.replay_executed
+    assert all(item.replay_status == "passed" for item in report.items)
 
 
 def test_expired_evidence_is_downgraded_instead_of_kept_green() -> None:

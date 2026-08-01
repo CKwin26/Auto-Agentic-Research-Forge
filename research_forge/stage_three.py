@@ -4770,12 +4770,26 @@ def _complete_stage3_handler(context: Any) -> dict[str, Any]:
     )
     from .evaluator_comparison import validate_evaluator_robustness_for_completion
 
-    evaluator_disagreement_reports = (
-        context.repository.list_evaluator_disagreement_reports(context.study_id)
-    )
+    evaluator_disagreement_reports = [
+        item
+        for item in context.repository.list_evaluator_disagreement_reports(
+            context.study_id
+        )
+        if item.contract_version == plan.contract_version
+        and item.plan_id == plan.plan_id
+    ]
+    report_ids = {item.report_id for item in evaluator_disagreement_reports}
+    evaluator_adjudications = [
+        item
+        for item in context.repository.list_evaluator_adjudication_records(
+            context.study_id
+        )
+        if item.disagreement_report_id in report_ids
+    ]
     evaluator_robustness_blockers = validate_evaluator_robustness_for_completion(
         contract.evaluator_policy,
         evaluator_disagreement_reports,
+        evaluator_adjudications,
     )
     if evaluator_robustness_blockers:
         raise ValueError("; ".join(evaluator_robustness_blockers))
@@ -4784,6 +4798,12 @@ def _complete_stage3_handler(context: Any) -> dict[str, Any]:
         / "evaluator_disagreements"
         / f"{item.report_id}.json"
         for item in evaluator_disagreement_reports
+    )
+    completion_paths_to_hash.extend(
+        _stage3_root(context.repository, context.study_id)
+        / "evaluator_adjudications"
+        / f"{item.adjudication_id}.json"
+        for item in evaluator_adjudications
     )
     completion_paths_to_hash.extend(
         [
@@ -4878,6 +4898,9 @@ def _complete_stage3_handler(context: Any) -> dict[str, Any]:
             ),
             evaluator_disagreement_report_ids=[
                 item.report_id for item in evaluator_disagreement_reports
+            ],
+            evaluator_adjudication_record_ids=[
+                item.adjudication_id for item in evaluator_adjudications
             ],
             claim_envelope_id=claim_envelope.claim_envelope_id,
             evidence_level=claim_envelope.evidence_level,

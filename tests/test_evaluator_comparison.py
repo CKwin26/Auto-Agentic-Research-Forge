@@ -3,10 +3,12 @@ from __future__ import annotations
 import pytest
 
 from research_forge.evaluator_comparison import (
+    EvaluatorAdjudicationDecision,
     EvaluatorAgreementStatus,
     EvaluatorFamilyResult,
     EvaluatorObservation,
     compare_evaluator_families,
+    create_evaluator_adjudication,
     validate_evaluator_robustness_for_completion,
 )
 from research_forge.workflow_domain import (
@@ -41,11 +43,15 @@ def _result(
 def test_distinct_evaluator_families_can_confirm_stability() -> None:
     report = compare_evaluator_families(
         study_id="study-evaluator",
+        contract_version=2,
+        plan_id="run-plan-example",
         primary=_result("official", "reference", [1.0, 0.0, 1.0]),
         secondary=_result("rewrite", "independent_python", [1.0, 0.0, 1.0]),
     )
 
     assert report.status is EvaluatorAgreementStatus.STABLE
+    assert report.contract_version == 2
+    assert report.plan_id == "run-plan-example"
     assert report.verdict_stable
     assert not report.requires_adjudication
 
@@ -112,6 +118,50 @@ def test_required_secondary_evaluator_blocks_completion_until_stable() -> None:
     assert validate_evaluator_robustness_for_completion(policy, [stable]) == []
 
 
+def test_authorized_human_adjudication_resolves_without_rewriting_report() -> None:
+    policy = {"uses_learned_evaluator": True, "secondary_required": True}
+    report = compare_evaluator_families(
+        study_id="study-evaluator",
+        primary=_result("official", "reference", [1.0, 0.0]),
+        secondary=_result("rewrite", "independent_python", [1.0, 1.0]),
+    )
+    adjudication = create_evaluator_adjudication(
+        report=report,
+        reviewer_role="project_owner",
+        reviewed_item_ids=["row-1"],
+        decision=EvaluatorAdjudicationDecision.ACCEPT_PRIMARY,
+        rationale="The frozen reference definition governs this row.",
+    )
+
+    assert report.requires_adjudication
+    assert adjudication.historical_evaluations_preserved is True
+    assert validate_evaluator_robustness_for_completion(
+        policy, [report], [adjudication]
+    ) == []
+
+
+def test_abstaining_adjudication_keeps_completion_blocked() -> None:
+    policy = {"uses_learned_evaluator": True}
+    report = compare_evaluator_families(
+        study_id="study-evaluator",
+        primary=_result("official", "reference", [1.0, 0.0]),
+        secondary=_result("rewrite", "independent_python", [1.0, 1.0]),
+    )
+    adjudication = create_evaluator_adjudication(
+        report=report,
+        reviewer_role="authorized_human_reviewer",
+        reviewed_item_ids=["row-1"],
+        decision=EvaluatorAdjudicationDecision.ABSTAIN,
+        rationale="The available evidence does not resolve the disagreement.",
+    )
+
+    assert "EVALUATOR_DISAGREEMENT_UNRESOLVED" in (
+        validate_evaluator_robustness_for_completion(
+            policy, [report], [adjudication]
+        )[0]
+    )
+
+
 def test_evaluator_disagreement_report_is_append_only(tmp_path) -> None:
     repository = WorkflowRepository(tmp_path / "workflow")
     project = repository.create_project("Evaluator project", source_root="C:/fixture")
@@ -132,3 +182,40 @@ def test_evaluator_disagreement_report_is_append_only(tmp_path) -> None:
         repository.save_evaluator_disagreement_report(
             report.model_copy(update={"requires_adjudication": True})
         )
+
+
+def test_evaluator_adjudication_is_append_only_and_unique_per_report(tmp_path) -> None:
+    repository = WorkflowRepository(tmp_path / "workflow")
+    project = repository.create_project("Evaluator project", source_root="C:/fixture")
+    study = repository.create_study(
+        project.project_id,
+        "Evaluator study",
+        entry_mode=EntryMode.IDEA_TO_PAPER,
+    )
+    report = compare_evaluator_families(
+        study_id=study.study_id,
+        primary=_result("official", "reference", [1.0, 0.0]),
+        secondary=_result("rewrite", "independent_python", [1.0, 1.0]),
+    )
+    repository.save_evaluator_disagreement_report(report)
+    adjudication = create_evaluator_adjudication(
+        report=report,
+        reviewer_role="project_owner",
+        reviewed_item_ids=["row-1"],
+        decision=EvaluatorAdjudicationDecision.ACCEPT_PRIMARY,
+        rationale="The registered metric definition selects the reference result.",
+    )
+    repository.save_evaluator_adjudication_record(adjudication)
+    assert repository.list_evaluator_adjudication_records(study.study_id) == [
+        adjudication
+    ]
+
+    competing = create_evaluator_adjudication(
+        report=report,
+        reviewer_role="project_owner",
+        reviewed_item_ids=["row-1"],
+        decision=EvaluatorAdjudicationDecision.ACCEPT_SECONDARY,
+        rationale="A conflicting replacement decision must not overwrite history.",
+    )
+    with pytest.raises(ValueError, match="only one"):
+        repository.save_evaluator_adjudication_record(competing)

@@ -14,6 +14,10 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Capability freshness compares the current tree with the frozen
+          # verified commit, so the Python audit requires real git history.
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"

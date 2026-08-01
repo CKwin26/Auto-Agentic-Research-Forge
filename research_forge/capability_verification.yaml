@@ -38,8 +38,8 @@ capabilities:
   - capability_id: scientific_completion.empirical_loop
     evidence_level: 1
     scope: bounded
-    positive_tests: [tests/test_evaluator_comparison.py::test_distinct_evaluator_families_can_confirm_stability, tests/test_stage3_completion_authority.py::test_stage4_uses_newest_completion_not_filename_order]
-    negative_tests: [tests/test_evaluator_comparison.py::test_same_family_cannot_masquerade_as_secondary_evaluator]
+    positive_tests: [tests/test_evaluator_comparison.py::test_distinct_evaluator_families_can_confirm_stability, tests/test_evaluator_comparison.py::test_authorized_human_adjudication_resolves_without_rewriting_report, tests/test_stage3_completion_authority.py::test_stage4_uses_newest_completion_not_filename_order]
+    negative_tests: [tests/test_evaluator_comparison.py::test_same_family_cannot_masquerade_as_secondary_evaluator, tests/test_evaluator_comparison.py::test_abstaining_adjudication_keeps_completion_blocked]
     mutation_tests: [tests/test_evaluator_comparison.py::test_row_level_metric_disagreement_is_preserved, tests/test_evaluator_comparison.py::test_directional_verdict_disagreement_blocks_stability]
   - capability_id: scientific_completion.cross_domain_autonomy
     evidence_level: 0

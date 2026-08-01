@@ -10,6 +10,7 @@ reference evaluator and freezes a report outside the product repository.
 from __future__ import annotations
 
 import csv
+import inspect
 import json
 import shutil
 from pathlib import Path
@@ -19,6 +20,11 @@ from ..container_execution import (
     ContainerExecutionPolicy,
     ContainerExecutionResult,
     run_isolated_command,
+)
+from ..evaluator_comparison import (
+    EvaluatorFamilyResult,
+    EvaluatorObservation,
+    compare_evaluator_families,
 )
 from ..profiles.benchmark_prediction import evaluate_csv_submission
 from ..profiles.contracts import BenchmarkPredictionParameters
@@ -104,6 +110,14 @@ report = {
     'primary_metric_value': correct / len(submission),
     'denominator': len(submission),
     'sample_ids': submission_ids,
+    'observations': [
+        {
+            'item_id': row['sample_id'],
+            'score': float(row['prediction'] == target_by_id[row['sample_id']]),
+            'label': 'correct' if row['prediction'] == target_by_id[row['sample_id']] else 'incorrect',
+        }
+        for row in submission
+    ],
 }
 output.parent.mkdir(parents=True, exist_ok=True)
 output.write_text(json.dumps(report, sort_keys=True, indent=2), encoding='utf-8')
@@ -230,6 +244,8 @@ def run_openml_hidden_prediction_acceptance(
         }
     )
     arm_reports: dict[str, Any] = {}
+    isolated_observations: list[EvaluatorObservation] = []
+    reference_observations: list[EvaluatorObservation] = []
     for arm in ("baseline", "treatment"):
         candidate_output = root / "candidate-output" / arm
         candidate_run = isolated_runner(
@@ -277,11 +293,60 @@ def run_openml_hidden_prediction_acceptance(
             "evaluator_isolation": evaluator_run.isolation_attestation,
             "independent_recalculation_match": True,
         }
+        isolated_observations.extend(
+            EvaluatorObservation(
+                item_id=f"{arm}:{item['item_id']}",
+                score=float(item["score"]),
+                label=str(item["label"]),
+            )
+            for item in isolated_result["observations"]
+        )
+        reference_observations.extend(
+            EvaluatorObservation(
+                item_id=f"{arm}:{item['pair_id']}",
+                score=float(item["value"]),
+                label=(
+                    "correct" if float(item["value"]) == 1.0 else "incorrect"
+                ),
+            )
+            for item in reference["analysis_rows"]
+        )
     effect = (
         float(arm_reports["treatment"]["primary_metric_value"])
         - float(arm_reports["baseline"]["primary_metric_value"])
     )
     verdict = "supported" if effect > 0 else "refuted" if effect < 0 else "inconclusive"
+    isolated_evaluator_path = root / "evaluator-source" / "evaluate.py"
+    reference_source = inspect.getsourcefile(evaluate_csv_submission)
+    if reference_source is None:
+        raise RuntimeError("frozen reference evaluator source cannot be located")
+    evaluator_disagreement = compare_evaluator_families(
+        study_id="openml-39-hidden-target-benchmark-prediction-v1",
+        primary=EvaluatorFamilyResult(
+            evaluator_id="isolated-hidden-target-accuracy-v1",
+            family_id="isolated-csv-accuracy",
+            implementation_digest=sha256_file(isolated_evaluator_path),
+            metric_name="accuracy",
+            aggregate_score=sum(item.score for item in isolated_observations)
+            / len(isolated_observations),
+            direction="higher_is_better",
+            decision=verdict,
+            observations=isolated_observations,
+        ),
+        secondary=EvaluatorFamilyResult(
+            evaluator_id="benchmark-profile-reference-v1",
+            family_id="profile-metric-recomputation",
+            implementation_digest=sha256_file(Path(reference_source)),
+            metric_name="accuracy",
+            aggregate_score=sum(item.score for item in reference_observations)
+            / len(reference_observations),
+            direction="higher_is_better",
+            decision=verdict,
+            observations=reference_observations,
+        ),
+        row_tolerance=1e-12,
+        aggregate_tolerance=1e-12,
+    )
     report = {
         "schema_version": 1,
         "acceptance_id": "openml-39-hidden-target-benchmark-prediction-v1",
@@ -310,10 +375,15 @@ def run_openml_hidden_prediction_acceptance(
                 "candidates on the official OpenML task 39 test split."
             ),
         },
+        "evaluator_disagreement_report": evaluator_disagreement.model_dump(
+            mode="json"
+        ),
         "independent_validation": {
             "candidate_never_received_hidden_target": True,
             "isolated_evaluator_ran_after_submission": True,
             "reference_metrics_recomputed_from_per_sample_predictions": True,
+            "distinct_evaluator_families_compared": True,
+            "evaluator_verdict_stable": evaluator_disagreement.verdict_stable,
             "external_independent_operator": False,
         },
     }

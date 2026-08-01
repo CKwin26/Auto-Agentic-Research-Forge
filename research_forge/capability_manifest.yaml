@@ -98,8 +98,8 @@ capabilities:
     supported_profiles: [registered_typed_profiles]
     entrypoint: research_forge.stage_three
     inputs: [frozen_executable_contract, authorized_resources]
-    outputs: [ResearchRun, HypothesisVerdict, Stage3CompletionPackage, EvaluatorDisagreementReport]
-    validators: [execution_integrity, evidence_binding, verdict_authority, evaluator_family_disagreement]
+    outputs: [ResearchRun, HypothesisVerdict, Stage3CompletionPackage, EvaluatorDisagreementReport, EvaluatorAdjudicationRecord]
+    validators: [execution_integrity, evidence_binding, verdict_authority, evaluator_family_disagreement, append_only_human_adjudication]
     positive_cases: [typed_profile_completion_fixture]
     negative_cases: [build_failure_is_not_scientific_verdict]
     upstream_sources: [AIRS, CodeScientist]
@@ -361,17 +361,17 @@ capabilities:
     supported_profiles: [benchmark_prediction_v1, openml_task_39]
     entrypoint: research_forge.benchmarks.hidden_prediction:run_openml_hidden_prediction_acceptance
     inputs: [frozen_openml_task_materialization, candidate_visible_train_and_test_features, evaluator_only_targets]
-    outputs: [baseline_submission, treatment_submission, isolated_evaluator_results, acceptance_report]
-    validators: [source_hash, hidden_target_absence, exact_submission_ids, isolated_evaluator, frozen_reference_recalculation]
+    outputs: [baseline_submission, treatment_submission, isolated_evaluator_results, evaluator_disagreement_report, acceptance_report]
+    validators: [source_hash, hidden_target_absence, exact_submission_ids, isolated_evaluator, frozen_reference_recalculation, row_level_evaluator_agreement, directional_verdict_stability]
     positive_cases: [openml_39_hidden_target_baseline_and_treatment]
     negative_cases: [changed_source_is_rejected, target_bytes_in_candidate_bundle_are_rejected]
     upstream_sources: [OpenML]
     evidence:
-      design: [docs/benchmark-prediction-hidden-target-acceptance-2026-08-01.md]
-      source: [research_forge/benchmarks/hidden_prediction.py, research_forge/profiles/benchmark_prediction.py, scripts/run_hidden_prediction_acceptance.py]
+      design: [docs/benchmark-prediction-hidden-target-acceptance-2026-08-01.md, docs/openml-evaluator-family-comparison-2026-08-01.md]
+      source: [research_forge/benchmarks/hidden_prediction.py, research_forge/profiles/benchmark_prediction.py, research_forge/evaluator_comparison.py, scripts/run_hidden_prediction_acceptance.py]
       component_validation: [tests/test_hidden_prediction_acceptance.py, tests/test_benchmark_prediction_profile.py, tests/test_container_execution.py]
-      controlled_e2e: [docs/benchmark-prediction-hidden-target-acceptance-2026-08-01.md]
-      real_case: [docs/benchmark-prediction-hidden-target-acceptance-2026-08-01.md]
+      controlled_e2e: [docs/benchmark-prediction-hidden-target-acceptance-2026-08-01.md, docs/openml-evaluator-family-comparison-2026-08-01.md]
+      real_case: [docs/benchmark-prediction-hidden-target-acceptance-2026-08-01.md, docs/openml-evaluator-family-comparison-2026-08-01.md]
 
   - capability_id: reproduction.public_minimal_research_package
     title: 真实隐藏目标研究的可移植最小复现包

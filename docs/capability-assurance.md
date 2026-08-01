@@ -114,4 +114,7 @@ second, genuinely distinct evaluator family plus a frozen disagreement policy.
 Stage 3 stores append-only family results and reports aggregate metric
 agreement, row-level disagreement, directional agreement, and verdict
 stability. An unstable or unadjudicated comparison blocks formal completion;
-it never rewrites either evaluator's historical output.
+it never rewrites either evaluator's historical output. A project owner or
+authorized human reviewer may append one explicit adjudication record for a
+disagreement report. An abstention or successor-run decision remains blocking.
+No external independent researcher is required.
