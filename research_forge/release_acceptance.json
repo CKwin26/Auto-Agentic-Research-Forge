@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "release_id": "research-forge-v1",
+  "release_status": "accepted",
+  "accepted_claim": "bounded_computational_research_platform",
+  "accepted_maturity_ceiling": "C4_real_case_validated",
+  "required_evidence": {
+    "capability_manifest_audit": "18/18 supported",
+    "core_capability_benchmark": "12/12 passed",
+    "controlled_clean_room_replays": "2/2 passed",
+    "public_acceptance_packages": "2/2 passed",
+    "github_hosted_signed_replay": "passed",
+    "python_test_suite": "latest main CI passed"
+  },
+  "independent_external_validation": {
+    "required_for_release": false,
+    "maturity_level": "C5_independently_validated",
+    "current_status": "not_claimed",
+    "verifier_available": true
+  },
+  "forbidden_claims": [
+    "C5 independent validation",
+    "RF-E2 independently operated replay",
+    "arbitrary-domain autonomous science"
+  ],
+  "authoritative_audit": "docs/research-forge-v1-completion-audit-2026-08-01.md"
+}
