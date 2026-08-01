@@ -2,8 +2,9 @@
 
 ## Decision
 
-**Result: the bounded Research Forge v1 product claim is achieved; the stronger
-C5 independently validated claim remains open.**
+**Result: the bounded Research Forge v1 product claim is achieved and the v1
+release acceptance is complete. C5 independent validation is an optional
+future maturity promotion, not a v1 release requirement.**
 
 Research Forge now has a verified workflow-control loop, deterministic
 executable-contract core, three typed experiment profiles, positive and
@@ -31,10 +32,10 @@ science or external independent reproduction.
 | AIRS formal tasks | C4 narrow pass | four official RAD tasks × ten seeds = forty isolated cells | exceeds the three-task minimum; no leaderboard or external acceptance claim |
 | Workflow Run RO-Crate external validation | C3 pass | `docs/workflow-run-rocrate-external-validation-2026-08-01.md`; CRS4 validator report | Workflow Run 0.5 plus inherited required profiles; no Provenance Run or certification claim |
 | W3C PROV external validation | C3 bounded pass | PySHACL 0.40.1 report and frozen SHACL rules | bounded Stage 3 projection; not full PROV-CONSTRAINTS certification |
-| Two clean-room replays | C3/RF-E1 pass | two sealed-package offline Docker replay reports | no independent operator or external signing key; RF-E2/C5 remains false |
+| Two clean-room replays | C3/RF-E1 pass | two sealed-package offline Docker replay reports | satisfies the v1 controlled-replay requirement; RF-E2/C5 is optional and is not claimed |
 | Public successful research package | C4 pass | public GitHub release asset, SHA-256, fresh public redownload, standalone verifier | portable real-case evidence; not an independent replication receipt |
 | Public correctly blocked case | Pass | public GitHub release asset, frozen contract and compile report, standalone verifier | proves safe refusal, not a refuted hypothesis |
-| GitHub-hosted signed replay | Pass, non-C5 | run 30652669858; public receipt; verified Sigstore/SLSA attestation | external hosted infrastructure, but same repository owner is not an independent scientific operator |
+| GitHub-hosted signed replay | v1 release pass, non-C5 | run 30652669858; public receipt; verified Sigstore/SLSA attestation | external hosted infrastructure, but same repository owner is not an independent scientific operator |
 | Evidence-bound Stage 4 | C3 pass | publication-control, claim, number, citation, and evidence-boundary tests | cannot promote missing evidence or failed execution into an effect claim |
 
 ## Public release evidence
@@ -76,10 +77,10 @@ workflow identity constraints; details are in
 - Controlled clean-room packages: **2/2 replay comparisons passed**.
 - Public acceptance packages: **2/2 fresh-download verifiers passed**.
 - GitHub-hosted public replay: **1/1 workflow passed; receipt provenance and
-  signer identity verified; C5 remained false by policy**.
-- Python test collection: **676 tests**.
-- Final full-suite result: **675 passed, 1 explicitly optional
-  environment-conditioned integration skipped, 0 failed**.
+  signer identity verified; C5 is not required for v1 and remains unclaimed**.
+- Python test collection at this policy update: **682 tests**.
+- The release acceptance suite and subsequent main-branch CI runs passed; the
+  environment-conditioned AIRS integration remains explicitly optional.
 
 ## Contract and scientific-safety invariants
 
@@ -95,19 +96,18 @@ from refutation. Stage 4 cannot mutate a frozen scientific Verdict, and its
 numeric claims must bind to result artifacts before publication readiness can
 be satisfied.
 
-## Remaining gap under the strongest interpretation
+## Optional future promotion (not a v1 blocker)
 
-The only remaining promotion step is an independently operated scientific
-replay receipt. GitHub now supplies the separate hosted runner, signing
-certificate, and transparency evidence, but the workflow is still controlled
-by the same repository owner. C5 therefore requires a separately controlled
-operator to review the sealed public package, independently recompute the
-primary metric, and sign an independent receipt. Until that evidence exists,
-`rf_e2_awarded=false` and no C5 claim is permitted.
+Research Forge v1 exits at the bounded C4 product claim documented above. An
+independently operated scientific replay receipt is not required for release,
+publication-pipeline use, or ordinary deployment. The public package, hosted
+replay, signed provenance, and controlled clean-room runs are the authoritative
+v1 reproducibility evidence.
 
-The public handoff request, fixed procedure, expected numbers, receipt fields,
-and signature requirements are available at
-<https://github.com/CKwin26/Auto-Agentic-Research-Forge/issues/6>.
+If a later release chooses to claim C5 or RF-E2, it must still obtain a receipt
+from a separately controlled operator. The existing verifier remains available
+for that optional promotion, but `rf_e2_awarded=false` is not a v1 failure and
+does not leave the v1 acceptance incomplete.
 
 ## Permitted v1 claim
 

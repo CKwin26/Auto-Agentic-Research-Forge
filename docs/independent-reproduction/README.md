@@ -1,8 +1,13 @@
 # Independent scientific replay receipts
 
-Research Forge awards C5 only after a separately controlled operator replays a
-frozen public package, recomputes its registered result, and signs the receipt
-with a key that the project owner does not control.
+Research Forge v1 does not require an external independent operator for release.
+Its release target is the bounded C4 claim documented in the v1 completion
+audit. C5 remains an optional future maturity promotion.
+
+If a later release chooses to claim C5, Research Forge awards it only after a
+separately controlled operator replays a frozen public package, recomputes its
+registered result, and signs the receipt with a key that the project owner does
+not control.
 
 The machine verifier checks the package digest, registered numbers, verdict,
 operational declarations, trusted-key fingerprint, and Ed25519 signature. It
@@ -19,4 +24,5 @@ research-forge verify-independent-replay-receipt receipt.json \
 ```
 
 Until all checks pass, the result reports `c5_eligible: false` and no capability
-manifest may be upgraded to C5.
+manifest may be upgraded to C5. This does not block Research Forge v1 release or
+change its accepted C4 capability claims.
