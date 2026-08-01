@@ -6,6 +6,8 @@ capabilities:
     claim: 四阶段 Study、持久步骤、负责人 Gate 与阶段交接已通过受控端到端验证。
     claim_boundary: 这只证明工作流控制能闭环，不证明任意研究课题都能完成科学实验。
     declared_maturity: 3
+    evidence_level: 2
+    scope: bounded
     supported_profiles: [project_to_paper, idea_to_paper]
     entrypoint: research_forge.workflow_scheduler
     inputs: [Project, Study, StepInstance, GateRecord]
@@ -26,6 +28,8 @@ capabilities:
     claim: 编译器可在组件测试中阻止占位任务、同臂设计、泛化臂描述和部分未识别的金融协议。
     claim_boundary: 编译器尚未证明能把所有跨领域研究设计无缺口地编译为可执行实验。
     declared_maturity: 2
+    evidence_level: 1
+    scope: bounded
     supported_profiles: [tabular_ml_v1, benchmark_prediction_v1, existing_python_project_v1, computational_paired_comparison_v1, computational_paired_comparison_v2]
     entrypoint: research_forge.contract_compiler:compile_research_contract
     inputs: [ResearchContractVersion, approved_resources]
@@ -36,8 +40,8 @@ capabilities:
     upstream_sources: [OpenML, MLPerf, Code Ocean]
     evidence:
       design: [docs/stage-2-feasibility-protocol-baseline.md]
-      source: [research_forge/contract_compiler.py]
-      component_validation: [tests/test_contract_compiler.py]
+      source: [research_forge/contract_compiler.py, research_forge/scientific_contribution_gate.py]
+      component_validation: [tests/test_contract_compiler.py, tests/test_scientific_contribution_gate.py]
 
   - capability_id: scientific_execution.typed_profiles
     title: 类型化实验执行 Profile
@@ -45,6 +49,8 @@ capabilities:
     claim: 已实现 tabular_ml_v1、benchmark_prediction_v1、existing_python_project_v1，以及有限的一组配对、二元、聚类、多端点和多臂实验 Profile，并有组件级验证。
     claim_boundary: 三种通用 Profile 整体仍为 C2；tabular_ml_v1 的五个官方 OpenML 数值任务已达到窄范围 C3。两个非预制 Python 项目已经通过独立于源目录的密封包双重容器重放，但这只使窄范围 replay utility 达到 C4，尚未证明 existing_python_project_v1 完整 Stage 2 → Stage 3 双臂科学链达到 C4，也不是 C5 外部独立复现。tabular_ml_v1 正式范围仅为数值 CSV 的冻结 train/test split、二分类/回归和内置确定性 estimator；K-fold 目前只用于阶段二可行性。benchmark_prediction_v1 要求 submission 与隐藏 target 隔离；existing_python_project_v1 要求冻结容器、requirements lock、显式双臂命令与独立 evaluator。
     declared_maturity: 2
+    evidence_level: 1
+    scope: bounded
     supported_profiles: [tabular_ml_v1, benchmark_prediction_v1, existing_python_project_v1, computational_paired_comparison_v1, computational_paired_comparison_v2, paired_binary_independent_v1, paired_binary_clustered_v1, paired_multi_endpoint_v1, paired_multi_arm_ablation_v1]
     entrypoint: research_forge.stage_three
     inputs: [frozen_contract, profile_bundle, resource_bindings]
@@ -54,9 +60,9 @@ capabilities:
     negative_cases: [unsupported_profile_is_blocked]
     upstream_sources: [OpenML, AIRS]
     evidence:
-      design: [docs/stage-3-execution-kernel.md]
-      source: [research_forge/stage_three.py, research_forge/profiles/registry.py, research_forge/profiles/tabular_ml.py, research_forge/profiles/benchmark_prediction.py, research_forge/profiles/existing_python_project.py, research_forge/existing_project_replay.py]
-      component_validation: [tests/test_stage_three.py, tests/test_profiles.py, tests/test_tabular_ml_profile.py, tests/test_benchmark_prediction_profile.py, tests/test_existing_python_project_profile.py, tests/test_existing_project_replay.py]
+      design: [docs/stage-3-execution-kernel.md, docs/profile-capability-matrix.md]
+      source: [research_forge/stage_three.py, research_forge/profiles/registry.py, research_forge/profiles/tabular_ml.py, research_forge/profiles/benchmark_prediction.py, research_forge/profiles/existing_python_project.py, research_forge/existing_project_replay.py, research_forge/profile_capability_matrix.yaml]
+      component_validation: [tests/test_stage_three.py, tests/test_profiles.py, tests/test_tabular_ml_profile.py, tests/test_benchmark_prediction_profile.py, tests/test_existing_python_project_profile.py, tests/test_existing_project_replay.py, tests/test_profile_capability_matrix.py]
 
   - capability_id: reproduction.sealed_existing_project_replay
     title: 已有 Python 项目密封重放
@@ -64,6 +70,8 @@ capabilities:
     claim: 两个非预制用户项目的显式源码切片已分别密封，并在两个全新的离线 Docker 工作区中重放；冻结历史指标与跨重放指标均一致。
     claim_boundary: 这是同一主机、同一 Research Forge 控制面的真实项目隔离重放，不是外部独立信任域 C5；它也不证明任意 Python 项目可自动适配或完整双臂科学实验链已达到 C4。
     declared_maturity: 4
+    evidence_level: 3
+    scope: limited_real_case
     supported_profiles: [explicit_python_unittest_replay, explicit_json_metric_replay]
     entrypoint: research_forge.existing_project_replay:replay_existing_project_package
     inputs: [owner_approved_file_allowlist, replay_spec, historical_metric_expectation]
@@ -82,21 +90,23 @@ capabilities:
   - capability_id: scientific_completion.empirical_loop
     title: 实证科学完成闭环
     category: scientific_authority
-    claim: 对已支持的类型化 Profile，实验资产、执行、评估和 Verdict 链已完成组件验证。
+    claim: 对已支持的类型化 Profile，实验资产、执行、评估和 Verdict 链已完成组件验证；不同评估器家族的逐项、聚合、方向与 Verdict 分歧可被显式记录。
     claim_boundary: 当前只达到部分实现；不能宣称一般性的真实项目科学闭环已经完成。
     declared_maturity: 2
+    evidence_level: 1
+    scope: bounded
     supported_profiles: [registered_typed_profiles]
     entrypoint: research_forge.stage_three
     inputs: [frozen_executable_contract, authorized_resources]
-    outputs: [ResearchRun, HypothesisVerdict, Stage3CompletionPackage]
-    validators: [execution_integrity, evidence_binding, verdict_authority]
+    outputs: [ResearchRun, HypothesisVerdict, Stage3CompletionPackage, EvaluatorDisagreementReport]
+    validators: [execution_integrity, evidence_binding, verdict_authority, evaluator_family_disagreement]
     positive_cases: [typed_profile_completion_fixture]
     negative_cases: [build_failure_is_not_scientific_verdict]
     upstream_sources: [AIRS, CodeScientist]
     evidence:
       design: [docs/stage-3-completion-audit.md]
-      source: [research_forge/stage_three.py, research_forge/stage_three_evaluator.py]
-      component_validation: [tests/test_stage3_completion_authority.py, tests/test_stage_three_evaluator.py]
+      source: [research_forge/stage_three.py, research_forge/stage_three_evaluator.py, research_forge/evaluator_comparison.py]
+      component_validation: [tests/test_stage3_completion_authority.py, tests/test_stage_three_evaluator.py, tests/test_evaluator_comparison.py]
 
   - capability_id: scientific_completion.cross_domain_autonomy
     title: 跨领域自主科研闭环
@@ -104,6 +114,8 @@ capabilities:
     claim: 平台已实现跨领域执行扩展点和显式阻断语义。
     claim_boundary: 尚未达到跨领域自主完成真实科学研究；未知实验类型必须阻断而非伪装成功。
     declared_maturity: 1
+    evidence_level: 0
+    scope: extension_only
     supported_profiles: []
     entrypoint: research_forge.profiles.registry
     inputs: [research_design]
@@ -122,6 +134,8 @@ capabilities:
     claim: 离线默认、负责人授权、查询净化、预算、幂等和冻结响应已通过受控端到端测试。
     claim_boundary: Provider 可用性仍取决于部署验收、凭证、网络与具体数据权利。
     declared_maturity: 3
+    evidence_level: 2
+    scope: bounded
     supported_profiles: [academic_search, github, huggingface, public_web, open_access, openml_exact_dataset]
     entrypoint: research_forge.retrieval
     inputs: [RetrievalRequest, ProjectPolicy, StepInstance]
@@ -142,6 +156,8 @@ capabilities:
     claim: 固定版本 PaperQA 全文检索、冻结 corpus/index 和 EvidenceSpan 绑定已有真实运行记录。
     claim_boundary: 不宣称 Research Forge 普遍优于 PaperQA，也不把检索结果自动升级为科学 Verdict。
     declared_maturity: 4
+    evidence_level: 3
+    scope: limited_real_case
     supported_profiles: [paper_evidence]
     entrypoint: research_forge.retrieval.evidence.paperqa_service
     inputs: [frozen_corpus, questions]
@@ -163,6 +179,8 @@ capabilities:
     claim: 项目包论文生成、结构检查、数字与引用审计在受控端到端测试中工作。
     claim_boundary: 不保证自动达到期刊录用质量，也不能改变第三阶段的历史 Verdict。
     declared_maturity: 3
+    evidence_level: 2
+    scope: bounded
     supported_profiles: [project_bundle_manuscript]
     entrypoint: research_forge.paper_authoring
     inputs: [Stage3CompletionPackage, frozen_literature, claim_registry]
@@ -183,6 +201,8 @@ capabilities:
     claim: 可编辑 .drawio 产物与 Desktop SVG/PDF 导出已有真实运行验收记录。
     claim_boundary: 不包含 draw.io 在线多人协作，也不代表自然语言 MCP 编辑已经完成真实验收。
     declared_maturity: 4
+    evidence_level: 3
+    scope: limited_real_case
     supported_profiles: [drawio_desktop]
     entrypoint: research_forge.drawio_backend
     inputs: [diagram_spec]
@@ -204,6 +224,8 @@ capabilities:
     claim: 隔离角色、弃权和确定性聚合规则已有组件验证。
     claim_boundary: 尚缺真实模型端到端验收和外部科学评审校准；不得暗示真人盲审。
     declared_maturity: 2
+    evidence_level: 1
+    scope: component
     supported_profiles: [feynman, tukey, shannon, popper]
     entrypoint: research_forge.nuwa_panel
     inputs: [blinded_claim_packet]
@@ -223,6 +245,8 @@ capabilities:
     claim: 四个官方 AIRS RAD 任务已使用未修改的官方评估器完成 40 个本地隔离运行单元，并通过确定性复核。
     claim_boundary: 只证明四个任务的本地 C4 真实案例运行；没有提交官方排行榜，也没有外部独立验收，不代表完整 AIRS 矩阵性能。
     declared_maturity: 4
+    evidence_level: 3
+    scope: limited_real_case
     supported_profiles: [official_airs_rad_local]
     entrypoint: research_forge.official_airs_matrix
     inputs: [official_rad_bundle, candidate_program, frozen_seed_matrix]
@@ -244,6 +268,8 @@ capabilities:
     claim: 阶段三 Workflow Run RO-Crate 0.5 元数据可由维护中的 CRS4 外部 checker 以离线模式通过全部必需检查。
     claim_boundary: 验收覆盖 workflow-run-crate-0.5 及其继承的 Process Run、Workflow RO-Crate 与基础 RO-Crate 必需项；不宣称 Provenance Run Profile、第三方认证或所有历史包均通过。
     declared_maturity: 3
+    evidence_level: 2
+    scope: limited_real_case
     supported_profiles: [ro-crate-1.1, workflow-run-crate-0.5]
     entrypoint: research_forge.rocrate_validation:validate_rocrate_external
     inputs: [crate_root, prewarmed_validator_cache]
@@ -264,6 +290,8 @@ capabilities:
     claim: 两份密封复现包已在全新、断网、只读根文件系统的 Docker worker 中仅依赖包内资源完成重算，并通过冻结比较器、覆盖率与隔离不变量检查。
     claim_boundary: 这是同一运营方主机上的 C3 受控端到端复现；没有外部组织、独立云账户或 KMS/HSM 验证回执，因此不授予 RF-E2，也不宣称 C5 独立复现。
     declared_maturity: 3
+    evidence_level: 2
+    scope: limited_real_case
     supported_profiles: [computational_paired_comparison_v1]
     entrypoint: research_forge.clean_room_replay:run_clean_room_docker_reproduction
     inputs: [signed_reproduction_package, frozen_reproduction_policy, embedded_replay_entrypoint]
@@ -284,6 +312,8 @@ capabilities:
     claim: 冻结表格资源可在离线上下文中执行哈希绑定的 Great Expectations 结构检查，并把规范化报告接入资源资格判断。
     claim_boundary: 只验证列、缺失、唯一性、范围、集合、行数和类型等结构属性；不证明标签语义、因果有效性或科学 Verdict。
     declared_maturity: 3
+    evidence_level: 2
+    scope: limited_real_case
     supported_profiles: [frozen_tabular_resource]
     entrypoint: research_forge.great_expectations_gate:validate_frozen_tabular_resource
     inputs: [frozen_csv, frozen_quality_contract]
@@ -304,6 +334,8 @@ capabilities:
     claim: 阶段三受限 provenance 投影可由外部 PySHACL 引擎执行确定性引用检查和 SHACL 语义校验。
     claim_boundary: 只覆盖 Research Forge 定义的受限投影；不宣称完整 PROV-CONSTRAINTS 覆盖、W3C 官方认证或第三方一致性徽章。
     declared_maturity: 3
+    evidence_level: 2
+    scope: limited_real_case
     supported_profiles: [research_forge_stage3_prov_projection]
     entrypoint: research_forge.prov_validation:validate_prov_external
     inputs: [stage3_prov_jsonld]
@@ -324,6 +356,8 @@ capabilities:
     claim: 官方 OpenML Task 39 已在候选标签隔离、独立评估器和冻结参考重算条件下完成基线与处理组运行。
     claim_boundary: 这是一个分类任务的窄范围 C4 真实案例；不代表所有 benchmark、回归任务、外部排行榜或 C5 独立执行者均已验证。
     declared_maturity: 4
+    evidence_level: 3
+    scope: limited_real_case
     supported_profiles: [benchmark_prediction_v1, openml_task_39]
     entrypoint: research_forge.benchmarks.hidden_prediction:run_openml_hidden_prediction_acceptance
     inputs: [frozen_openml_task_materialization, candidate_visible_train_and_test_features, evaluator_only_targets]
@@ -345,6 +379,8 @@ capabilities:
     claim: OpenML Task 39 真实隐藏目标案例与一个正确阻断的契约案例已作为公开 GitHub Release 资产发布；两份 ZIP 已在 GitHub-hosted runner 重放并产生可验证的 Sigstore/SLSA provenance 收据。
     claim_boundary: 公开下载、全新目录复核、外部托管执行和签名 provenance 已验证；工作流仍由同一仓库所有者控制，不是独立科学操作者，因此不宣称 C5 或外部独立复现。
     declared_maturity: 4
+    evidence_level: 3
+    scope: limited_real_case
     supported_profiles: [benchmark_prediction_v1, openml_task_39]
     entrypoint: research_forge.public_package:build_public_hidden_prediction_package
     inputs: [hidden_target_acceptance_report, frozen_candidate_and_evaluator_artifacts, intentionally_incomplete_research_contract]

@@ -76,6 +76,9 @@ class ScientificValidityContract(StrictModel):
     metric_upper_bound: float | None = None
     expected_baseline: float | None = None
     minimum_meaningful_effect: float | None = None
+    expected_information_value: str | None = None
+    sample_adequacy_basis: str | None = None
+    independence_justification: str | None = None
     metric_direction: str = Field(default="maximize", pattern=r"^(maximize|minimize)$")
     threshold_basis: str | None = None
     construct_label: str | None = None

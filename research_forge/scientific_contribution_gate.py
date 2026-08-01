@@ -112,6 +112,36 @@ def assess_scientific_contribution(
         "novel_mechanism",
     }
 
+    information_value = str(
+        validity.get("expected_information_value") or ""
+    ).strip()
+    information_value_declared = bool(information_value) and not any(
+        token in information_value.casefold()
+        for token in ("unknown", "to be determined", "tbd")
+    )
+    sample_adequacy_basis = str(
+        validity.get("sample_adequacy_basis") or ""
+    ).strip()
+    sample_adequacy_declared = bool(sample_adequacy_basis) and not any(
+        token in sample_adequacy_basis.casefold()
+        for token in ("unknown", "to be determined", "tbd")
+    )
+    independence_justification = str(
+        validity.get("independence_justification") or ""
+    ).strip()
+    independence_declared = bool(independence_justification) and not any(
+        token in independence_justification.casefold()
+        for token in ("unknown", "to be determined", "tbd")
+    )
+    pseudo_units = {"seed", "seeds", "replicate", "replicates", "run", "runs"}
+    pseudo_replication_avoided = (
+        independence_declared
+        and not (
+            variance_unit.casefold() in pseudo_units
+            and unit.casefold() not in pseudo_units
+        )
+    )
+
     checks = [
         ContributionCheck(
             check_id="substantive_baseline",
@@ -142,6 +172,33 @@ def assess_scientific_contribution(
             passed=claim_scope_valid,
             blocking=True,
             detail="The planned claim tier must not exceed the identification design.",
+        ),
+        ContributionCheck(
+            check_id="expected_information_value",
+            passed=information_value_declared,
+            blocking=True,
+            detail=(
+                "The contract must state which scientific or operational "
+                "decision the experiment can resolve."
+            ),
+        ),
+        ContributionCheck(
+            check_id="sample_adequacy",
+            passed=sample_adequacy_declared,
+            blocking=True,
+            detail=(
+                "The contract must freeze a non-placeholder sample-size or "
+                "power justification before formal execution."
+            ),
+        ),
+        ContributionCheck(
+            check_id="pseudo_replication",
+            passed=pseudo_replication_avoided,
+            blocking=True,
+            detail=(
+                "The variance unit must represent independent scientific "
+                "units; seeds, replicates, and reruns cannot inflate n."
+            ),
         ),
         ContributionCheck(
             check_id="novelty_comparison_set",

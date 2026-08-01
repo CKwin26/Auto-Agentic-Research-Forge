@@ -109,6 +109,10 @@ class EvaluationSpecification(StrictModel):
     unit_of_analysis: str
     missing_data_policy: str
     success_rule: str
+    primary_evaluator_family: str
+    secondary_evaluator_families: list[str] = Field(default_factory=list)
+    disagreement_policy: str
+    agreement_metrics: list[str] = Field(default_factory=list)
 
 
 class AnalysisSpecification(StrictModel):
@@ -126,6 +130,7 @@ class AnalysisSpecification(StrictModel):
 
 class ContractCompileReport(StrictModel):
     schema_version: int = 1
+    compiler_version: Literal["2.0"] = "2.0"
     compile_report_id: str
     study_id: str
     contract_version: int = Field(ge=1)
@@ -486,6 +491,58 @@ def compile_research_contract(
             "SUCCESS_RULE_MISSING: define the frozen scientific decision rule"
         )
 
+    evaluator_policy = dict(contract.evaluator_policy or {})
+    primary_evaluator = evaluator_policy.get("primary_evaluator")
+    if isinstance(primary_evaluator, dict):
+        primary_family = _normalized_text(
+            primary_evaluator.get("family_id")
+            or primary_evaluator.get("family")
+        )
+    else:
+        primary_family = _normalized_text(
+            evaluator_policy.get("primary_family_id")
+            or evaluator_policy.get("authority")
+            or "deterministic_reference"
+        )
+    raw_secondary = evaluator_policy.get("secondary_evaluators") or []
+    secondary_families = [
+        _normalized_text(
+            item.get("family_id") or item.get("family")
+            if isinstance(item, dict)
+            else item
+        )
+        for item in raw_secondary
+    ]
+    secondary_families = [item for item in secondary_families if item]
+    secondary_required = bool(
+        evaluator_policy.get("secondary_required")
+        or evaluator_policy.get("uses_learned_evaluator")
+    )
+    if secondary_required and not secondary_families:
+        issues.append(
+            "SECONDARY_EVALUATOR_MISSING: learned or protected evaluators "
+            "require a frozen second evaluator family"
+        )
+    if primary_family in secondary_families:
+        issues.append(
+            "SECONDARY_EVALUATOR_FAMILY_NOT_DISTINCT: a renamed instance of "
+            "the primary family is not an independent evaluator family"
+        )
+    disagreement_policy = _normalized_text(
+        evaluator_policy.get("disagreement_policy")
+        or (
+            "record row-level and directional disagreements; require "
+            "adjudication before a stable verdict"
+            if secondary_families
+            else "not_applicable_single_deterministic_evaluator"
+        )
+    )
+    if secondary_required and not disagreement_policy:
+        issues.append(
+            "EVALUATOR_DISAGREEMENT_POLICY_MISSING: freeze how evaluator "
+            "disagreements affect the scientific verdict"
+        )
+
     issues = list(dict.fromkeys(issues))
     compile_report_id = stable_id(
         "contract-compile",
@@ -615,6 +672,15 @@ def compile_research_contract(
         unit_of_analysis=unit,
         missing_data_policy=missing_policy,
         success_rule=success_rule,
+        primary_evaluator_family=primary_family,
+        secondary_evaluator_families=secondary_families,
+        disagreement_policy=disagreement_policy,
+        agreement_metrics=[
+            "aggregate_metric_agreement",
+            "row_level_disagreement",
+            "directional_conclusion_agreement",
+            "verdict_stability",
+        ],
     )
     analysis = AnalysisSpecification(
         analysis_specification_id=stable_id(
@@ -811,13 +877,45 @@ def contract_amendment_proposal(
             "baseline.implementation_spec",
             "define baseline algorithm semantics and its Stage 3 entrypoint contract",
         ),
+        "BASELINE_OPERATION_GENERIC": (
+            "baseline.implementation_spec",
+            "replace the generic arm name with an executable baseline algorithm",
+        ),
         "TREATMENT_NOT_COMPILABLE": (
             "treatment.implementation_spec",
             "define treatment algorithm semantics and its Stage 3 entrypoint contract",
         ),
+        "TREATMENT_OPERATION_GENERIC": (
+            "treatment.implementation_spec",
+            "replace the generic intervention name with its executable arm delta",
+        ),
         "APPROVED_RESOURCES_MISSING": (
             "resource_policy",
             "select validated resources or approve a bounded resource builder",
+        ),
+        "SECONDARY_EVALUATOR_MISSING": (
+            "evaluator_policy.secondary_evaluators",
+            "freeze a second implementation from a distinct evaluator family",
+        ),
+        "SECONDARY_EVALUATOR_FAMILY_NOT_DISTINCT": (
+            "evaluator_policy.secondary_evaluators",
+            "replace the duplicate family with an independently implemented evaluator",
+        ),
+        "EVALUATOR_DISAGREEMENT_POLICY_MISSING": (
+            "evaluator_policy.disagreement_policy",
+            "freeze row-level, directional, and verdict-stability handling",
+        ),
+        "CONTRIBUTION_EXPECTED_INFORMATION_VALUE": (
+            "scientific_validity_contract.expected_information_value",
+            "state which scientific or operational decision the experiment resolves",
+        ),
+        "CONTRIBUTION_SAMPLE_ADEQUACY": (
+            "scientific_validity_contract.sample_adequacy_basis",
+            "freeze the sample-size or power justification",
+        ),
+        "CONTRIBUTION_PSEUDO_REPLICATION": (
+            "scientific_validity_contract.independence_justification",
+            "freeze the independent scientific and variance units without counting reruns as n",
         ),
     }
     proposals: list[AmendmentFieldProposal] = []
@@ -825,6 +923,12 @@ def contract_amendment_proposal(
         code = issue.split(":", 1)[0].strip()
         if code in mappings:
             path, action = mappings[code]
+        elif code.startswith("FINANCE_") and code.endswith("_MISSING"):
+            policy_name = code[len("FINANCE_") : -len("_MISSING")].casefold()
+            path, action = (
+                f"data_requirements.{policy_name}",
+                "freeze the point-in-time finance policy before Stage 3",
+            )
         elif "label" in issue.casefold() or "target" in issue.casefold():
             code = "UNSTRUCTURED_TARGET_REQUIREMENT"
             path, action = (

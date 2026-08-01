@@ -30,6 +30,8 @@ jobs:
         run: rocrate-validator cache warm || true
       - name: Test
         run: python -m pytest -p no:cacheprovider
+      - name: Audit capability assurance layers
+        run: python scripts/audit_capability_assurance.py --root . --execute-replay
       - name: Compile retrieval modules
         run: python -m compileall -q research_forge/retrieval
 

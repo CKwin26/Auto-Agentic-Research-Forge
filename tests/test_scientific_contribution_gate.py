@@ -54,6 +54,13 @@ def test_novelty_claim_without_literature_is_conditional_not_silently_passed() -
             "scientific_validity_contract": {
                 "requested_claim_tier": "novelty",
                 "identification_target": "bundled_intervention_effect",
+                "expected_information_value": (
+                    "Decide whether the candidate should replace the baseline."
+                ),
+                "sample_adequacy_basis": "Census of every qualified case.",
+                "independence_justification": (
+                    "Cases are independent; reruns do not increase n."
+                ),
             }
         }
     )
@@ -62,3 +69,50 @@ def test_novelty_claim_without_literature_is_conditional_not_silently_passed() -
 
     assert report.status is ContributionGateStatus.CONDITIONAL
     assert any("NOVELTY_COMPARISON_SET" in item for item in report.warnings)
+
+
+def test_missing_expected_information_value_is_blocked() -> None:
+    contract = _contract()
+    validity = dict(contract.scientific_validity_contract)
+    validity["expected_information_value"] = "unknown"
+
+    report = assess_scientific_contribution(
+        contract.model_copy(update={"scientific_validity_contract": validity})
+    )
+
+    assert report.status is ContributionGateStatus.BLOCKED
+    assert any(
+        "EXPECTED_INFORMATION_VALUE" in item
+        for item in report.blocking_issues
+    )
+
+
+def test_placeholder_sample_adequacy_is_blocked() -> None:
+    contract = _contract()
+    validity = dict(contract.scientific_validity_contract)
+    validity["sample_adequacy_basis"] = "sample size to be determined"
+
+    report = assess_scientific_contribution(
+        contract.model_copy(update={"scientific_validity_contract": validity})
+    )
+
+    assert report.status is ContributionGateStatus.BLOCKED
+    assert any("SAMPLE_ADEQUACY" in item for item in report.blocking_issues)
+
+
+def test_seed_level_pseudo_replication_is_blocked() -> None:
+    contract = _contract()
+    report = assess_scientific_contribution(
+        contract.model_copy(
+            update={
+                "estimand": {
+                    **contract.estimand,
+                    "experimental_unit": "case",
+                    "variance_unit": "seed",
+                }
+            }
+        )
+    )
+
+    assert report.status is ContributionGateStatus.BLOCKED
+    assert any("PSEUDO_REPLICATION" in item for item in report.blocking_issues)

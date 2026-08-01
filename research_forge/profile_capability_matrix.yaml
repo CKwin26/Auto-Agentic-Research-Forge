@@ -1,0 +1,84 @@
+schema_version: 1
+profiles:
+  - profile_id: deterministic_simulation_v1
+    registry_status: development
+    formal_execution: false
+    task_modes: [generated_numeric_simulation]
+    domain_adapters: []
+    scope: component_fixture
+  - profile_id: tabular_ml_v1
+    registry_status: certified
+    formal_execution: true
+    task_modes: [numeric_csv_classification, numeric_csv_regression, fixed_split]
+    domain_adapters: []
+    scope: bounded_profile
+  - profile_id: benchmark_prediction_v1
+    registry_status: certified
+    formal_execution: true
+    task_modes: [hidden_target_submission]
+    domain_adapters: []
+    scope: bounded_profile
+  - profile_id: existing_python_project_v1
+    registry_status: certified
+    formal_execution: true
+    task_modes: [explicit_baseline_treatment_command_replay]
+    domain_adapters: []
+    scope: execution_wrapper_not_domain_semantics
+  - profile_id: computational_paired_comparison_v1
+    registry_status: legacy_frozen
+    formal_execution: true
+    task_modes: [paired_continuous_legacy]
+    domain_adapters: []
+    scope: compatibility_only
+  - profile_id: computational_paired_comparison_v2
+    registry_status: certified
+    formal_execution: true
+    task_modes: [cluster_aware_paired_continuous]
+    domain_adapters: []
+    scope: bounded_profile
+  - profile_id: paired_binary_independent_v1
+    registry_status: certified
+    formal_execution: true
+    task_modes: [paired_binary_independent]
+    domain_adapters: []
+    scope: bounded_profile
+  - profile_id: paired_binary_clustered_v1
+    registry_status: certified
+    formal_execution: true
+    task_modes: [paired_binary_clustered]
+    domain_adapters: []
+    scope: bounded_profile
+  - profile_id: paired_multi_arm_ablation_v1
+    registry_status: certified
+    formal_execution: true
+    task_modes: [paired_multi_arm_ablation]
+    domain_adapters: []
+    scope: bounded_profile
+  - profile_id: paired_multi_endpoint_v1
+    registry_status: unregistered
+    formal_execution: false
+    task_modes: []
+    domain_adapters: []
+    scope: enum_reserved
+  - profile_id: unpaired_two_group_continuous_v1
+    registry_status: unregistered
+    formal_execution: false
+    task_modes: []
+    domain_adapters: []
+    scope: enum_reserved
+extensions:
+  - extension_id: finance_backtest
+    kind: domain_adapter
+    formal_profile: false
+    maturity: C1
+    behavior: Adds point-in-time semantic validators and design defaults; it does not provide a certified finance runner.
+  - extension_id: retrieval_evaluation
+    kind: non_formal_extension
+    formal_profile: false
+    maturity: C2
+    behavior: Retrieval and PaperQA benchmarks do not make retrieval a general Stage 3 scientific Profile.
+  - extension_id: survey
+    kind: non_formal_extension
+    formal_profile: false
+    maturity: C1
+    behavior: Survey materials can be scoped and diagnosed, but no certified survey runner exists.

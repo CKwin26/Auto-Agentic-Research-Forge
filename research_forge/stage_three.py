@@ -4655,6 +4655,9 @@ def _complete_stage3_handler(context: Any) -> dict[str, Any]:
     plan = context.repository.load_run_plan(
         context.study_id, audit["plan_id"]
     )
+    contract = context.repository.load_research_contract(
+        context.study_id, plan.contract_version
+    )
     handoff = context.repository.load_stage3_handoff(context.study_id)
     evaluations = context.repository.list_evaluation_records(
         context.study_id
@@ -4765,6 +4768,23 @@ def _complete_stage3_handler(context: Any) -> dict[str, Any]:
             for item in completion_results
         ]
     )
+    from .evaluator_comparison import validate_evaluator_robustness_for_completion
+
+    evaluator_disagreement_reports = (
+        context.repository.list_evaluator_disagreement_reports(context.study_id)
+    )
+    evaluator_robustness_blockers = validate_evaluator_robustness_for_completion(
+        contract.evaluator_policy,
+        evaluator_disagreement_reports,
+    )
+    if evaluator_robustness_blockers:
+        raise ValueError("; ".join(evaluator_robustness_blockers))
+    completion_paths_to_hash.extend(
+        _stage3_root(context.repository, context.study_id)
+        / "evaluator_disagreements"
+        / f"{item.report_id}.json"
+        for item in evaluator_disagreement_reports
+    )
     completion_paths_to_hash.extend(
         [
             _stage3_root(context.repository, context.study_id)
@@ -4856,6 +4876,9 @@ def _complete_stage3_handler(context: Any) -> dict[str, Any]:
                 leakage_reports[-1].report_id
                 if leakage_reports else None
             ),
+            evaluator_disagreement_report_ids=[
+                item.report_id for item in evaluator_disagreement_reports
+            ],
             claim_envelope_id=claim_envelope.claim_envelope_id,
             evidence_level=claim_envelope.evidence_level,
             confirmatory_status=claim_envelope.confirmatory_status,

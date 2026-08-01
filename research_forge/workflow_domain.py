@@ -1327,6 +1327,7 @@ class Stage3CompletionPackage(StrictModel):
     exposure_record_ids: list[str] = Field(default_factory=list)
     statistical_assurance_report_id: str | None = None
     leakage_audit_report_id: str | None = None
+    evaluator_disagreement_report_ids: list[str] = Field(default_factory=list)
     claim_envelope_id: str | None = None
     evidence_level: EvidenceReproductionLevel = (
         EvidenceReproductionLevel.EVIDENCE_CHAIN_VERIFIED
@@ -2846,6 +2847,44 @@ class WorkflowRepository:
                 ).glob("evaluation-*.json")
             )
         ], key=lambda item: item.created_at)
+
+    def save_evaluator_disagreement_report(self, report: Any) -> Any:
+        from .evaluator_comparison import EvaluatorDisagreementReport
+
+        validated = EvaluatorDisagreementReport.model_validate(report)
+        self.load_study(validated.study_id)
+        path = (
+            self._study_dir(validated.study_id)
+            / "stage3"
+            / "evaluator_disagreements"
+            / f"{validated.report_id}.json"
+        )
+        if path.is_file() and read_json(path) != validated.model_dump(mode="json"):
+            raise ValueError("evaluator disagreement reports are append-only")
+        write_json_atomic(path, validated)
+        self._event(
+            validated.study_id,
+            "evaluator_disagreement_report_saved",
+            report_id=validated.report_id,
+            status=validated.status.value,
+            requires_adjudication=validated.requires_adjudication,
+        )
+        return validated
+
+    def list_evaluator_disagreement_reports(self, study_id: str) -> list[Any]:
+        from .evaluator_comparison import EvaluatorDisagreementReport
+
+        self.load_study(study_id)
+        return [
+            EvaluatorDisagreementReport.model_validate(read_json(path))
+            for path in sorted(
+                (
+                    self._study_dir(study_id)
+                    / "stage3"
+                    / "evaluator_disagreements"
+                ).glob("evaluator-disagreement-*.json")
+            )
+        ]
 
     def save_formal_exposure(
         self, exposure: FormalEvaluationExposureRecord
