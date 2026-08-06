@@ -47,7 +47,9 @@ class ReviewerAttackSurfaceReport(StrictModel):
 
 
 _ABSOLUTE_RE = re.compile(
-    r"\b(?:first|universal(?:ly)?|always|never|completely|fully solves?|"
+    r"\b(?:first(?:-ever)?\s+(?:method|system|study|framework|approach|model|"
+    r"demonstration|evidence|analysis)|universal(?:ly)?|always|never|"
+    r"completely\s+(?:solves?|eliminates?|prevents?|removes?|guarantees?)|fully solves?|"
     r"state[- ]of[- ]the[- ]art|significantly outperforms all)\b",
     re.IGNORECASE,
 )
@@ -70,6 +72,49 @@ def _finding_id_for_claim(prefix: str, claim_id: str) -> str:
     slug = re.sub(r"[^a-z0-9-]+", "-", claim_id.casefold()).strip("-")
     digest = hashlib.sha256(claim_id.encode("utf-8")).hexdigest()[:10]
     return f"attack-{prefix}-{slug[:68]}-{digest}"
+
+
+def _is_disclaimer_context(prose: str, match: re.Match[str]) -> bool:
+    """Do not punish a manuscript for explicitly denying an overclaim."""
+
+    sentence_start = max(
+        prose.rfind(".", 0, match.start()),
+        prose.rfind("!", 0, match.start()),
+        prose.rfind("?", 0, match.start()),
+        prose.rfind("\n", 0, match.start()),
+    )
+    sentence_ends = [
+        index
+        for marker in (".", "!", "?", "\n")
+        if (index := prose.find(marker, match.end())) >= 0
+    ]
+    sentence_end = min(sentence_ends) if sentence_ends else len(prose)
+    sentence = prose[sentence_start + 1 : sentence_end].casefold()
+    prefix = prose[sentence_start + 1 : match.start()].casefold()
+    return bool(
+        re.search(
+            r"\b(?:does?|did|can|could|may|must|should|would)\s+not\b|"
+            r"\bcannot\b|\bnot\s+(?:assess|claim|demonstrate|establish|"
+            r"infer|show|support|generalize)|\bno\s+evidence\b|"
+            r"\bwithout\s+(?:claiming|establishing|implying)",
+            sentence,
+            re.IGNORECASE,
+        )
+        # Lists of explicitly excluded conclusions often use one leading
+        # ``not`` followed by several comma-separated overclaims, e.g.
+        # ``not causal identification, universal superiority, or deployment
+        # reliability``.  Each listed term remains inside the negated scope.
+        or re.search(r"\b(?:not|neither|nor)\b[^.;:!?]{0,160}$", prefix)
+        # Academic boundary statements also commonly use noun-phrase
+        # negation: ``no claim that the endpoint is universally preferable``.
+        # The absolute term is inside the scope of that explicit disclaimer,
+        # not an unsupported positive assertion.
+        or re.search(
+            r"\bno\s+(?:[a-z-]+\s+){0,4}"
+            r"(?:claim|assertion|inference|conclusion)\b[^.;:!?]{0,160}$",
+            prefix,
+        )
+    )
 
 
 def audit_reviewer_attack_surface(
@@ -97,6 +142,8 @@ def audit_reviewer_attack_surface(
         )
     for section, prose in sections.items():
         for index, match in enumerate(_ABSOLUTE_RE.finditer(prose), start=1):
+            if _is_disclaimer_context(prose, match):
+                continue
             findings.append(
                 ReviewerAttackFinding(
                     finding_id=f"attack-absolute-{section}-{index}",

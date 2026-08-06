@@ -914,6 +914,30 @@ def stage3_build_admission(
     assert scope is not None
     assert contract is not None
 
+    # Stage 2 freezes scientific meaning while Stage 3 is allowed to resolve
+    # concrete files, containers and commands.  Run the same Profile
+    # qualification used by formal Stage 3 admission, but without a manifest:
+    # BUILD_REQUIRED is a valid handoff; incomplete scientific semantics are not.
+    from .profiles.registry import qualify_profile_contract
+    from .profiles.sdk import ProfileQualificationStatus
+
+    qualification = qualify_profile_contract(
+        blueprint.profile,
+        contract,
+        manifest=None,
+    )
+    if qualification.status in {
+        ProfileQualificationStatus.CONTRACT_INCOMPLETE,
+        ProfileQualificationStatus.UNSUPPORTED,
+    }:
+        raise Stage3BuildAdmissionError(
+            [
+                f"{item.code}: {item.message}"
+                for item in qualification.issues
+                if item.blocking
+            ]
+        )
+
     capability, mode = resolve_profile_capability(
         repository, study_id, blueprint
     )

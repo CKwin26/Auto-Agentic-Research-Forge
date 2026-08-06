@@ -1,0 +1,22 @@
+{
+  "@context": "https://www.w3.org/ns/prov.jsonld",
+  "entity": {
+    "rf:stage3/results/result.json": {
+      "prov:type": "rf:FrozenArtifact",
+      "rf:sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "rf:stage3/evaluations/evaluation.json": {
+      "prov:type": "rf:FrozenArtifact",
+      "rf:sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  },
+  "activity": {
+    "rf:run-plan-acceptance": {
+      "prov:type": "rf:Stage3Execution",
+      "prov:generated": [
+        "rf:stage3/results/result.json",
+        "rf:stage3/evaluations/evaluation.json"
+      ]
+    }
+  }
+}

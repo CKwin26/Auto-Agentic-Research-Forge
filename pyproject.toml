@@ -38,6 +38,14 @@ external-research = [
 paper-evidence = [
   "paper-qa==2026.3.18",
 ]
+publication = [
+  # Altair is BSD-3-Clause. PyMuPDF is AGPL-3.0-or-later and remains an
+  # isolated renderer adapter so deployments may replace it without changing
+  # frozen Figure Specs.
+  "altair==6.2.2",
+  "pymupdf==1.28.0",
+  "reportlab>=4.4,<5",
+]
 nli = [
   "onnxruntime==1.27.0",
   "tokenizers==0.23.1",

@@ -73,7 +73,15 @@ def normalize_signals(signals: Iterable[TrendSignal]) -> list[ExternalResource]:
                 resource_type=resource_type,
                 canonical_identifier=canonical,
                 title=signal.title,
-                authors_or_owners=([signal.source_name] if signal.source_name else []),
+                authors_or_owners=(
+                    [
+                        str(author).strip()
+                        for author in signal.metadata.get("authors") or []
+                        if str(author).strip()
+                    ]
+                    if resource_type is ResourceType.PUBLICATION
+                    else ([signal.source_name] if signal.source_name else [])
+                ),
                 publication_or_release_date=signal.published_at or None,
                 doi=doi,
                 url=signal.url,

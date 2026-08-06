@@ -7,6 +7,8 @@ from research_forge.paper_evaluation_transparency import (
     assess_stage4_evidence_sufficiency,
     audit_evaluation_transparency_coverage,
     build_evaluation_transparency_register,
+    infer_declared_transparency_item_ids,
+    restore_required_transparency_disclosures,
 )
 from research_forge.workflow_domain import (
     EntryMode,
@@ -161,6 +163,55 @@ def test_transparency_coverage_requires_every_material_item() -> None:
     )
     assert not failed.passed
     assert failed.missing_item_ids == [material_ids[-1]]
+
+
+def test_reader_facing_disclosures_do_not_require_internal_item_ids() -> None:
+    register = _register()
+    declared = infer_declared_transparency_item_ids(
+        register,
+        sections={
+            "methods": (
+                "All ten records were assigned and retained for analysis; "
+                "one evaluator abstention was recorded."
+            ),
+            "results": "Values are reported at frozen decimal precision.",
+            "limitations": (
+                "The public packet schema and release assets remain unavailable."
+            ),
+        },
+    )
+
+    assert "transparency-sample-flow" in declared
+    assert "transparency-abstentions" in declared
+    assert "transparency-numeric-precision" in declared
+    assert "transparency-release-assets" in declared
+
+
+def test_missing_reader_disclosures_are_restored_from_frozen_register() -> None:
+    register = _register()
+    repaired, restored = restore_required_transparency_disclosures(
+        register,
+        sections={
+            "methods": "The evaluation followed the frozen protocol.",
+            "results": "The registered comparison was evaluated.",
+            "limitations": "The study has bounded scope.",
+        },
+    )
+
+    assert restored
+    material_ids = {item.item_id for item in register.material_items()}
+    initially_declared = set(
+        infer_declared_transparency_item_ids(
+            register,
+            sections={
+                "methods": "The evaluation followed the frozen protocol.",
+                "results": "The registered comparison was evaluated.",
+                "limitations": "The study has bounded scope.",
+            },
+        )
+    )
+    assert material_ids <= initially_declared | set(restored)
+    assert repaired["limitations"] != "The study has bounded scope."
 
 
 def test_scheduler_redirects_evidence_backfill_to_stage3(

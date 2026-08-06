@@ -57,22 +57,27 @@ def build_ai_use_disclosure(
         venue_policy.ai_copy_edit_disclosure == "required"
         and any(event.purpose == "copy_edit" for event in events)
     )
-    grouped = sorted(
-        {
-            f"{event.model_id} ({event.purpose.replace('_', ' ')})"
-            for event in events
-        }
-    )
+    purposes_by_model: dict[str, set[str]] = {}
+    for event in events:
+        purposes_by_model.setdefault(event.model_id, set()).add(
+            event.purpose.replace("_", " ")
+        )
+    grouped = [
+        f"{', '.join(sorted(purposes))} using {model_id}"
+        for model_id, purposes in sorted(purposes_by_model.items())
+    ]
     disclosure_text = (
-        "AI-assisted tools were used for "
-        + ", ".join(grouped)
-        + ". Their outputs were reviewed against frozen claims, evidence, numbers, "
-        "citations, and venue requirements."
+        "AI-assisted tools supported "
+        + "; ".join(grouped)
+        + ". Their outputs were reviewed against the study's claims, evidence, "
+        "numbers, citations, and venue requirements."
         if events
         else "No AI-assisted writing or review event was recorded for this manuscript."
     )
+    accountable_author = responsible_author.strip() or "The responsible author"
+    accountable_author = accountable_author[0].upper() + accountable_author[1:]
     accountability = (
-        f"{responsible_author} reviewed the final manuscript and remains responsible "
+        f"{accountable_author} reviewed the final manuscript and remains responsible "
         "for its accuracy, integrity, originality, and compliance."
     )
     return AIUseDisclosure(

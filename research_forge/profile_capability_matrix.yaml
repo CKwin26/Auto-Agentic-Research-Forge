@@ -12,6 +12,18 @@ profiles:
     task_modes: [numeric_csv_classification, numeric_csv_regression, fixed_split]
     domain_adapters: []
     scope: bounded_profile
+  - profile_id: time_series_backtest_v1
+    registry_status: certified
+    formal_execution: true
+    task_modes: [point_in_time_ranking_backtest]
+    domain_adapters: [finance_backtest]
+    scope: bounded_profile_c2_pending_fresh_acceptance
+  - profile_id: llm_evaluation_v1
+    registry_status: certified
+    formal_execution: true
+    task_modes: [paired_frozen_response_evaluation]
+    domain_adapters: []
+    scope: bounded_profile_c2_pending_fresh_acceptance
   - profile_id: benchmark_prediction_v1
     registry_status: certified
     formal_execution: true

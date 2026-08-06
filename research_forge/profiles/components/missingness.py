@@ -24,5 +24,22 @@ MISSINGNESS_COMPONENTS = {
             description="Block asymmetric or unregistered group missingness.",
             implementation_id="block_group_missingness_v1",
         ),
+        ProfileComponent(
+            component_id="block_on_missing_formal_target_v1",
+            kind=ComponentKind.MISSINGNESS,
+            version="0.1",
+            description=(
+                "Any eligible point-in-time candidate without its frozen "
+                "evaluator-only realized return blocks the period."
+            ),
+            implementation_id="block_on_missing_formal_target_v1",
+        ),
+        ProfileComponent(
+            component_id="score_zero_on_missing_response_v1",
+            kind=ComponentKind.MISSINGNESS,
+            version="0.1",
+            description="A registered task with an empty candidate response receives score zero.",
+            implementation_id="score_zero_on_missing_response_v1",
+        ),
     )
 }

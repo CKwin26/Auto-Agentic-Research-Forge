@@ -1,0 +1,128 @@
+{
+  "acceptance_hash": "597c0a307c86b44195efa5200f89b43621daaa7b48a3d982bfe3901a254f902e",
+  "authority_context": {
+    "completion_record_sha256": "5ff058d1551d42b5bacccd2dd7511f3cd8f329b81695184c48dd96b8ced5fe91",
+    "component_version": "1",
+    "environment_hash": "3aef7e93c262eb8eb41338be764cc7a6e58577c8e64d934aedcf284c4e9b4e85",
+    "schema_hash": "c9900d887907949eb9e392d4de5b134dfcb2d2015f332f83c4d6760b274cdfc6",
+    "source_hash": "596fa8566070777c18dc1a9f266d7567851f8c294ff2c6c00cf63ffce26dabd3"
+  },
+  "authority_context_hash": "3a5e6f146285400b78952ab603d549e79df8239b160560bb7f64ce4e2a3deecd",
+  "canonical_stage_four_completed": true,
+  "claim_binding_coverage": 1.0,
+  "component_id": "causal_inference_v1",
+  "dry_run_receipt": {"passed": true},
+  "environment_hash": "3aef7e93c262eb8eb41338be764cc7a6e58577c8e64d934aedcf284c4e9b4e85",
+  "external_independent_reproduction": false,
+  "formal_workflow_completed": true,
+  "independent_recalculator_agreement": {
+    "passed": true,
+    "reference": {
+      "confidence_interval": [2.1906484962779462, 2.653338061864699],
+      "decision": "supported",
+      "denominator": 240,
+      "effect": 2.4219932790713226,
+      "eligible": true,
+      "excluded_count": 0,
+      "missing_count": 0,
+      "outcomes": {
+        "task_quality": {
+          "confidence_interval": [2.1906484962779462, 2.653338061864699],
+          "decision": "supported",
+          "denominator": 240,
+          "effect": 2.4219932790713226,
+          "excluded_count": 0,
+          "missing_count": 0,
+          "p_value": 0.0,
+          "standard_error": 0.11803522137049174
+        }
+      },
+      "overlap_fraction": 1.0,
+      "p_value": 0.0,
+      "primary_decision": "supported",
+      "standard_error": 0.11803522137049174
+    }
+  },
+  "known_limitations": [
+    "Only the frozen synthetic observational session population and the owner-declared measured backdoor assumptions are represented.",
+    "Do not present conditional exchangeability or absence of hidden confounding as empirically proven.",
+    "Do not generalize the ATE to populations outside the frozen data boundary.",
+    "Do not reinterpret the ATE as ATT, CATE, mediation, IV, DiD, RDD, or longitudinal treatment effect.",
+    "Do not attribute the estimate to a mechanism not identified by the frozen graph.",
+    "This is a frozen deterministic acceptance fixture, not external independent reproduction."
+  ],
+  "manuscript_disclosure_repair": {
+    "pdf_verified": true,
+    "restored_disclosure_ids": ["transparency-abstentions", "transparency-release-assets"]
+  },
+  "maturity": "c3_real_fixture",
+  "maturity_after": "c3_real_fixture",
+  "maturity_before": "c2_dry_run",
+  "mutation_tests": {
+    "change_exposure": true,
+    "change_outcome": true,
+    "duplicate_session": true
+  },
+  "negative_tests": {
+    "missing_causal_extension": true,
+    "randomized_allocation": true,
+    "wrong_estimator": true,
+    "wrong_independent_unit": true,
+    "wrong_missingness": true
+  },
+  "package_id": "profile-paper-package-20eb8b74c7f3d755",
+  "paper_audit": {
+    "bibliography_hygiene_passed": true,
+    "claim_source_support_passed": true,
+    "evaluation_transparency_coverage_passed": true,
+    "humanization_integrity_passed": true,
+    "manuscript_reverse_outline_passed": true,
+    "manuscript_source_freshness_passed": true,
+    "narrative_contract_frozen": true,
+    "pdf_verified": true,
+    "qualified_scientific_result_present": true,
+    "reference_author_metadata_complete": true,
+    "reporting_integrity_passed": true,
+    "reviewer_attack_surface_passed": true,
+    "scientific_manuscript_validity_passed": true,
+    "scientific_review_passed": true,
+    "stage4_evidence_sufficiency_gate_passed": true,
+    "visual_integrity_passed": true
+  },
+  "positive_tests": {
+    "both_observed_exposure_groups_materialized": true,
+    "formal_causal_evaluation": true
+  },
+  "promotion_eligible": true,
+  "real_nonfixture_case": false,
+  "replay": {"clean_room_passed": false, "passed": true},
+  "schema_hash": "c9900d887907949eb9e392d4de5b134dfcb2d2015f332f83c4d6760b274cdfc6",
+  "schema_version": 2,
+  "scientific_verdict": "supported",
+  "source_hash": "596fa8566070777c18dc1a9f266d7567851f8c294ff2c6c00cf63ffce26dabd3",
+  "study_id": "study-56d8027d9fa47e5a",
+  "test_results": {
+    "canonical_workflow_receipts": true,
+    "paper_pdf_present": true,
+    "scientific_result_independent_of_acceptance": true
+  },
+  "valid": true,
+  "version": "1",
+  "workflow_receipts": {
+    "completion_record_verified": true,
+    "dry_run_completed": true,
+    "evidence_claim_map_completed": true,
+    "formal_evaluation_completed": true,
+    "idea_intake": true,
+    "independent_recalculation_completed": true,
+    "owner_contract_approved": true,
+    "paper_audit_completed": true,
+    "profile_qualified": true,
+    "research_contract_completed": true,
+    "research_contract_frozen": true,
+    "resources_bound": true,
+    "scientific_verdict_frozen": true,
+    "scope_frozen": true,
+    "stage_four_manuscript_completed": true
+  }
+}

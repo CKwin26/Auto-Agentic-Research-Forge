@@ -22,7 +22,9 @@ _CAUSAL_LANGUAGE_RE = re.compile(
     re.IGNORECASE,
 )
 _ABSOLUTE_LANGUAGE_RE = re.compile(
-    r"\b(?:universal(?:ly)?|always|never|completely|fully solves?|guarantees?)\b",
+    r"\b(?:universal(?:ly)?|always|never|"
+    r"completely\s+(?:solves?|eliminates?|prevents?|removes?|guarantees?)|"
+    r"fully solves?|guarantees?)\b",
     re.IGNORECASE,
 )
 _AI_TELL_PATTERNS: dict[str, re.Pattern[str]] = {

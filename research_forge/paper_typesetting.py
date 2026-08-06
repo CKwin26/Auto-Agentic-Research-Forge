@@ -17,6 +17,10 @@ from .paper_pipeline import (
 
 
 _CITATION_RE = re.compile(r"\[([A-Za-z0-9][A-Za-z0-9._:-]{1,120})\]")
+_CITATION_CLUSTER_RE = re.compile(
+    r"\[((?:[A-Za-z0-9][A-Za-z0-9._:-]{1,120})"
+    r"(?:\s*[;,]\s*[A-Za-z0-9][A-Za-z0-9._:-]{1,120})+)\]"
+)
 _IMAGE_RE = re.compile(r"^!\[([^\]]*)\]\(([^)]+)\)\s*$", re.MULTILINE)
 _TABLE_SEPARATOR_RE = re.compile(r"^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*$")
 _INTERNAL_COMMENT_RE = re.compile(r"<!--(?:block|ref|anchor):.*?-->", re.DOTALL)
@@ -111,10 +115,18 @@ def _materialize_latex_image_assets(
             public_claim_label,
             svg_text,
         )
+        if language == "en":
+            projected_svg = projected_svg.replace(
+                "What is the frozen registered treatment contrast?",
+                "How does the primary outcome differ between the compared conditions?",
+            ).replace(
+                "And The Paired Difference",
+                "Paired difference",
+            )
         if language == "zh":
             projected_svg = projected_svg.replace(
                 "What is the registered intervention–comparator result?",
-                "冻结三臂的规范对齐得分",
+                "比较条件之间的主要结果有何差异？",
             )
         projected_source = source.with_name(source.stem + ".latex.svg")
         projected_source.write_text(
@@ -240,6 +252,17 @@ def _inline(value: str) -> str:
     }
     for symbol, latex in academic_symbols.items():
         protected = protected.replace(symbol, stash(latex))
+    protected = _CITATION_CLUSTER_RE.sub(
+        lambda match: stash(
+            r"\cite{"
+            + ",".join(
+                token.strip()
+                for token in re.split(r"\s*[;,]\s*", match.group(1))
+            )
+            + "}"
+        ),
+        protected,
+    )
     protected = _CITATION_RE.sub(lambda match: stash(r"\cite{" + match.group(1) + "}"), protected)
     protected = re.sub(
         r"`([^`]+)`",
@@ -290,7 +313,7 @@ def _table(lines: list[str], *, caption: str) -> str:
         raise ValueError("Markdown table rows have inconsistent column counts")
     spec = "".join("Y" for _ in header)
     rendered = [
-        r"\begin{table}[tbp]",
+        r"\begin{table}[H]",
         r"\centering",
         r"\caption{" + _inline(caption) + "}",
         r"\footnotesize",
@@ -478,6 +501,7 @@ def render_submission_latex(
         + r"\usepackage{array}" + "\n"
         + r"\usepackage{ragged2e}" + "\n"
         + r"\usepackage{placeins}" + "\n"
+        + r"\usepackage{float}" + "\n"
         + r"\usepackage[font=small,labelfont=bf]{caption}" + "\n"
         + r"\usepackage[hidelinks]{hyperref}" + "\n"
         + r"\newcolumntype{Y}{>{\RaggedRight\arraybackslash\hspace{0pt}}X}" + "\n"

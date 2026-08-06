@@ -145,3 +145,32 @@ def test_single_unsupported_without_hard_veto_abstains(tmp_path: Path) -> None:
     )
     assert report.claims[0].final_verdict == "abstain"
     assert report.claims[0].requires_human_adjudication
+
+
+def test_long_registered_protocol_is_partitioned_without_dropping_binding(
+    tmp_path: Path,
+) -> None:
+    evidence_map = _map(tmp_path)
+    long_statement = "; ".join(
+        f"Registered design field {index} has frozen value value-{index}"
+        for index in range(500)
+    ) + "."
+    binding = evidence_map.bindings[0].model_copy(
+        update={
+            "claim_id": "claim-long-protocol",
+            "kind": "operational",
+            "statement": long_statement,
+        }
+    )
+    packet = build_nuwa_packet(
+        evidence_map.model_copy(update={"bindings": [binding]}),
+        root=tmp_path,
+        panel_id="panel-long-protocol",
+    )
+
+    assert len(packet.items) > 1
+    assert all(len(item.claim_text) <= 8_000 for item in packet.items)
+    assert set(packet.audit_to_claim_id.values()) == {"claim-long-protocol"}
+    assert all(item.linked_evidence for item in packet.items)
+    assert "Registered design field 0" in packet.items[0].claim_text
+    assert "value-499" in packet.items[-1].claim_text

@@ -10,6 +10,7 @@ import pytest
 from research_forge.container_execution import (
     ContainerExecutionPolicy,
     ContainerSupplyChainEvidence,
+    inspect_local_container_image,
     run_isolated_command,
 )
 from research_forge.experiment_execution import (
@@ -81,6 +82,29 @@ def test_container_rejects_secret_or_socket_named_mount_material(
         )
 
 
+def test_container_image_lookup_falls_back_to_filtered_local_id(
+    monkeypatch,
+) -> None:
+    calls: list[list[str]] = []
+
+    def fake_run(command: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+        calls.append(command)
+        if command[1:3] == ["image", "inspect"]:
+            return subprocess.CompletedProcess(command, 1, stdout="", stderr="missing")
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            stdout="sha256:" + "a" * 64 + "\n",
+            stderr="",
+        )
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    assert inspect_local_container_image("docker", "python:test") == (
+        "sha256:" + "a" * 64
+    )
+    assert calls[-1][-1] == "reference=python:test"
+
+
 def test_container_supply_chain_evidence_is_content_addressed(
     tmp_path: Path,
 ) -> None:
@@ -143,22 +167,9 @@ def test_real_two_container_candidate_evaluator_boundary(
     docker = shutil.which("docker")
     if docker is None:
         pytest.skip("Docker CLI is unavailable")
-    inspected = subprocess.run(
-        [
-            docker,
-            "image",
-            "inspect",
-            "--format",
-            "{{.Id}}",
-            "python:3.12-slim",
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if inspected.returncode != 0:
+    image_id = inspect_local_container_image(docker, "python:3.12-slim")
+    if image_id is None:
         pytest.skip("python:3.12-slim image is unavailable")
-    image_id = inspected.stdout.strip()
     source = tmp_path / "frozen-package"
     (source / "data").mkdir(parents=True)
     (source / "data" / "formal.jsonl").write_text(

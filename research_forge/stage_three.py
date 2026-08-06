@@ -705,61 +705,34 @@ def _validate_profile_contract(
     contract: ResearchContractVersion,
     manifest: ExperimentManifest,
 ) -> list[str]:
-    """Validate through the frozen Profile contract-schema registry."""
+    """Validate through the lifecycle-aware Experiment Profile runtime."""
 
-    from .profiles.registry import profile_bundle
+    from .profiles.registry import qualify_profile_contract
+    from .profiles.sdk import ProfileQualificationStatus
 
     if contract.experiment_profile is None:
         return [
-            "Research Contract must declare "
-            "computational_paired_comparison_v1 or another certified "
-            "Stage 3 Profile Bundle"
+            "Research Contract must declare a registered Experiment Profile "
+            "such as computational_paired_comparison_v1"
         ]
     try:
-        bundle = profile_bundle(contract.experiment_profile)
+        report = qualify_profile_contract(
+            contract.experiment_profile,
+            contract,
+            manifest=manifest,
+        )
     except ValueError:
-        return ["blocked_unsupported_design: Profile Bundle is not registered"]
-    if not bundle.formal_execution_supported():
-        return [
-            "blocked_unsupported_design: Profile Bundle "
-            f"{bundle.profile_id.value} has not passed assurance certification"
-        ]
-    from .profiles.benchmark_prediction import (
-        validate_benchmark_prediction_contract,
+        return ["blocked_unsupported_design: Profile is not registered"]
+    violations = (
+        []
+        if report.status is ProfileQualificationStatus.QUALIFIED
+        else [f"{item.code}: {item.message}" for item in report.issues]
     )
-    from .profiles.existing_python_project import (
-        validate_existing_python_project_contract,
-    )
+    if contract.study_design:
+        from .study_design import validate_composable_contract
 
-    validators = {
-        "existing_python_project_contract_v1": (
-            validate_existing_python_project_contract
-        ),
-        "benchmark_prediction_contract_v1": (
-            validate_benchmark_prediction_contract
-        ),
-        "tabular_ml_contract_v1": _validate_tabular_ml_contract,
-        "computational_paired_contract_v1": (
-            _validate_legacy_paired_v1_contract
-        ),
-        "computational_paired_contract_v2": (
-            _validate_modern_paired_contract
-        ),
-        "paired_binary_independent_contract_v1": (
-            _validate_modern_paired_contract
-        ),
-        "paired_binary_clustered_contract_v1": (
-            _validate_modern_paired_contract
-        ),
-        "paired_multi_arm_contract_v1": _validate_multi_arm_contract,
-    }
-    validator = validators.get(bundle.contract_schema_id)
-    if validator is None:
-        return [
-            "blocked_unsupported_design: no registered contract validator "
-            f"for {bundle.contract_schema_id}"
-        ]
-    return validator(contract, manifest)
+        violations.extend(validate_composable_contract(contract))
+    return list(dict.fromkeys(violations))
 
 
 def admit_stage_three(
@@ -1328,6 +1301,7 @@ def compile_run_plan(
         ),
         "benchmark_prediction_compiler_v1": _compile_legacy_paired_run_plan,
         "tabular_ml_compiler_v1": _compile_legacy_paired_run_plan,
+        "time_series_backtest_compiler_v1": _compile_legacy_paired_run_plan,
         "stage3-compiler-v2": _compile_legacy_paired_run_plan,
         "paired_two_arm_compiler_v2": _compile_legacy_paired_run_plan,
         "paired_binary_compiler_v1": _compile_legacy_paired_run_plan,
@@ -1806,6 +1780,27 @@ def _copy_frozen_inputs(
     destination_root: Path,
     relative_paths: Iterable[str],
 ) -> None:
+    def filesystem_path(path: Path) -> Path:
+        """Use the Win32 extended-length form for deeply nested run assets.
+
+        Stage 3 deliberately preserves the registered relative path inside an
+        isolated candidate/evaluator workspace.  On Windows, a perfectly valid
+        frozen binding such as ``.research-forge/<profile>/config.json`` can
+        cross the legacy MAX_PATH limit once Study, run-cell, and attempt
+        directories are included.  The logical path and audit record remain
+        unchanged; only the local filesystem call receives the extended form.
+        """
+
+        resolved = path.resolve()
+        if os.name != "nt":
+            return resolved
+        rendered = str(resolved)
+        if rendered.startswith("\\\\?\\"):
+            return resolved
+        if rendered.startswith("\\\\"):
+            return Path("\\\\?\\UNC\\" + rendered.lstrip("\\"))
+        return Path("\\\\?\\" + rendered)
+
     for relative in relative_paths:
         source = safe_relative(source_root, relative)
         if not source.is_file():
@@ -1813,8 +1808,8 @@ def _copy_frozen_inputs(
                 "dataset", [f"frozen input is unavailable: {relative}"]
             )
         destination = safe_relative(destination_root, relative)
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, destination)
+        filesystem_path(destination.parent).mkdir(parents=True, exist_ok=True)
+        shutil.copy2(filesystem_path(source), filesystem_path(destination))
 
 
 def _render_isolated_command(
@@ -1894,16 +1889,18 @@ def _run_isolated_candidate_evaluator(
         for relative in spec.evaluator_required_inputs
     ):
         raise ValueError("formal targets leaked into the candidate container")
-    if len(spec.required_inputs) != 1:
-        raise ValueError(
-            "Profile v1 generated arm requires exactly one candidate data file"
-        )
-    if len(spec.evaluator_required_inputs) != 1:
-        raise ValueError(
-            "Profile v1 generated evaluator requires exactly one target file"
-        )
-    data_relative = spec.required_inputs[0]
-    target_relative = spec.evaluator_required_inputs[0]
+    data_relative = spec.candidate_data_path or (
+        spec.required_inputs[0] if len(spec.required_inputs) == 1 else None
+    )
+    target_relative = spec.evaluator_target_path or (
+        spec.evaluator_required_inputs[0]
+        if len(spec.evaluator_required_inputs) == 1
+        else None
+    )
+    if not data_relative or data_relative not in spec.required_inputs:
+        raise ValueError("isolated arm lacks an explicit candidate data binding")
+    if not target_relative or target_relative not in spec.evaluator_required_inputs:
+        raise ValueError("isolated evaluator lacks an explicit target binding")
     prediction_relative = spec.prediction_artifact_path
     prediction_output = safe_relative(
         candidate_output_root, prediction_relative
@@ -3126,6 +3123,130 @@ def _evaluate_multi_arm_results(
     }
 
 
+def _evaluate_composable_results(
+    context: Any,
+    plan: RunPlan,
+    contract: ResearchContractVersion,
+    expected: set[str],
+    results: list[ResultEnvelope],
+) -> dict[str, Any]:
+    """Bridge a certified Study Design result into legacy verdict storage."""
+
+    from .study_design import compile_analysis_plan, study_design
+
+    cells = {item.run_cell_id: item for item in plan.cells}
+    rows: list[dict[str, Any]] = []
+    for result in results:
+        cell = cells.get(result.run_cell_id)
+        if cell is None:
+            continue
+        for raw in result.analysis_rows:
+            row = dict(raw)
+            row.setdefault("arm", cell.arm_id)
+            rows.append(row)
+    analysis_plan = compile_analysis_plan(contract)
+    design_evaluation = study_design(
+        analysis_plan.study_design_id
+    ).evaluate(analysis_plan, rows)
+    primary_id = next(
+        item.outcome_id
+        for item in analysis_plan.outcomes
+        if item.role == "primary"
+    )
+    primary_spec = next(
+        item for item in analysis_plan.outcomes
+        if item.outcome_id == primary_id
+    )
+    primary = next(
+        (item for item in design_evaluation.outcomes if item.outcome_id == primary_id),
+        None,
+    )
+    decision_map = {
+        "supported": HypothesisVerdictStatus.SUPPORTED,
+        "refuted": HypothesisVerdictStatus.REFUTED,
+        "inconclusive": HypothesisVerdictStatus.INCONCLUSIVE,
+        "unverifiable": HypothesisVerdictStatus.UNVERIFIABLE,
+        "mixed": HypothesisVerdictStatus.INCONCLUSIVE,
+    }
+    qualified = design_evaluation.eligible and expected == {
+        item.run_cell_id for item in results
+    }
+    qualification = (
+        QualificationStatus.QUALIFIED
+        if qualified else QualificationStatus.DISQUALIFIED
+    )
+    arm_estimates: dict[str, float] = {}
+    if primary is not None:
+        for arm_id, stats in primary.arm_statistics.items():
+            estimate = stats.get("mean", stats.get("proportion"))
+            if estimate is not None:
+                arm_estimates[arm_id] = float(estimate)
+    evaluation = context.repository.save_evaluation_record(
+        EvaluationRecord(
+            evaluation_id=stable_id(
+                "evaluation", context.study_id, plan.plan_hash,
+                *sorted(item.result_id for item in results),
+            ),
+            study_id=context.study_id,
+            plan_id=plan.plan_id,
+            contract_version=contract.version,
+            qualification_status=qualification,
+            qualification_checks={
+                **design_evaluation.qualification_checks,
+                "all_run_cells_present": expected
+                == {item.run_cell_id for item in results},
+            },
+            excluded_run_cell_ids=sorted(
+                expected.difference(item.run_cell_id for item in results)
+            ),
+            exclusion_reason_counts=(
+                {"missing_result": len(expected.difference(item.run_cell_id for item in results))}
+                if expected.difference(item.run_cell_id for item in results) else {}
+            ),
+            metric_name=primary_spec.label,
+            baseline_estimate=arm_estimates.get("baseline", arm_estimates.get("control")),
+            treatment_estimate=arm_estimates.get("treatment"),
+            paired_effect=primary.effect if primary else None,
+            pair_count=0,
+            independent_unit_count=primary.denominator if primary else 0,
+            variance_unit=analysis_plan.unit_structure.variance_unit,
+            confidence_interval=primary.confidence_interval if primary else None,
+            arm_estimates=arm_estimates,
+            statistical_rule={
+                "study_design": contract.study_design,
+                "inference_modules": contract.inference_modules,
+                "primary_outcome": primary_id,
+                "effect_measure": primary.effect_measure if primary else None,
+                "raw_p_value": primary.raw_p_value if primary else None,
+                "adjusted_p_value": primary.adjusted_p_value if primary else None,
+                "limitations": design_evaluation.limitations,
+            },
+            decision=(
+                decision_map[design_evaluation.primary_decision]
+                if qualified else HypothesisVerdictStatus.UNVERIFIABLE
+            ),
+            rationale=(
+                "Decision produced by the frozen composable Study Design "
+                "after independent-unit and denominator qualification."
+            ),
+            result_ids=sorted(item.result_id for item in results),
+        )
+    )
+    evaluation_path = (
+        _stage3_root(context.repository, context.study_id)
+        / "evaluations" / f"{evaluation.evaluation_id}.json"
+    )
+    evaluation_artifact_id = _register_file(
+        context.repository, context.study_id, evaluation_path,
+        kind="stage3_study_design_evaluation", role=ArtifactRole.EVALUATION,
+    )
+    return {
+        "evaluation": evaluation.model_dump(mode="json"),
+        "study_design_evaluation": design_evaluation.model_dump(mode="json"),
+        "_workflow_output_artifact_ids": [evaluation_artifact_id],
+    }
+
+
 def _evaluate_results_handler(context: Any) -> dict[str, Any]:
     plan_id = str(context.step.task_group or "").removeprefix("stage3:")
     plan = context.repository.load_run_plan(context.study_id, plan_id)
@@ -3141,6 +3262,10 @@ def _evaluate_results_handler(context: Any) -> dict[str, Any]:
     by_cell: dict[str, list[ResultEnvelope]] = {}
     for result in results:
         by_cell.setdefault(result.run_cell_id, []).append(result)
+    if contract.study_design:
+        return _evaluate_composable_results(
+            context, plan, contract, expected, results
+        )
     if plan.profile is Stage3Profile.PAIRED_MULTI_ARM_ABLATION_V1:
         return _evaluate_multi_arm_results(
             context, plan, contract, expected, results, by_cell
@@ -3267,6 +3392,7 @@ def _evaluate_results_handler(context: Any) -> dict[str, Any]:
         str(item) for item in estimand.get("aggregation_hierarchy", [])
     ]
     modern_profiles = {
+        Stage3Profile.TIME_SERIES_BACKTEST_V1,
         Stage3Profile.COMPUTATIONAL_PAIRED_COMPARISON_V2,
         Stage3Profile.PAIRED_BINARY_INDEPENDENT_V1,
         Stage3Profile.PAIRED_BINARY_CLUSTERED_V1,
@@ -3394,7 +3520,8 @@ def _evaluate_results_handler(context: Any) -> dict[str, Any]:
         "heavy_tail_is_reported_as_limitation": True,
         "heteroskedasticity_is_reported_as_limitation": True,
         "nested_seeds_aggregate_to_variance_unit": (
-            variance_unit in {"registered pair", "task", "pair", "cluster"}
+            variance_unit
+            in {"registered pair", "task", "pair", "cluster", "period"}
         ),
         "missing_cells_fail_qualification": (
             checks["all_pairs_complete"] or not qualified

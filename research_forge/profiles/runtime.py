@@ -16,6 +16,7 @@ from .contracts import (
     PairedBinaryClusteredParameters,
     PairedBinaryIndependentParameters,
     PairedContinuousV2Parameters,
+    TimeSeriesBacktestParameters,
 )
 
 
@@ -73,6 +74,29 @@ def analyze_profile_rows(
     ],
     parameters: dict[str, Any],
 ) -> AnalysisResult:
+    if profile is Stage3Profile.TIME_SERIES_BACKTEST_V1:
+        TimeSeriesBacktestParameters.model_validate(parameters)
+        rows = _paired_rows(
+            arm_pairs,
+            pairing_key="pair_id",
+            outcome_field="value",
+            cluster_id_field=None,
+        )
+        effects = [row.treatment - row.baseline for row in rows]
+        baseline = sum(row.baseline for row in rows) / len(rows)
+        treatment = sum(row.treatment for row in rows) / len(rows)
+        effect = sum(effects) / len(effects)
+        return AnalysisResult(
+            baseline_estimate=baseline,
+            treatment_estimate=treatment,
+            effect=effect,
+            confidence_interval=(min(effects), max(effects)),
+            p_value=None,
+            pair_count=len(rows),
+            independent_unit_count=len(rows),
+            variance_unit="period",
+            details={"method": "paired_period_descriptive_v1"},
+        )
     if profile is Stage3Profile.COMPUTATIONAL_PAIRED_COMPARISON_V2:
         spec = PairedContinuousV2Parameters.model_validate(parameters)
         rows = _paired_rows(

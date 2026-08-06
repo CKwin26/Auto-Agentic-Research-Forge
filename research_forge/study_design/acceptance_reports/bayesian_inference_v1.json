@@ -1,0 +1,197 @@
+{
+  "acceptance_hash": "0e5102f21485c13d51564d86fde2d85d3cb5622af18cddad741a1aa43250a403",
+  "authority_context": {
+    "completion_record_sha256": "2ecd2721419852b97b409ad1d16d2a47ab8cec75153e98956f4bd5121efaa180",
+    "component_version": "1",
+    "environment_hash": "3aef7e93c262eb8eb41338be764cc7a6e58577c8e64d934aedcf284c4e9b4e85",
+    "schema_hash": "4883f7ee8da507d4b2691d5df8655456ab3a7eb24eb57117c27ddf35ab70dc52",
+    "source_hash": "beb9ab58c2fc86efb01651926766a784c41d64754b3d6c23611312362fdb8c8b"
+  },
+  "authority_context_hash": "816ec30ac9532f2853e9def1e96d6a9af88163e03e559c4c9ad76f5dfc202dbf",
+  "canonical_stage_four_completed": true,
+  "claim_binding_coverage": 1.0,
+  "component_id": "bayesian_inference_v1",
+  "dry_run_receipt": {
+    "passed": true
+  },
+  "environment_hash": "3aef7e93c262eb8eb41338be764cc7a6e58577c8e64d934aedcf284c4e9b4e85",
+  "external_independent_reproduction": false,
+  "formal_workflow_completed": true,
+  "independent_recalculator_agreement": {
+    "passed": true,
+    "reference": {
+      "multiplicity_method": "holm",
+      "outcomes": {
+        "completion": {
+          "adjusted_p_value": 0.1961870726746091,
+          "alternate_effects": {
+            "odds_ratio": 1.75,
+            "risk_difference": 0.07499999999999996,
+            "risk_ratio": 1.09375
+          },
+          "arm_statistics": {
+            "control": {
+              "events": 64,
+              "n": 80,
+              "proportion": 0.8
+            },
+            "treatment": {
+              "events": 70,
+              "n": 80,
+              "proportion": 0.875
+            }
+          },
+          "confidence_interval": [
+            -0.038731755120573114,
+            0.18873175512057302
+          ],
+          "decision": "inconclusive",
+          "denominator": 160,
+          "effect": 0.07499999999999996,
+          "effect_measure": "risk_difference",
+          "kind": "binary",
+          "missing_count": 0,
+          "raw_p_value": 0.1961870726746091
+        },
+        "quality": {
+          "adjusted_p_value": 0.0,
+          "arm_statistics": {
+            "control": {
+              "mean": 53.22179487179487,
+              "n": 78,
+              "sd": 1.9969878249404454
+            },
+            "treatment": {
+              "mean": 56.24545454545454,
+              "n": 77,
+              "sd": 1.9990488168748661
+            }
+          },
+          "confidence_interval": [
+            2.389539276343215,
+            3.6577800709761297
+          ],
+          "decision": "supported",
+          "denominator": 155,
+          "effect": 3.0236596736596724,
+          "effect_measure": "mean_difference",
+          "kind": "continuous",
+          "missing_count": 5,
+          "raw_p_value": 0.0
+        }
+      },
+      "primary_decision": "supported"
+    }
+  },
+  "known_limitations": [
+    "The deterministic software acceptance fixture only; no human, clinical, field, or real-world intervention effect is implied.",
+    "The Beta-Binomial analysis is a prespecified sensitivity analysis for the binary completion outcome and is not the authoritative primary analysis.",
+    "A posterior credible interval is not a frequentist confidence interval, and posterior probability below the frozen threshold is inconclusive rather than evidence of no effect.",
+    "The acceptance fixture uses a weak uniform prior and deterministic software cases; it does not establish external prior validity or real-world generalizability.",
+    "This is a frozen deterministic acceptance fixture, not external independent reproduction."
+  ],
+  "manuscript_disclosure_repair": {
+    "pdf_verified": true,
+    "restored_disclosure_ids": [
+      "transparency-abstentions",
+      "transparency-release-assets"
+    ]
+  },
+  "maturity": "c3_real_fixture",
+  "maturity_after": "c3_real_fixture",
+  "maturity_before": "c2_dry_run",
+  "mutation_tests": {
+    "bayesian_sensitivity_cannot_overwrite_primary_verdict": true,
+    "change_config_or_seed": true,
+    "change_multiplicity_family": true,
+    "change_noninferiority_margin": true,
+    "change_outcome_value": true,
+    "change_primary_outcome": true,
+    "changed_prior_changes_posterior_authority": true,
+    "changed_seed_changes_posterior_draws": true,
+    "delete_subject": true,
+    "duplicate_subject": true,
+    "swap_arm_labels": true
+  },
+  "negative_tests": {
+    "01_cross_arm_duplicate": true,
+    "02_repeated_subject": true,
+    "03_missing_primary_outcome": true,
+    "04_analysis_and_variance_units_missing": true,
+    "05_binary_outcome_with_continuous_estimator": true,
+    "06_same_control_and_treatment_arm": true,
+    "07_noninferiority_margin_missing": true,
+    "08_noninferiority_direction_reversed": true,
+    "09_nonsignificance_claimed_as_equivalence": true,
+    "10_multiple_confirmatory_without_multiplicity": true,
+    "11_post_result_confirmatory_addition": true,
+    "12_bayesian_prior_unrecorded": true,
+    "13_informative_prior_unapproved": true,
+    "14_missing_sample_silently_removed": true,
+    "15_stage_four_verdict_rewrite": true,
+    "insufficient_draws_rejected": true,
+    "missing_prior_and_provenance_rejected": true,
+    "nonpositive_prior_rejected": true,
+    "unapproved_informative_prior_rejected": true
+  },
+  "package_id": "profile-paper-package-cb863f4f1f578425",
+  "paper_audit": {
+    "bibliography_hygiene_passed": true,
+    "claim_source_support_passed": true,
+    "evaluation_transparency_coverage_passed": true,
+    "humanization_integrity_passed": true,
+    "manuscript_reverse_outline_passed": true,
+    "manuscript_source_freshness_passed": true,
+    "narrative_contract_frozen": true,
+    "pdf_verified": true,
+    "qualified_scientific_result_present": true,
+    "reference_author_metadata_complete": true,
+    "reporting_integrity_passed": true,
+    "reviewer_attack_surface_passed": true,
+    "scientific_manuscript_validity_passed": true,
+    "scientific_review_passed": true,
+    "stage4_evidence_sufficiency_gate_passed": true,
+    "visual_integrity_passed": true
+  },
+  "positive_tests": {
+    "credible_interval_explicitly_labeled": true,
+    "posterior_independently_recomputed": true,
+    "prespecified_threshold_respected": true,
+    "three_formal_evaluation_records": true
+  },
+  "promotion_eligible": true,
+  "real_nonfixture_case": false,
+  "replay": {
+    "clean_room_passed": false,
+    "passed": true
+  },
+  "schema_hash": "4883f7ee8da507d4b2691d5df8655456ab3a7eb24eb57117c27ddf35ab70dc52",
+  "schema_version": 2,
+  "scientific_verdict": "supported",
+  "source_hash": "beb9ab58c2fc86efb01651926766a784c41d64754b3d6c23611312362fdb8c8b",
+  "study_id": "study-73dded792bd84e14",
+  "test_results": {
+    "canonical_workflow_receipts": true,
+    "paper_pdf_present": true,
+    "scientific_result_independent_of_acceptance": true
+  },
+  "valid": true,
+  "version": "1",
+  "workflow_receipts": {
+    "completion_record_verified": true,
+    "dry_run_completed": true,
+    "evidence_claim_map_completed": true,
+    "formal_evaluation_completed": true,
+    "idea_intake": true,
+    "independent_recalculation_completed": true,
+    "owner_contract_approved": true,
+    "paper_audit_completed": true,
+    "profile_qualified": true,
+    "research_contract_completed": true,
+    "research_contract_frozen": true,
+    "resources_bound": true,
+    "scientific_verdict_frozen": true,
+    "scope_frozen": true,
+    "stage_four_manuscript_completed": true
+  }
+}

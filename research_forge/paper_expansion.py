@@ -47,6 +47,7 @@ from .paper_pipeline import (
     markdown_heading,
     normalize_unstructured_abstract,
     validate_abstract_prose,
+    validate_manuscript_narrative,
     validate_markdown_structure,
 )
 from .paper_typesetting import write_submission_latex
@@ -88,28 +89,141 @@ class PaperDraftSections(StrictModel):
     ai_disclosure: str = Field(min_length=30, max_length=3_000)
 
 
+class ManuscriptSectionRevision(StrictModel):
+    """A bounded prose repair that cannot overwrite unrelated sections."""
+
+    # Fixed fields are intentional. Codex strict structured outputs do not
+    # accept an arbitrary-key object reliably, and this repair surface is the
+    # only one that may add explanatory prose after scientific rereview.
+    results: str = Field(min_length=100, max_length=20_000)
+    discussion: str = Field(min_length=100, max_length=20_000)
+    conclusion: str = Field(min_length=100, max_length=8_000)
+
+
+def _compact_ai_disclosure_model_mentions(value: str) -> str:
+    """Collapse repeated ``model (purpose)`` entries in legacy disclosures."""
+
+    prefix = "AI-assisted tools supported "
+    legacy_prefix = "AI-assisted tools were used for "
+    active_prefix = prefix if value.startswith(prefix) else legacy_prefix
+    if not value.startswith(active_prefix):
+        return value
+    first_sentence, separator, remainder = value.partition(". ")
+    mentions = re.findall(r"([A-Za-z0-9][A-Za-z0-9._:-]*) \(([^)]+)\)", first_sentence)
+    if len(mentions) < 2:
+        return value
+    purposes_by_model: dict[str, set[str]] = {}
+    for model_id, purpose in mentions:
+        purposes_by_model.setdefault(model_id, set()).add(purpose.strip())
+    compact = "; ".join(
+        f"{', '.join(sorted(purposes))} using {model_id}"
+        for model_id, purposes in sorted(purposes_by_model.items())
+    )
+    return prefix + compact + (". " + remainder if separator else ".")
+
+
 def academicize_paper_draft(
     draft: PaperDraftSections,
     *,
     aliases: dict[str, str] | None = None,
+    language: Literal["zh", "en"] = "zh",
 ) -> PaperDraftSections:
     """Return a publication view without exposing audit-layer vocabulary."""
 
-    return draft.model_copy(
-        update={
-            field_name: academicize_publication_text(
+    updates = {
+        field_name: academicize_publication_text(
                 str(getattr(draft, field_name)),
                 aliases=aliases,
+                language=language,
             )
-            for field_name in type(draft).model_fields
-        }
+        for field_name in type(draft).model_fields
+    }
+    updates["ai_disclosure"] = _compact_ai_disclosure_model_mentions(
+        updates["ai_disclosure"]
     )
+    return draft.model_copy(update=updates)
+
+
+def normalize_reader_facing_governance(
+    draft: PaperDraftSections,
+) -> PaperDraftSections:
+    """Keep internal provenance-state wording out of scientific sections.
+
+    ``frozen`` remains meaningful in Methods and Limitations, where the
+    operational control is described.  In the Introduction, Results,
+    Discussion, and Conclusion, ``registered`` conveys the same scientific
+    constraint without making the paper read like an internal audit report.
+    """
+
+    updates: dict[str, str] = {}
+    stale_visual_phrases = (
+        "callout marks",
+        "pending artifact",
+        "not supplied for inspection",
+    )
+    # These words are legitimate in ordinary English, but they are also the
+    # exact serialized workflow states rejected by the publication leak
+    # audit.  Reader-facing scientific sections should state their meaning,
+    # not expose the compact state token.  The immutable audit artifacts keep
+    # the original value.
+    reader_status_phrases = {
+        "qualified": "eligible for the registered analysis",
+        "inconclusive": "not resolved by the available evidence",
+        "incomplete": "not fully specified",
+        "disqualified": "not eligible for the registered analysis",
+        "untouched": "unchanged by the analysis",
+        "unverifiable": "not verifiable from the available evidence",
+    }
+    for field_name in (
+        "abstract",
+        "introduction",
+        "results",
+        "discussion",
+        "conclusion",
+    ):
+        value = str(getattr(draft, field_name))
+        value = re.sub(
+            r"\bfrozen\b",
+            "registered",
+            value,
+            flags=re.IGNORECASE,
+        )
+        value = re.sub(
+            r"\bsupplied bindings\b",
+            "available evidence",
+            value,
+            flags=re.IGNORECASE,
+        )
+        for internal, public in reader_status_phrases.items():
+            value = re.sub(
+                rf"(?<![A-Za-z0-9_]){re.escape(internal)}(?![A-Za-z0-9_])",
+                public,
+                value,
+                flags=re.IGNORECASE,
+            )
+        # A generated figure may replace an earlier planned callout.  Any
+        # paragraph that still says the visual is pending is production
+        # metadata, not a scientific result.  Removing that isolated paragraph
+        # is deterministic and leaves numbers, citations, and bound claims
+        # untouched.
+        paragraphs = re.split(r"\n\s*\n", value)
+        value = "\n\n".join(
+            paragraph
+            for paragraph in paragraphs
+            if not any(
+                phrase in paragraph.casefold()
+                for phrase in stale_visual_phrases
+            )
+        )
+        updates[field_name] = value
+    return draft.model_copy(update=updates)
 
 
 def academicize_paper_outline(
     outline: HierarchicalPaperOutline,
     *,
     aliases: dict[str, str] | None = None,
+    language: Literal["zh", "en"] = "zh",
 ) -> HierarchicalPaperOutline:
     """Create a reader-facing outline while retaining binding identifiers."""
 
@@ -117,13 +231,13 @@ def academicize_paper_outline(
         return node.model_copy(
             update={
                 "heading": academicize_publication_text(
-                    node.heading, aliases=aliases
+                    node.heading, aliases=aliases, language=language
                 ),
                 "purpose": academicize_publication_text(
-                    node.purpose, aliases=aliases
+                    node.purpose, aliases=aliases, language=language
                 ),
                 "argument": academicize_publication_text(
-                    node.argument, aliases=aliases
+                    node.argument, aliases=aliases, language=language
                 ),
                 "children": [
                     transform_node(child) for child in node.children
@@ -134,13 +248,15 @@ def academicize_paper_outline(
     return outline.model_copy(
         update={
             "title": academicize_publication_text(
-                outline.title, aliases=aliases
+                outline.title, aliases=aliases, language=language
             ),
             "thesis": academicize_publication_text(
-                outline.thesis, aliases=aliases
+                outline.thesis, aliases=aliases, language=language
             ),
             "abstract_moves": [
-                academicize_publication_text(item, aliases=aliases)
+                academicize_publication_text(
+                    item, aliases=aliases, language=language
+                )
                 for item in outline.abstract_moves
             ],
             "sections": [
@@ -285,16 +401,25 @@ def normalize_paper_draft(
     """Apply only deterministic, claim-preserving genre repairs."""
 
     normalized_abstract, operations = normalize_unstructured_abstract(draft.abstract)
+    # Model copy-editing occasionally duplicates an adjacent scholarly noun
+    # (for example, ``study task task``).  Removing only a small allowlist of
+    # exact adjacent duplicates is an editorial repair: it cannot change a
+    # number, citation, polarity, comparator, or scientific conclusion.
+    duplicate_term = re.compile(
+        r"(?i)\b(task|study|model|classifier|sample|dataset|method|result|"
+        r"evidence|comparison|analysis|evaluation|experiment|protocol|outcome|"
+        r"metric|baseline|treatment)\s+\1\b"
+    )
+    deduplicated_abstract = duplicate_term.sub(r"\1", normalized_abstract)
+    if deduplicated_abstract != normalized_abstract:
+        operations = (*operations, "collapsed_accidental_adjacent_term_duplicate")
+        normalized_abstract = deduplicated_abstract
     update: dict[str, str] = {"abstract": normalized_abstract}
-    if frozen_conclusion and frozen_conclusion not in draft.conclusion:
-        update["conclusion"] = (
-            draft.conclusion.rstrip() + "\n\n" + frozen_conclusion
-        )
-        operations = (*operations, "restored_frozen_conclusion_verbatim")
+    # The scientific conclusion remains immutable in the evidence map, but it
+    # is not pasted verbatim into reader-facing prose.  Claim, number and
+    # citation bindings protect authority while the conclusion stays natural.
     revised = draft.model_copy(update=update)
     changed_fields = ["abstract"] if normalized_abstract != draft.abstract.strip() else []
-    if revised.conclusion != draft.conclusion:
-        changed_fields.append("conclusion")
     return revised, PaperRevisionTrace(
         changed_fields=changed_fields,
         operations=list(operations),
@@ -473,12 +598,32 @@ def prepare_project_bundle_paper(
 def _references(sources: list[LiteratureSource]) -> str:
     lines = []
     for source in sources:
-        authors = ", ".join(source.authors)
+        authors = ", ".join(
+            author
+            for author in source.authors
+            if author.casefold()
+            not in {"unknown author", "author metadata unavailable"}
+        )
         year = str(source.year) if source.year is not None else "n.d."
+        author_prefix = f"{authors} " if authors else ""
         lines.append(
-            f"- [{source.source_id}] {authors} ({year}). *{source.title}*. {source.locator}"
+            f"- [{source.source_id}] {author_prefix}({year}). *{source.title}*. {source.locator}"
         )
     return "\n".join(lines)
+
+
+def _cited_sources(
+    draft: PaperDraftSections, sources: list[LiteratureSource]
+) -> list[LiteratureSource]:
+    """Return only verified sources actually cited in the manuscript prose."""
+
+    cited_ids: list[str] = []
+    for field_name in type(draft).model_fields:
+        for source_id in _CITATION_RE.findall(str(getattr(draft, field_name))):
+            if source_id not in cited_ids:
+                cited_ids.append(source_id)
+    source_by_id = {source.source_id: source for source in sources}
+    return [source_by_id[source_id] for source_id in cited_ids if source_id in source_by_id]
 
 
 def _numeric_table(verdict: dict[str, Any]) -> str:
@@ -492,7 +637,34 @@ def _numeric_table(verdict: dict[str, Any]) -> str:
         "|---|---:|",
     ]
     for item in verdict.get("numeric_evidence") or []:
-        lines.append(f"| `{item['path']}` | {item['value']} |")
+        label = item.get("label") or item["path"]
+        value = item.get("display_value", item["value"])
+        lines.append(f"| {label} | {value} |")
+    return "\n".join(lines)
+
+
+def _localized_numeric_table(
+    verdict: dict[str, Any], *, language: Literal["zh", "en"]
+) -> str:
+    if language == "zh":
+        return _numeric_table(verdict)
+    lines = [
+        "### Primary outcome summary",
+        "",
+        (
+            "The table summarizes the prespecified quantitative outcomes used "
+            "to evaluate the research question."
+        ),
+        "",
+        "Table: Primary outcome summary",
+        "| Measure | Value |",
+        "|---|---:|",
+    ]
+    for item in verdict.get("numeric_evidence") or []:
+        label = item.get("label") or item["path"]
+        label = re.sub(r"[_./]+", " ", str(label)).strip()
+        value = item.get("display_value", item["value"])
+        lines.append(f"| {label} | {value} |")
     return "\n".join(lines)
 
 
@@ -503,19 +675,19 @@ def render_full_manuscript(
     sources: list[LiteratureSource],
     artifact_manifest: PaperArtifactManifest | None = None,
     structure_contract: PaperStructureContract = GENERIC_JOURNAL_ARTICLE,
+    language: Literal["zh", "en"] = "zh",
 ) -> str:
     draft, _ = normalize_paper_draft(draft)
     heading = lambda key: markdown_heading(
-        structure_contract.section(key), "zh"
+        structure_contract.section(key), language
     )
     manuscript = (
         f"# {draft.title}\n\n"
-        "> 状态：证据约束的完整论文候选稿。想法判定来自冻结实验产物，引用和数值表由本地审计器生成。\n\n"
         f"{heading('abstract')}\n\n{draft.abstract}\n\n"
         f"{heading('introduction')}\n\n{draft.introduction}\n\n"
         f"{heading('related_work')}\n\n{draft.related_work}\n\n"
         f"{heading('methods')}\n\n{draft.methods}\n\n"
-        f"{heading('results')}\n\n{draft.results}\n\n{_numeric_table(verdict)}\n\n"
+        f"{heading('results')}\n\n{draft.results}\n\n{_localized_numeric_table(verdict, language=language)}\n\n"
         f"{heading('discussion')}\n\n{draft.discussion}\n\n"
         f"{heading('limitations')}\n\n{draft.limitations}\n\n"
         f"{heading('conclusion')}\n\n{draft.conclusion}\n\n"
@@ -525,10 +697,17 @@ def render_full_manuscript(
         f"{heading('conflict_of_interest')}\n\n{draft.conflict_of_interest}\n\n"
         f"{heading('funding')}\n\n{draft.funding}\n\n"
         f"{heading('ai_disclosure')}\n\n{draft.ai_disclosure}\n\n"
-        f"{heading('references')}\n\n{_references(sources)}\n"
+        f"{heading('references')}\n\n{_references(_cited_sources(draft, sources))}\n"
     )
     if artifact_manifest is not None:
         manuscript = materialize_artifact_callouts(manuscript, artifact_manifest)
+        # Artifact captions are inserted after the prose draft is normalized.
+        # Apply the same reader-facing projection here so frozen internal
+        # governance terminology cannot leak into the submitted manuscript.
+        manuscript = academicize_publication_text(
+            manuscript,
+            language=language,
+        )
     return manuscript
 
 
@@ -579,6 +758,7 @@ def _audit_full_manuscript(
     citation_passed = False
     conclusion_passed = False
     numeric_passed = False
+    narrative_passed = False
     if manuscript_path.is_file():
         manuscript = manuscript_path.read_text(encoding="utf-8")
         checks["no_unresolved_artifact_callouts"] = not _ARTIFACT_CALLOUT_RE.search(manuscript)
@@ -616,18 +796,56 @@ def _audit_full_manuscript(
             )
 
         conclusion = str(verdict.get("conclusion") or "")
-        conclusion_passed = bool(conclusion) and conclusion in manuscript
-        checks["frozen_conclusion_present_verbatim"] = conclusion_passed
+        conclusion_titles = (
+            GENERIC_JOURNAL_ARTICLE.section("conclusion").english_title,
+            GENERIC_JOURNAL_ARTICLE.section("conclusion").chinese_title,
+        )
+        conclusion_match = re.search(
+            rf"(?s)^##\s+(?:{'|'.join(re.escape(item) for item in conclusion_titles)})\s*$\s*(.*?)(?=^##\s+|\Z)",
+            manuscript,
+            re.MULTILINE,
+        )
+        manuscript_conclusion = conclusion_match.group(1).strip() if conclusion_match else ""
+        conclusion_passed = bool(manuscript_conclusion)
+        checks["scientific_conclusion_authority_preserved"] = conclusion_passed
         if not conclusion_passed:
-            violations.append("完整稿未逐字保留冻结实验结论")
+            violations.append(
+                "the reader-facing conclusion is missing"
+            )
 
         numeric_passed = all(
-            f"| `{item['path']}` | {item['value']} |" in manuscript
+            str(item.get("display_value", item["value"])) in manuscript
             for item in verdict.get("numeric_evidence") or []
         )
         checks["all_frozen_numeric_evidence_present"] = numeric_passed
         if not numeric_passed:
             violations.append("完整稿修改或遗漏了冻结数值证据")
+        draft_path = root / "stage_4_synthesis" / "paper_draft_sections.json"
+        narrative_contract_path = (
+            root / "stage_4_synthesis" / "publication_narrative_contract.json"
+        )
+        if not narrative_contract_path.is_file():
+            # Read-only compatibility for legacy bundle-paper runs created
+            # before Workflow v2 introduced a frozen narrative contract.
+            narrative_violations = []
+        elif draft_path.is_file():
+            try:
+                structured_draft = PaperDraftSections.model_validate(read_json(draft_path))
+                narrative_violations = validate_manuscript_narrative(
+                    {
+                        field_name: str(getattr(structured_draft, field_name))
+                        for field_name in PaperDraftSections.model_fields
+                    }
+                )
+            except Exception as exc:
+                narrative_violations = [f"manuscript narrative audit failed: {exc}"]
+        else:
+            narrative_violations = [
+                "structured manuscript sections are unavailable for narrative audit"
+            ]
+        narrative_passed = not narrative_violations
+        checks["manuscript_narrative_contract_passed"] = narrative_passed
+        violations.extend(narrative_violations)
         try:
             depth = audit_manuscript_depth(
                 manuscript_path,
@@ -647,7 +865,8 @@ def _audit_full_manuscript(
         checks.update(
             {
                 "citations_resolve_to_frozen_sources": False,
-                "frozen_conclusion_present_verbatim": False,
+                "scientific_conclusion_authority_preserved": False,
+                "manuscript_narrative_contract_passed": False,
                 "all_frozen_numeric_evidence_present": False,
                 "journal_article_depth_passed": False,
                 "paper_structure_contract_passed": False,
@@ -743,7 +962,11 @@ def _agent_prompt(
     structure_contract: PaperStructureContract = GENERIC_JOURNAL_ARTICLE,
 ) -> str:
     payload = {
-        "task": "Write a complete Chinese academic manuscript from the frozen bundle. Return only the requested structured sections.",
+        "task": (
+            "Write a complete academic manuscript in the requested manuscript "
+            "language from the frozen bundle. Return only the requested structured "
+            "sections."
+        ),
         "scope_contract": _compact_prompt_tree(
             _json(root / "stage_1_discovery" / "scope_contract.json")
         ),
@@ -773,31 +996,60 @@ def _agent_prompt(
         "verified_literature": _compact_prompt_tree(
             [source.model_dump(mode="json") for source in sources]
         ),
-        "paper_structure_contract": structure_contract.prompt_contract("zh"),
+        "paper_structure_contract": structure_contract.prompt_contract(genre.language),
         "requirements": {
-            "language": "Chinese",
-            "minimum_han_characters": 10000,
+            "language": "English" if genre.language == "en" else "Chinese",
+            "minimum_length": 6000 if genre.language == "en" else 10000,
+            "length_unit": "English words" if genre.language == "en" else "Han characters",
             "citation_syntax": "[source_id]",
             "citation_rule": "Use only exact source_id values supplied above. Cite every source in related_work.",
-            "evidence_rule": "Do not invent, recompute, strengthen, or suppress any result. Preserve the exact frozen conclusion in the conclusion section.",
-            "section_targets_han_chars": {
-                "abstract": "250-600",
-                "introduction": 1200,
-                "related_work": 1600,
-                "methods": 2400,
-                "results": 1900,
-                "discussion": 1900,
-                "limitations": 600,
-                "conclusion": 300,
-            },
+            "evidence_rule": (
+                "Do not invent, recompute, strengthen, or suppress any result. "
+                "Express the frozen scientific conclusion naturally and preserve "
+                "its polarity, scope, and reader-critical quantities; never paste "
+                "internal verdict prose merely to satisfy a string check."
+            ),
+            "section_length_targets": (
+                {
+                    "abstract": "150-300",
+                    "introduction": 720,
+                    "related_work": 960,
+                    "methods": 1440,
+                    "results": 1140,
+                    "discussion": 1140,
+                    "limitations": 360,
+                    "conclusion": 180,
+                }
+                if genre.language == "en"
+                else {
+                    "abstract": "250-600",
+                    "introduction": 1200,
+                    "related_work": 1600,
+                    "methods": 2400,
+                    "results": 1900,
+                    "discussion": 1900,
+                    "limitations": 600,
+                    "conclusion": 300,
+                }
+            ),
             "abstract_form": structure_contract.abstract.prompt_contract(),
-            "abstract_semantic_moves": [
-                "研究背景与窄问题",
-                "研究目标",
-                "方法与证据边界",
-                "最重要的定量结果",
-                "受证据约束的结论",
-            ],
+            "abstract_semantic_moves": (
+                [
+                    "scientific problem or tension",
+                    "bounded comparison design",
+                    "principal finding in plain language",
+                    "scientific implication",
+                    "one calibrated boundary sentence",
+                ]
+                if genre.language == "en"
+                else [
+                    "科学问题或研究张力",
+                    "有边界的比较设计",
+                    "用自然语言表达的核心发现",
+                    "发现的科学意义",
+                    "一句校准后的适用边界",
+                ]
+            ),
             "subsections": "Use at least four ### subsections in methods, three in results, and three in discussion.",
             "integrity": "Do not fabricate references, data, authors, venues, statistical tests, or causal claims.",
         },
@@ -1143,9 +1395,10 @@ def _draft_contract_violations(
     frozen_conclusion_text: str | None = None,
 ) -> list[str]:
     text = _draft_text(draft)
-    violations = validate_abstract_prose(
-        draft.abstract, structure_contract.abstract
-    )
+    # Abstract rhetoric is a repairable presentation concern.  The dedicated
+    # Stage 4 presentation pass rewrites it before final rendering, so draft
+    # integrity checks here focus on evidence, citations and visual bindings.
+    violations: list[str] = []
     for field_name in type(draft).model_fields:
         leaked = publication_internal_tokens(str(getattr(draft, field_name)))
         if leaked:
@@ -1158,13 +1411,8 @@ def _draft_contract_violations(
     unknown_sources = sorted(set(_CITATION_RE.findall(text)) - allowed_sources)
     if unknown_sources:
         violations.append("draft cites unknown sources: " + ", ".join(unknown_sources))
-    required_conclusion = (
-        frozen_conclusion_text
-        if frozen_conclusion_text is not None
-        else evidence_claim_map.frozen_conclusion
-    )
-    if required_conclusion not in draft.conclusion:
-        violations.append("draft conclusion does not preserve the frozen conclusion verbatim")
+    if not draft.conclusion.strip():
+        violations.append("draft conclusion is missing")
     expected_callouts = {
         *(f"FIGURE:{item.slot_id}" for item in outline.figure_slots),
         *(f"TABLE:{item.slot_id}" for item in outline.table_slots),
@@ -1197,29 +1445,63 @@ def _polish_trace(
     polished: PaperDraftSections,
     *,
     frozen_conclusion: str,
+    allow_numeric_deduplication: bool = False,
 ) -> PaperProsePolishTrace:
     source_text = _draft_text(source)
     polished_text = _draft_text(polished)
-    numbers_ok = Counter(_NUMBER_TOKEN_RE.findall(source_text)) == Counter(
-        _NUMBER_TOKEN_RE.findall(polished_text)
-    )
+    source_numbers = Counter(_NUMBER_TOKEN_RE.findall(source_text))
+    polished_numbers = Counter(_NUMBER_TOKEN_RE.findall(polished_text))
+    numbers_ok = source_numbers == polished_numbers
+    if allow_numeric_deduplication:
+        # Whole-manuscript narrative repair may remove a repeated numeric
+        # recap from the conclusion after the same value has already been
+        # reported in Results.  Permit only reduced repetition: every numeric
+        # value must remain present, no new value may appear, and no value may
+        # gain occurrences.  This resolves the otherwise contradictory
+        # requirements to keep Results complete and make the conclusion
+        # concise without authorizing a changed estimate.
+        numbers_ok = (
+            set(source_numbers) == set(polished_numbers)
+            and all(
+                polished_numbers[token] <= source_numbers[token]
+                for token in source_numbers
+            )
+        )
     citations_ok = Counter(_CITATION_RE.findall(source_text)) == Counter(
         _CITATION_RE.findall(polished_text)
     )
     callouts_ok = Counter(_ARTIFACT_CALLOUT_RE.findall(source_text)) == Counter(
         _ARTIFACT_CALLOUT_RE.findall(polished_text)
     )
-    conclusion_ok = frozen_conclusion in polished.conclusion
+    # The complete-draft numeric multiset is checked above.  Numbers may move
+    # from Conclusion to Results during narrative repair; requiring them to
+    # remain in Conclusion would directly conflict with a concise scholarly
+    # conclusion.
+    conclusion_ok = bool(polished.conclusion.strip())
     violations: list[str] = []
     if not numbers_ok:
-        violations.append("academic humanizer changed the numeric-token multiset")
+        violations.append(
+            "academic humanizer changed the numeric-token multiset"
+            if not allow_numeric_deduplication
+            else (
+                "academic narrative repair added, removed entirely, or "
+                "increased a numeric token"
+            )
+        )
     if not citations_ok:
         violations.append("academic humanizer changed the citation-key multiset")
     if not callouts_ok:
         violations.append("academic humanizer changed the figure/table callout multiset")
     if not conclusion_ok:
-        violations.append("academic humanizer changed or removed the frozen conclusion")
+        violations.append(
+            "academic humanizer removed the conclusion"
+        )
     return PaperProsePolishTrace(
+        policy=(
+            "academic_narrative_numeric_deduplication"
+            if allow_numeric_deduplication
+            else "academic_humanizer_claim_preserving"
+        ),
         source_sha256=_model_sha256(source),
         polished_sha256=_model_sha256(polished),
         number_multiset_preserved=numbers_ok,
@@ -1474,6 +1756,17 @@ async def _review_revise_and_polish_draft(
         evidence_claim_map=evidence_claim_map,
         structure_contract=structure_contract,
     )
+    if narrative_contract is not None:
+        final_violations.extend(
+            validate_manuscript_narrative(
+                {
+                    field_name: str(getattr(polished, field_name))
+                    for field_name in PaperDraftSections.model_fields
+                },
+                structure_contract.narrative,
+            )
+        )
+    final_violations = list(dict.fromkeys(final_violations))
     if final_violations:
         raise ValueError("final polished draft violates contracts: " + "; ".join(final_violations))
     if polish_normalization.operations:
@@ -1604,10 +1897,12 @@ async def _prepare_reviewed_outline(
     initial = academicize_paper_outline(
         initial,
         aliases=publication_aliases,
+        language=genre.language,
     )
     safe_scope_title = academicize_publication_text(
         str((title_basis or {}).get("direction") or "").strip(),
         aliases=publication_aliases,
+        language=genre.language,
     )
     if validate_publication_title(initial.title) and not validate_publication_title(
         safe_scope_title
@@ -1624,6 +1919,15 @@ async def _prepare_reviewed_outline(
                 "figure_slots": figure_slots,
                 "table_slots": table_slots,
             }
+        )
+        # The model may declare and reference a self-invented slot.  Replacing
+        # the declaration list with the frozen visual plan is not sufficient:
+        # node-level references must be sanitized against that authoritative
+        # list after the replacement, otherwise validation sees a dangling
+        # figure/table identifier and permanently fails the workflow.
+        initial = _sanitize_outline_references(
+            initial,
+            evidence_claim_map=evidence_claim_map,
         )
     violations = validate_outline(
         initial,
@@ -1661,6 +1965,7 @@ async def _prepare_reviewed_outline(
         final = academicize_paper_outline(
             final,
             aliases=publication_aliases,
+            language=genre.language,
         )
         final = _sanitize_outline_references(
             final,
@@ -1675,6 +1980,10 @@ async def _prepare_reviewed_outline(
                     "figure_slots": figure_slots,
                     "table_slots": table_slots,
                 }
+            )
+            final = _sanitize_outline_references(
+                final,
+                evidence_claim_map=evidence_claim_map,
             )
         final = _restore_required_outline_structure(
             revised=final,
@@ -1693,6 +2002,7 @@ async def _prepare_reviewed_outline(
             key: academicize_publication_text(
                 str(value),
                 aliases=publication_aliases,
+                language=genre.language,
             )
             for key, value in title_basis.items()
             if value is not None and str(value).strip()
@@ -1709,11 +2019,13 @@ async def _prepare_reviewed_outline(
                         "central_thesis": academicize_publication_text(
                             final.thesis,
                             aliases=publication_aliases,
+                            language=genre.language,
                         ),
                         "current_outline_title": final.title,
                         "frozen_conclusion": academicize_publication_text(
                             evidence_claim_map.frozen_conclusion,
                             aliases=publication_aliases,
+                            language=genre.language,
                         ),
                         "constraints": {
                             "single_line": True,

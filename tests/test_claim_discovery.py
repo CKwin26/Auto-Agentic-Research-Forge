@@ -15,9 +15,45 @@ from research_forge.claim_discovery import (
     build_project_fingerprint,
     discover_project_claims,
     extract_author_claims,
+    fetch_crossref_trends,
     recommend_claims,
     _claims_from_text,
 )
+
+
+def test_crossref_trends_preserve_real_authors_separately_from_venue() -> None:
+    requests = []
+
+    def fake_http(request):
+        requests.append(request)
+        return {
+            "message": {
+                "items": [
+                    {
+                        "DOI": "10.1234/example",
+                        "title": ["Prompt evaluation study"],
+                        "abstract": "Prompt evaluation under controlled conditions.",
+                        "URL": "https://doi.org/10.1234/example",
+                        "published": {"date-parts": [[2026]]},
+                        "is-referenced-by-count": 3,
+                        "container-title": ["Journal of Evaluation"],
+                        "author": [
+                            {"given": "Ada", "family": "Lovelace"},
+                            {"given": "Alan", "family": "Turing"},
+                        ],
+                    }
+                ]
+            }
+        }
+
+    signals = fetch_crossref_trends(
+        ["prompt evaluation"],
+        http_json=fake_http,
+    )
+
+    assert "author" in requests[0].full_url
+    assert signals[0].source_name == "Journal of Evaluation"
+    assert signals[0].metadata["authors"] == ["Ada Lovelace", "Alan Turing"]
 
 
 def _resource(path: Path, root: Path) -> dict:

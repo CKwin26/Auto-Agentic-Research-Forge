@@ -970,6 +970,52 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
             if parsed.path == "/api/health":
                 self._send_json({"ok": True, "service": "research-forge-web"})
                 return
+            if parsed.path == "/api/experiment-profiles":
+                from .profiles import profile_catalog_snapshot
+
+                profiles = profile_catalog_snapshot()
+                self._send_json(
+                    {
+                        "profiles": profiles,
+                        "formal_execution_profiles": [
+                            item["profile_id"]
+                            for item in profiles
+                            if item["formal_execution_supported"] is True
+                        ],
+                    }
+                )
+                return
+            if parsed.path == "/api/study-designs":
+                from .study_design import (
+                    inference_module_catalog,
+                    study_design_catalog,
+                )
+
+                designs = study_design_catalog()
+                modules = inference_module_catalog()
+                self._send_json(
+                    {
+                        "study_designs": designs,
+                        "inference_modules": modules,
+                        "formal_execution_designs": [
+                            item["design_id"]
+                            for item in designs
+                            if item["formal_execution_supported"] is True
+                        ],
+                        "composition": (
+                            "domain execution profile + study design + "
+                            "zero or more inference modules"
+                        ),
+                    }
+                )
+                return
+            if parsed.path == "/api/profile-paper-lab":
+                from .study_design.paper_lab import profile_paper_lab_snapshot
+
+                self._send_json(
+                    profile_paper_lab_snapshot(self.server.task_root)
+                )
+                return
             if parsed.path == "/api/bootstrap":
                 self._send_json(
                     bootstrap_payload(self.server.runs_root, self.server.idea_root)
@@ -1492,6 +1538,45 @@ class ResearchForgeRequestHandler(BaseHTTPRequestHandler):
             path_parts = [item for item in parsed.path.split("/") if item]
             if parsed.path == "/api/runtime/configure":
                 self._send_json(configure_runtime(payload))
+                return
+            if parsed.path == "/api/experiment-profiles/llm-evaluation/acceptance":
+                from .profiles.llm_acceptance import run_llm_profile_acceptance
+
+                summary = run_llm_profile_acceptance(
+                    output_root=self.server.task_root / "profile-acceptance"
+                )
+                self._send_json(summary.model_dump(mode="json"))
+                return
+            if parsed.path == "/api/study-designs/independent-groups/acceptance":
+                from .study_design.paper_case import (
+                    generate_independent_group_paper_package,
+                    publish_package_to_lab,
+                )
+
+                package_root = (
+                    self.server.task_root
+                    / "profile-paper-lab"
+                    / "runs"
+                    / "independent-group-normal"
+                )
+                package = generate_independent_group_paper_package(
+                    package_root, case_kind="normal"
+                )
+                publish_package_to_lab(
+                    self.server.task_root, package_root, package
+                )
+                self._send_json(
+                    package.model_dump(mode="json")
+                )
+                return
+            if parsed.path == "/api/profile-paper-lab/reviews":
+                from .study_design.paper_lab import append_human_review
+
+                self._send_json(
+                    append_human_review(
+                        self.server.task_root, payload
+                    ).model_dump(mode="json")
+                )
                 return
             if parsed.path == "/api/runtime/external-research":
                 self._send_json(

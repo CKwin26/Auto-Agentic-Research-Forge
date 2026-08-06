@@ -302,6 +302,162 @@ class DeterministicSimulationParameters(StrictModel):
         return self
 
 
+class TimeSeriesBacktestParameters(StrictModel):
+    """Frozen point-in-time cross-sectional signal comparison.
+
+    Candidate signals and realized outcomes are separate inputs so candidate
+    code cannot inspect future returns.  Domain policies are explicit even
+    though the first component-tested kernel consumes already-authoritative
+    realized returns rather than constructing them from raw market feeds.
+    """
+
+    candidate_input_path: str = Field(min_length=1)
+    evaluator_target_path: str = Field(min_length=1)
+    timestamp_field: str = Field(min_length=1)
+    feature_as_of_field: str = Field(min_length=1)
+    asset_id_field: str = Field(min_length=1)
+    eligibility_field: str = Field(min_length=1)
+    baseline_signal_field: str = Field(min_length=1)
+    treatment_signal_field: str = Field(min_length=1)
+    target_return_field: str = Field(min_length=1)
+    evaluation_start: str = Field(min_length=10)
+    evaluation_end: str = Field(min_length=10)
+    training_end: str = Field(min_length=10)
+    top_k: int = Field(ge=1, le=10_000)
+    minimum_eligible_assets: int = Field(ge=1, le=1_000_000)
+    primary_metric: Literal["mean_net_portfolio_return"] = (
+        "mean_net_portfolio_return"
+    )
+    effect_threshold: float
+    direction: Literal["higher_is_better"] = "higher_is_better"
+    portfolio_weighting: Literal["equal_weight"] = "equal_weight"
+    tie_breaker: Literal["asset_id_ascending"] = "asset_id_ascending"
+    fee_bps_per_round_trip: float = Field(ge=0.0, le=10_000.0)
+    slippage_bps_per_round_trip: float = Field(ge=0.0, le=10_000.0)
+    calendar_id: str = Field(min_length=1)
+    return_horizon: str = Field(min_length=1)
+    target_return_definition: str = Field(min_length=10)
+    corporate_action_policy: str = Field(min_length=3)
+    delisting_policy: str = Field(min_length=3)
+    suspension_policy: str = Field(min_length=3)
+    missing_data_policy: Literal["block"] = "block"
+    point_in_time_policy: Literal[
+        "signals_available_at_decision_time"
+    ] = "signals_available_at_decision_time"
+    universe_policy: Literal[
+        "membership_frozen_at_decision_time"
+    ] = "membership_frozen_at_decision_time"
+
+    @model_validator(mode="after")
+    def validate_backtest_boundary(self) -> "TimeSeriesBacktestParameters":
+        if self.candidate_input_path == self.evaluator_target_path:
+            raise ValueError(
+                "candidate signals and evaluator targets must be separate"
+            )
+        fields = {
+            self.timestamp_field,
+            self.feature_as_of_field,
+            self.asset_id_field,
+            self.eligibility_field,
+            self.baseline_signal_field,
+            self.treatment_signal_field,
+        }
+        if len(fields) != 6:
+            raise ValueError("candidate input fields must be distinct")
+        if self.target_return_field in fields:
+            raise ValueError("target return cannot be a candidate input field")
+        if self.evaluation_start > self.evaluation_end:
+            raise ValueError("evaluation_start must not follow evaluation_end")
+        if self.training_end >= self.evaluation_start:
+            raise ValueError("training_end must precede evaluation_start")
+        if self.minimum_eligible_assets < self.top_k:
+            raise ValueError("minimum_eligible_assets must be at least top_k")
+        return self
+
+
+class LLMEvaluationParameters(StrictModel):
+    """Deterministic evaluation of frozen LLM responses.
+
+    Response generation remains a separate resource/runner concern.  This
+    schema keeps evaluator-only references outside the candidate response
+    file and deliberately excludes unconstrained LLM-as-judge semantics.
+    """
+
+    candidate_response_path: str = Field(min_length=1)
+    evaluator_reference_path: str = Field(min_length=1)
+    task_id_field: str = Field(min_length=1)
+    baseline_response_field: str = Field(min_length=1)
+    treatment_response_field: str = Field(min_length=1)
+    reference_answers_field: str = Field(min_length=1)
+    primary_metric: Literal["normalized_exact_match"] = (
+        "normalized_exact_match"
+    )
+    normalization: Literal["nfkc_casefold_whitespace_v1"] = (
+        "nfkc_casefold_whitespace_v1"
+    )
+    missing_response_policy: Literal["score_zero"] = "score_zero"
+    effect_threshold: float
+    direction: Literal["higher_is_better"] = "higher_is_better"
+    dataset_path: str | None = None
+    hidden_answer_path: str | None = None
+    baseline_prompt: str | None = None
+    treatment_prompt: str | None = None
+    provider: str | None = None
+    model_id: str | None = None
+    model_revision: str | None = None
+    temperature: float = Field(default=0.0, ge=0.0, le=2.0)
+    top_p: float = Field(default=1.0, gt=0.0, le=1.0)
+    max_tokens: int = Field(default=8, ge=1, le=4096)
+    stop: list[str] = Field(default_factory=list)
+    sample_count: int | None = Field(default=None, ge=5)
+    bootstrap_resamples: int = Field(default=2000, ge=100, le=100000)
+    bootstrap_seed: int = 20260802
+
+    @model_validator(mode="after")
+    def validate_llm_evaluation_boundary(self) -> "LLMEvaluationParameters":
+        if self.candidate_response_path == self.evaluator_reference_path:
+            raise ValueError("candidate responses and evaluator references must be separate")
+        candidate_fields = {
+            self.task_id_field,
+            self.baseline_response_field,
+            self.treatment_response_field,
+        }
+        if len(candidate_fields) != 3:
+            raise ValueError("candidate response fields must be distinct")
+        if self.reference_answers_field in candidate_fields:
+            raise ValueError("reference answers cannot be a candidate field")
+        execution_fields = (
+            self.dataset_path,
+            self.hidden_answer_path,
+            self.baseline_prompt,
+            self.treatment_prompt,
+            self.provider,
+            self.model_id,
+            self.model_revision,
+            self.sample_count,
+        )
+        if any(value is not None for value in execution_fields):
+            if any(value is None for value in execution_fields):
+                raise ValueError(
+                    "formal LLM execution requires dataset, hidden answers, both "
+                    "prompts, provider, model ID, model revision, and sample count"
+                )
+            if self.dataset_path == self.hidden_answer_path:
+                raise ValueError("candidate dataset and hidden answers must be separate")
+            if self.baseline_prompt == self.treatment_prompt:
+                raise ValueError("baseline and treatment prompts must differ")
+            if "{question}" not in str(self.baseline_prompt) or "{question}" not in str(
+                self.treatment_prompt
+            ):
+                raise ValueError("both prompts must contain the {question} placeholder")
+            forbidden = ("{answer}", "{reference}", "{target}")
+            if any(token in str(self.baseline_prompt) for token in forbidden) or any(
+                token in str(self.treatment_prompt) for token in forbidden
+            ):
+                raise ValueError("BLOCKED_TARGET_LEAKAGE")
+        return self
+
+
 __all__ = [
     "FrozenBootstrapSpec",
     "PairedBinaryClusteredParameters",
@@ -313,4 +469,6 @@ __all__ = [
     "BenchmarkPredictionParameters",
     "ExistingPythonProjectParameters",
     "DeterministicSimulationParameters",
+    "TimeSeriesBacktestParameters",
+    "LLMEvaluationParameters",
 ]

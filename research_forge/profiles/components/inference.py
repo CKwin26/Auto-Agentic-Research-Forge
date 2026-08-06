@@ -48,5 +48,22 @@ INFERENCE_COMPONENTS = {
             description="Frozen Welch two-group interval.",
             implementation_id="welch_interval_v1",
         ),
+        ProfileComponent(
+            component_id="paired_period_descriptive_v1",
+            kind=ComponentKind.INFERENCE,
+            version="0.1",
+            description=(
+                "Component-stage paired period effect without a certified "
+                "formal uncertainty estimator."
+            ),
+            implementation_id="paired_period_descriptive_v1",
+        ),
+        ProfileComponent(
+            component_id="paired_task_descriptive_v1",
+            kind=ComponentKind.INFERENCE,
+            version="0.1",
+            description="Component-stage paired task effect without model-judge inference.",
+            implementation_id="paired_task_descriptive_v1",
+        ),
     )
 }

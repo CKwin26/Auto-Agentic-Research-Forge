@@ -2114,7 +2114,7 @@ def fetch_scholarly_trends(
             {
                 "query": query,
                 "limit": 20,
-                "fields": "title,abstract,url,year,publicationDate,citationCount,influentialCitationCount,venue",
+                "fields": "title,abstract,url,year,publicationDate,citationCount,influentialCitationCount,venue,authors",
             }
         )
         headers = {"User-Agent": "ResearchForge/0.1 claim-trend-discovery"}
@@ -2152,6 +2152,14 @@ def fetch_scholarly_trends(
                 terms=sorted(density_terms)[:100],
                 trend_score=round(score, 4),
                 scientific_density=round(min(1.0, (len(density_terms) + (10 if abstract else 0)) / 55), 4),
+                metadata={
+                    "authors": [
+                        str(author.get("name") or "").strip()
+                        for author in row.get("authors") or []
+                        if isinstance(author, dict)
+                        and str(author.get("name") or "").strip()
+                    ]
+                },
             )
             signals[signal.signal_id] = signal
     return list(signals.values())
@@ -2168,7 +2176,7 @@ def fetch_crossref_trends(
                 "query": query,
                 "rows": 20,
                 "filter": f"from-pub-date:{current_year - 2}-01-01",
-                "select": "DOI,title,abstract,URL,published,created,is-referenced-by-count,publisher,container-title",
+                "select": "DOI,title,abstract,URL,published,created,is-referenced-by-count,publisher,container-title,author",
             }
         )
         payload = http_json(
@@ -2208,6 +2216,24 @@ def fetch_crossref_trends(
                 terms=sorted(density_terms)[:100],
                 trend_score=round(min(1.0, math.log1p(citations / age) / 6), 4),
                 scientific_density=round(min(1.0, (len(density_terms) + (10 if abstract else 0)) / 55), 4),
+                metadata={
+                    "authors": [
+                        " ".join(
+                            part
+                            for part in (
+                                str(author.get("given") or "").strip(),
+                                str(author.get("family") or "").strip(),
+                            )
+                            if part
+                        )
+                        for author in row.get("author") or []
+                        if isinstance(author, dict)
+                        and (
+                            str(author.get("given") or "").strip()
+                            or str(author.get("family") or "").strip()
+                        )
+                    ]
+                },
             )
             signals[signal.signal_id] = signal
     return list(signals.values())

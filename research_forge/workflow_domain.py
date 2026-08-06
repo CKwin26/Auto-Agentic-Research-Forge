@@ -249,6 +249,8 @@ class RunKind(StrEnum):
 
 class Stage3Profile(StrEnum):
     DETERMINISTIC_SIMULATION_V1 = "deterministic_simulation_v1"
+    TIME_SERIES_BACKTEST_V1 = "time_series_backtest_v1"
+    LLM_EVALUATION_V1 = "llm_evaluation_v1"
     TABULAR_ML_V1 = "tabular_ml_v1"
     BENCHMARK_PREDICTION_V1 = "benchmark_prediction_v1"
     EXISTING_PYTHON_PROJECT_V1 = "existing_python_project_v1"
@@ -643,6 +645,13 @@ class ResearchContractVersion(StrictModel):
     eligibility_rules: list[dict[str, Any]] = Field(default_factory=list)
     experiment_profile: Stage3Profile | None = None
     profile_parameters: dict[str, Any] = Field(default_factory=dict)
+    # Composable Study Design Kernel. ``experiment_profile`` remains the
+    # domain-execution compatibility field; these bindings own statistical
+    # design and inference semantics for new contracts.
+    domain_execution_profile: dict[str, Any] = Field(default_factory=dict)
+    study_design: dict[str, Any] = Field(default_factory=dict)
+    inference_modules: list[dict[str, Any]] = Field(default_factory=list)
+    study_design_spec: dict[str, Any] = Field(default_factory=dict)
     splits: list[str] = Field(default_factory=lambda: ["default"])
     replicates: int = Field(default=1, ge=1, le=10_000)
     output_schema: dict[str, Any] = Field(default_factory=dict)
@@ -1862,6 +1871,7 @@ class WorkflowRepository:
         task_group: str | None = None,
         parameters: dict[str, Any] | None = None,
         expected_output: str | None = None,
+        max_retries: int = 3,
     ) -> StepInstance:
         study = self.load_study(study_id)
         step_id = stable_id(
@@ -1881,6 +1891,7 @@ class WorkflowRepository:
             task_group=task_group,
             parameters=dict(parameters or {}),
             expected_output=expected_output,
+            max_retries=max_retries,
         )
         write_json_atomic(self._study_dir(study_id) / "steps" / f"{step_id}.json", step)
         self._assert_acyclic(study_id)

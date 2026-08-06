@@ -54,7 +54,7 @@ $py = ".\.venv\Scripts\python.exe"
 | **Closed-loop external research** | Policy-controlled academic, web, code, model and dataset retrieval is normalized, rights-checked, frozen, synthesized and citation-audited across the same four phases. |
 | **Idea-to-paper and project-to-paper** | Both entry points use the same governed research workspace instead of separate demo flows. |
 | **Evidence before prose** | Idea verdicts, protocol-output binding, numeric results, and frozen literature remain independent from manuscript generation. |
-| **Scientist-panel review** | The bundled [Nuwa Scientist Panel](skills/nuwa-scientist-panel/SKILL.md) runs blinded Feynman-, Tukey-, Shannon-, and Popper-inspired reviews with deterministic veto and abstention rules. |
+| **Scientist-panel review** | Stage 4 runs a same-model AI panel and an evidence-claim pass that implements the [Nuwa Scientist Panel](skills/nuwa-scientist-panel/SKILL.md) packet blinding, exact three-role routing, hashing, schema checks, deterministic veto/abstention aggregation, and append-only human-adjudication queue. It is explicitly not human, cross-model, or replication evidence; recent real-model and queue-UI acceptance remain tracked in the [upstream capability audit](docs/upstream-capability-audit-2026-07-31.md). |
 | **Fault ownership** | `diagnostic_owner` separates failures in idea validation, evidence packaging, literature grounding, and paper writing. |
 | **Rollback and repair** | Append-only failure ledgers identify the earliest preventable stage, produce a repair contract, and rerun only affected downstream stages. |
 | **Editable scientific diagrams** | Workflow and architecture figures are authored as editable draw.io sources, exported through the local draw.io CLI, and hash-bound to the manuscript artifact manifest. |
@@ -146,7 +146,7 @@ mindmap
       Claim and depth audit
       Venue readiness
     Scientific control
-      Nuwa scientist panel
+      Nuwa-inspired AI panel
       Diagnostic owner
       Failure ledger
       Rollback and rebranch
@@ -335,6 +335,13 @@ Conceptual research figures use draw.io Desktop when it is installed. The editab
 research-forge diagram export figures\workflow.drawio `
   --output figures\workflow.pdf --format pdf
 ```
+
+Complex conceptual figures use the mandatory
+[next-ai-draw-io bridge](docs/next-ai-drawio.md). It reuses the configured
+Research Forge Codex backend to produce a typed graph, renders that graph
+deterministically to `.drawio`, and supports real-time browser editing through
+the pinned MCP server. A missing source, editor binding, audit, or vector export
+blocks Stage 4. Numeric result charts remain deterministic.
 
 RF-Bench is now included as the evaluation layer. It separates candidate submissions from protected evaluator metrics, runs fixed seed/budget matrices, audits the complete artifact chain, and reports scientific gain separately from integrity. See [the RF-Bench guide](docs/benchmark.md).
 

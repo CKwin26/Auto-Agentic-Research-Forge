@@ -6,10 +6,10 @@ from research_forge.paper_typesetting import render_submission_latex
 def _manuscript() -> str:
     abstract = (
         "自主科研代理可能在交付前产生缺乏证据支持的主张。"
-        "本研究检验同骨干证据门控是否改变不支持率。"
-        "系统冻结任务、协议、评价器和分析规则，并比较配对输出。"
-        "冻结结果显示门控组在当前任务矩阵中的不支持率更低。"
-        "该结论仅适用于本次冻结设计，不能外推为普遍因果结论。"
+        "本研究在相同任务上比较直接交付与交付前证据检查。"
+        "配对结果显示，证据检查条件产生的不支持主张更少。"
+        "这一发现表明，简洁的交付前检查可以改善当前受控条件下的主张质量。"
+        "它尚不能证明内部机制，也不能直接外推至其他任务。"
     )
     sections = [
         ("摘要", abstract + "\n\n**关键词：** 科研代理；证据；审计"),
@@ -58,6 +58,24 @@ def test_typesetter_accepts_uppercase_reference_keys() -> None:
 
     assert r"\cite{R1}" in latex
     assert r"\bibitem{R1}" in latex
+
+
+def test_typesetter_renders_compact_citation_clusters_without_leaking_ids() -> None:
+    manuscript = _manuscript().replace(
+        "[paper-01]",
+        "[paper-01; paper-02]",
+        1,
+    ).replace(
+        "- [paper-01] Author. Verified paper.",
+        "- [paper-01] Author. Verified paper.\n- [paper-02] Author. Second paper.",
+    )
+
+    latex = render_submission_latex(
+        manuscript, contract=GENERIC_JOURNAL_ARTICLE, language="en"
+    )
+
+    assert r"\cite{paper-01,paper-02}" in latex
+    assert "[paper-01; paper-02]" not in latex
 
 
 def test_typesetter_renders_reference_italics() -> None:
@@ -129,7 +147,7 @@ def test_typesetter_numbers_captioned_tables_and_uses_readable_columns() -> None
         manuscript, contract=GENERIC_JOURNAL_ARTICLE, language="en"
     )
 
-    assert r"\begin{table}[tbp]" in latex
+    assert r"\begin{table}[H]" in latex
     assert r"\caption{Evidence summary}" in latex
     assert r"\begin{tabularx}{\linewidth}{YY}" in latex
     assert r"\footnotesize" in latex
@@ -150,7 +168,7 @@ def test_frozen_numeric_evidence_table_satisfies_typesetting_contract() -> None:
         manuscript, contract=GENERIC_JOURNAL_ARTICLE, language="zh"
     )
 
-    assert r"\begin{table}[tbp]" in latex
+    assert r"\begin{table}[H]" in latex
     assert r"\caption{" in latex
     assert "metrics.primary" in latex
 
