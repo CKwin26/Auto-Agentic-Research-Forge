@@ -1,0 +1,27 @@
+schema_version: 1
+document_feature_count: 22
+registry_capability_count: 18
+counting_rule: Document features may compose one or more registered capabilities; they do not create additional registry claims.
+features:
+  - {number: 1, title: Four-stage Study workflow, capability_ids: [workflow.control_loop], mapping_role: direct}
+  - {number: 2, title: Read-only project scan and claim discovery, capability_ids: [workflow.control_loop, retrieval.gateway], mapping_role: composite}
+  - {number: 3, title: External retrieval gateway, capability_ids: [retrieval.gateway], mapping_role: direct}
+  - {number: 4, title: PaperQA full-text evidence analysis, capability_ids: [retrieval.paperqa_fulltext], mapping_role: direct}
+  - {number: 5, title: Stage 1 discovery portfolio, capability_ids: [workflow.control_loop, retrieval.gateway], mapping_role: composite}
+  - {number: 6, title: Stage 2 feasibility MVP and contract, capability_ids: [research_contract.compiler], mapping_role: direct}
+  - {number: 7, title: Typed experiment profiles and unsupported routing, capability_ids: [scientific_execution.typed_profiles, scientific_completion.cross_domain_autonomy], mapping_role: composite}
+  - {number: 8, title: OpenML hidden-target paired experiment, capability_ids: [scientific_execution.hidden_target_benchmark], mapping_role: direct}
+  - {number: 9, title: Official AIRS RAD experiments, capability_ids: [benchmark.official_airs_rad], mapping_role: direct}
+  - {number: 10, title: Sealed existing-Python-project replay, capability_ids: [reproduction.sealed_existing_project_replay], mapping_role: direct}
+  - {number: 11, title: Great Expectations structural qualification gate, capability_ids: [data_quality.great_expectations_gate], mapping_role: direct}
+  - {number: 12, title: Evidence chain evaluation and scientific verdict, capability_ids: [scientific_completion.empirical_loop], mapping_role: direct}
+  - {number: 13, title: W3C PROV bounded projection, capability_ids: [interchange.prov_external_validation], mapping_role: direct}
+  - {number: 14, title: Workflow Run RO-Crate exchange, capability_ids: [interchange.rocrate_external_validation], mapping_role: direct}
+  - {number: 15, title: Fault localization repair and bounded rollback, capability_ids: [workflow.control_loop, research_contract.compiler], mapping_role: composite}
+  - {number: 16, title: Controlled clean-room replay, capability_ids: [reproduction.controlled_clean_room_replay], mapping_role: direct}
+  - {number: 17, title: Public minimal reproduction package, capability_ids: [reproduction.public_minimal_research_package], mapping_role: direct}
+  - {number: 18, title: Evidence-bound paper authoring, capability_ids: [authoring.evidence_bound], mapping_role: direct}
+  - {number: 19, title: SCI and SSCI writing constraints, capability_ids: [authoring.evidence_bound], mapping_role: presentation_layer}
+  - {number: 20, title: Nuwa AI scientist panel, capability_ids: [review.nuwa_panel], mapping_role: direct}
+  - {number: 21, title: Editable scientific diagrams and export, capability_ids: [visualization.drawio_export], mapping_role: direct}
+  - {number: 22, title: Completion record and signed public replay, capability_ids: [workflow.control_loop, reproduction.public_minimal_research_package], mapping_role: composite}

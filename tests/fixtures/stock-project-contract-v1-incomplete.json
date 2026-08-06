@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "case_id": "legacy-stock-project-2026-07-29",
+  "description": "Frozen regression descriptor for the stock-project contract that previously reached Stage 3 before core scientific semantics were defined.",
+  "contract_patch": {
+    "tasks": ["rank stocks using frozen features at each trade date"],
+    "baseline_behavior": "run the declared baseline under frozen replication and sensitivity conditions",
+    "treatment_behavior": "run the primary implementation under the registered treatment intervention",
+    "data_requirements": {
+      "population": "point-in-time stock universe",
+      "sampling_frame": "local project resources",
+      "denominator": "selected Top-K rows",
+      "unit_of_analysis": "decision-date security",
+      "target_rule": ""
+    },
+    "metric": {
+      "name": "top_k_event_identification_rate",
+      "direction": "higher_is_better",
+      "unit": "proportion",
+      "formula": ""
+    },
+    "runtime_binding": {},
+    "resource_policy": {},
+    "scientific_validity_contract": {
+      "expected_information_value": "unknown",
+      "sample_adequacy_basis": "unknown",
+      "independence_justification": "unknown"
+    }
+  },
+  "expected_blocker_codes": [
+    "BASELINE_OPERATION_GENERIC",
+    "TREATMENT_OPERATION_GENERIC",
+    "CONTRIBUTION_EXPECTED_INFORMATION_VALUE",
+    "CONTRIBUTION_SAMPLE_ADEQUACY",
+    "CONTRIBUTION_PSEUDO_REPLICATION",
+    "APPROVED_RESOURCES_MISSING",
+    "TARGET_RULE_MISSING",
+    "SAMPLING_FRAME_MISSING",
+    "METRIC_FORMULA_MISSING",
+    "FINANCE_POINT_IN_TIME_UNIVERSE_POLICY_MISSING",
+    "FINANCE_SURVIVORSHIP_BIAS_POLICY_MISSING",
+    "FINANCE_FEATURE_AVAILABILITY_POLICY_MISSING",
+    "FINANCE_CORPORATE_ACTION_POLICY_MISSING",
+    "FINANCE_TRANSACTION_COST_POLICY_MISSING",
+    "FINANCE_CROSS_SECTIONAL_LEAKAGE_POLICY_MISSING",
+    "FINANCE_TRADING_CALENDAR_POLICY_MISSING"
+  ]
+}

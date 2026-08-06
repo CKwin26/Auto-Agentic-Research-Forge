@@ -8,7 +8,7 @@ platform can do?".  A capability may not advance because code exists alone.
 Each maturity level requires durable evidence for every preceding level.
 """
 
-from enum import IntEnum
+from enum import IntEnum, StrEnum
 from pathlib import Path
 from typing import Iterable
 
@@ -36,6 +36,23 @@ class CapabilityMaturity(IntEnum):
             4: "真实案例验证",
             5: "独立验证",
         }[int(self)]
+
+
+class CapabilityEvidenceLevel(IntEnum):
+    """Strength of the best verification evidence, separate from implementation."""
+
+    E0_DOCUMENTED = 0
+    E1_COMPONENT_TESTED = 1
+    E2_CONTROLLED_REPLAY = 2
+    E3_REAL_CASE = 3
+    E4_EXTERNAL_INDEPENDENT = 4
+
+
+class CapabilityScope(StrEnum):
+    COMPONENT = "component"
+    BOUNDED = "bounded"
+    LIMITED_REAL_CASE = "limited_real_case"
+    EXTENSION_ONLY = "extension_only"
 
 
 EVIDENCE_ORDER = (
@@ -67,6 +84,8 @@ class CapabilityManifest(StrictModel):
     claim: str
     claim_boundary: str
     declared_maturity: CapabilityMaturity
+    evidence_level: CapabilityEvidenceLevel | None = None
+    scope: CapabilityScope = CapabilityScope.BOUNDED
     supported_profiles: list[str] = Field(default_factory=list)
     entrypoint: str
     inputs: list[str]
@@ -87,12 +106,17 @@ class CapabilityManifest(StrictModel):
             )
         if not self.claim_boundary.strip():
             raise ValueError("every capability needs an explicit claim boundary")
+        if self.evidence_level is None:
+            derived = max(0, min(4, int(self.declared_maturity) - 1))
+            self.evidence_level = CapabilityEvidenceLevel(derived)
         return self
 
 
 class CapabilityAuditItem(StrictModel):
     capability_id: str
     declared_maturity: CapabilityMaturity
+    evidence_level: CapabilityEvidenceLevel
+    scope: CapabilityScope
     evidenced_maturity: CapabilityMaturity | None
     checked_evidence: list[str]
     missing_evidence: list[str]
@@ -177,6 +201,8 @@ def audit_capability_registry(
             CapabilityAuditItem(
                 capability_id=manifest.capability_id,
                 declared_maturity=manifest.declared_maturity,
+                evidence_level=manifest.evidence_level,
+                scope=manifest.scope,
                 evidenced_maturity=achieved,
                 checked_evidence=checked,
                 missing_evidence=missing,

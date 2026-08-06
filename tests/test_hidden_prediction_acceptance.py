@@ -102,6 +102,12 @@ def test_hidden_target_acceptance_separates_candidate_and_evaluator(tmp_path: Pa
     assert not (tmp_path / "acceptance" / "candidate-input" / "targets.csv").exists()
     assert report["arms"]["baseline"]["denominator"] == 2
     assert report["arms"]["treatment"]["independent_recalculation_match"] is True
+    disagreement = report["evaluator_disagreement_report"]
+    assert disagreement["primary_family_id"] != disagreement["secondary_family_id"]
+    assert disagreement["common_item_count"] == 4
+    assert disagreement["row_level_disagreements"] == []
+    assert disagreement["directional_conclusion_agreement"] is True
+    assert disagreement["verdict_stable"] is True
     assert report["independent_validation"]["external_independent_operator"] is False
 
 

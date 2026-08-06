@@ -1,0 +1,137 @@
+schema_version: 1
+verification_context:
+  last_verified_at: "2026-08-01T02:20:32Z"
+  verified_commit: 79a029f3c20db1dcabad6679d031425d62e08ea1
+  environment: github-actions ubuntu-latest python-3.12 run-30679677198
+  environment_digest: sha256:4a5e742f1f59d569b28be7c6f091f2d7bd6ed8367f84bb7490c9eafcfc1f3507
+  run_url: https://github.com/CKwin26/Auto-Agentic-Research-Forge/actions/runs/30679677198
+  last_replay_status: passed
+  evidence_expires_at: "2026-09-01T00:00:00Z"
+capabilities:
+  - capability_id: workflow.control_loop
+    evidence_level: 2
+    scope: bounded
+    positive_tests: [tests/test_workflow_scheduler.py::test_scope_approval_completes_waiting_owner_node]
+    negative_tests: [tests/test_workflow_scheduler.py::test_unconnected_cross_stage_retrieval_is_blocked_not_faked]
+    mutation_tests: [tests/test_workflow_scheduler.py::test_expired_worker_cannot_publish_after_fencing_token_advances]
+    replay_evidence: [tests/test_web_app.py]
+  - capability_id: research_contract.compiler
+    evidence_level: 1
+    scope: bounded
+    positive_tests: [tests/test_contract_compiler.py::test_stock_contract_v2_compiles_only_after_scientific_semantics_are_frozen, tests/test_scientific_contribution_gate.py::test_well_scoped_controlled_effect_passes_contribution_gate]
+    negative_tests: [tests/test_contract_compiler.py::test_legacy_stock_project_is_blocked_before_stage_three_with_complete_codes, tests/test_scientific_contribution_gate.py::test_trivial_baseline_is_blocked]
+    mutation_tests: [tests/test_contract_compiler.py::test_target_column_cannot_also_be_a_feature, tests/test_scientific_contribution_gate.py::test_seed_level_pseudo_replication_is_blocked]
+  - capability_id: scientific_execution.typed_profiles
+    evidence_level: 1
+    scope: bounded
+    positive_tests: [tests/test_tabular_ml_profile.py::test_fixed_split_classification_runs_and_recomputes_metrics, tests/test_profile_capability_matrix.py::test_profile_matrix_covers_every_enum_without_upgrading_extensions]
+    negative_tests: [tests/test_tabular_ml_profile.py::test_tabular_profile_blocks_missing_columns]
+    mutation_tests: [tests/test_profiles.py::test_v1_to_v2_requires_scientific_successor_and_no_result_reuse]
+  - capability_id: reproduction.sealed_existing_project_replay
+    evidence_level: 3
+    scope: limited_real_case
+    positive_tests: [tests/test_existing_project_replay.py::test_project_replays_twice_in_fresh_offline_containers]
+    negative_tests: [tests/test_existing_project_replay.py::test_replay_spec_rejects_secret_and_escape_paths]
+    mutation_tests: [tests/test_existing_project_replay.py::test_sealed_package_detects_source_independent_tampering]
+    replay_evidence: [docs/existing-python-project-real-case-validation-2026-07-31.md]
+    real_case_evidence: [docs/existing-python-project-real-case-validation-2026-07-31.md]
+  - capability_id: scientific_completion.empirical_loop
+    evidence_level: 1
+    scope: bounded
+    positive_tests: [tests/test_evaluator_comparison.py::test_distinct_evaluator_families_can_confirm_stability, tests/test_evaluator_comparison.py::test_authorized_human_adjudication_resolves_without_rewriting_report, tests/test_stage3_completion_authority.py::test_stage4_uses_newest_completion_not_filename_order]
+    negative_tests: [tests/test_evaluator_comparison.py::test_same_family_cannot_masquerade_as_secondary_evaluator, tests/test_evaluator_comparison.py::test_abstaining_adjudication_keeps_completion_blocked]
+    mutation_tests: [tests/test_evaluator_comparison.py::test_row_level_metric_disagreement_is_preserved, tests/test_evaluator_comparison.py::test_directional_verdict_disagreement_blocks_stability]
+  - capability_id: scientific_completion.cross_domain_autonomy
+    evidence_level: 0
+    scope: extension_only
+    positive_tests: [tests/test_profiles.py::test_component_layers_are_not_mislabelled_as_profiles]
+    negative_tests: [tests/test_workflow_scheduler.py::test_unconnected_cross_stage_retrieval_is_blocked_not_faked]
+    mutation_tests: [tests/test_profile_capability_matrix.py::test_profile_matrix_covers_every_enum_without_upgrading_extensions]
+  - capability_id: retrieval.gateway
+    evidence_level: 2
+    scope: bounded
+    positive_tests: [tests/test_retrieval_gateway.py::test_authorized_discovery_persists_raw_normalizes_and_builds_set]
+    negative_tests: [tests/test_retrieval_gateway.py::test_default_offline_never_calls_provider]
+    mutation_tests: [tests/test_retrieval_gateway.py::test_provider_credential_never_enters_artifacts]
+    replay_evidence: [tests/test_external_research_v1.py]
+  - capability_id: retrieval.paperqa_fulltext
+    evidence_level: 3
+    scope: limited_real_case
+    positive_tests: [tests/test_paperqa_synthesis_v2.py::test_batch_synthesis_uses_one_worker_call_and_preserves_job_boundaries]
+    negative_tests: [tests/test_paperqa_synthesis_v2.py::test_sentence_level_validation_rejects_uncited_or_external_evidence]
+    mutation_tests: [tests/test_paperqa_synthesis_v2.py::test_evidence_aware_cache_key_changes_for_every_authority_input]
+    replay_evidence: [docs/paperqa-runtime-revalidation-2026-07-31.md]
+    real_case_evidence: [docs/paperqa-runtime-revalidation-2026-07-31.md]
+  - capability_id: authoring.evidence_bound
+    evidence_level: 2
+    scope: bounded
+    positive_tests: [tests/test_paper_authoring.py::test_publication_title_validation_accepts_natural_academic_title]
+    negative_tests: [tests/test_paper_authoring.py::test_reader_facing_title_rejects_internal_code_identifiers]
+    mutation_tests: [tests/test_stage_four_publication_control.py::test_reporting_and_attack_surface_cannot_hide_registered_result]
+    replay_evidence: [tests/test_stage_four_publication_control.py]
+  - capability_id: visualization.drawio_export
+    evidence_level: 3
+    scope: limited_real_case
+    positive_tests: [tests/test_drawio_backend.py::test_drawio_source_is_editable_and_deterministic]
+    negative_tests: [tests/test_drawio_backend.py::test_export_waits_for_delayed_electron_artifact]
+    mutation_tests: [tests/test_drawio_backend.py::test_drawio_source_is_editable_and_deterministic]
+    replay_evidence: [docs/drawio-runtime-revalidation-2026-07-31.md]
+    real_case_evidence: [docs/drawio-runtime-revalidation-2026-07-31.md]
+  - capability_id: review.nuwa_panel
+    evidence_level: 1
+    scope: component
+    positive_tests: [tests/test_nuwa_panel.py::test_packet_is_blinded_and_routes_exactly_three_personas]
+    negative_tests: [tests/test_nuwa_panel.py::test_single_unsupported_without_hard_veto_abstains]
+    mutation_tests: [tests/test_nuwa_panel.py::test_hard_veto_and_mixed_vote_rules_are_deterministic]
+  - capability_id: benchmark.official_airs_rad
+    evidence_level: 3
+    scope: limited_real_case
+    positive_tests: [tests/test_official_airs_audit.py::test_audit_accepts_hash_bound_official_evaluator_cell]
+    negative_tests: [tests/test_official_airs_audit.py::test_audit_rejects_source_drift_and_false_leaderboard_claim]
+    mutation_tests: [tests/test_official_airs_audit.py::test_audit_rejects_source_drift_and_false_leaderboard_claim]
+    replay_evidence: [docs/official-airs-rad-validation-2026-07-31.md]
+    real_case_evidence: [docs/official-airs-rad-validation-2026-07-31.md]
+  - capability_id: interchange.rocrate_external_validation
+    evidence_level: 2
+    scope: limited_real_case
+    positive_tests: [tests/test_rocrate_validation.py::test_workflow_run_fixture_passes_maintained_external_validator]
+    negative_tests: [tests/test_rocrate_validation.py::test_external_validator_failure_is_not_upgraded]
+    mutation_tests: [tests/test_rocrate_validation.py::test_validator_evidence_cannot_modify_the_crate]
+    replay_evidence: [docs/workflow-run-rocrate-external-validation-2026-08-01.md]
+  - capability_id: reproduction.controlled_clean_room_replay
+    evidence_level: 2
+    scope: limited_real_case
+    positive_tests: [tests/test_clean_room_replay.py::test_clean_room_command_mounts_only_package_and_evidence]
+    negative_tests: [tests/test_reproduction.py::test_local_reproduce_runs_but_cannot_award_rf_e2]
+    mutation_tests: [tests/test_reproduction.py::test_conflicting_receipt_puts_publication_under_review]
+    replay_evidence: [docs/clean-room-replay-acceptance-2026-07-31.md]
+  - capability_id: data_quality.great_expectations_gate
+    evidence_level: 2
+    scope: limited_real_case
+    positive_tests: [tests/test_great_expectations_gate.py::test_real_great_expectations_runtime_qualifies_frozen_csv]
+    negative_tests: [tests/test_great_expectations_gate.py::test_failed_expectation_disqualifies_but_does_not_make_verdict]
+    mutation_tests: [tests/test_great_expectations_gate.py::test_dataset_mutation_is_rejected_before_gx_execution]
+    replay_evidence: [docs/great-expectations-controlled-gate-acceptance-2026-07-31.md]
+  - capability_id: interchange.prov_external_validation
+    evidence_level: 2
+    scope: limited_real_case
+    positive_tests: [tests/test_prov_validation.py::test_external_shacl_engine_accepts_stage3_prov_projection]
+    negative_tests: [tests/test_prov_validation.py::test_missing_generated_entity_is_rejected]
+    mutation_tests: [tests/test_prov_validation.py::test_external_report_cannot_mutate_source_tree]
+    replay_evidence: [docs/prov-external-validation-acceptance-2026-07-31.md]
+  - capability_id: scientific_execution.hidden_target_benchmark
+    evidence_level: 3
+    scope: limited_real_case
+    positive_tests: [tests/test_hidden_prediction_acceptance.py::test_hidden_target_acceptance_separates_candidate_and_evaluator]
+    negative_tests: [tests/test_hidden_prediction_acceptance.py::test_hidden_target_acceptance_rejects_changed_source]
+    mutation_tests: [tests/test_hidden_prediction_acceptance.py::test_hidden_target_acceptance_rejects_changed_source]
+    replay_evidence: [docs/benchmark-prediction-hidden-target-acceptance-2026-08-01.md]
+    real_case_evidence: [docs/benchmark-prediction-hidden-target-acceptance-2026-08-01.md]
+  - capability_id: reproduction.public_minimal_research_package
+    evidence_level: 3
+    scope: limited_real_case
+    positive_tests: [tests/test_public_package.py::test_public_package_is_self_contained_and_tamper_evident]
+    negative_tests: [tests/test_public_package.py::test_public_blocked_case_is_self_contained_and_has_no_run_or_verdict]
+    mutation_tests: [tests/test_public_package.py::test_public_package_is_self_contained_and_tamper_evident]
+    replay_evidence: [docs/github-hosted-public-replay-2026-08-01.md]
+    real_case_evidence: [docs/public-minimal-research-package-acceptance-2026-08-01.md]

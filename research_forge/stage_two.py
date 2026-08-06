@@ -6229,6 +6229,31 @@ def _protocol_draft(context: "StepContext") -> dict[str, Any]:
         str(overrides.get("threshold_basis") or "").strip() or None,
     )
     requested_validity.setdefault(
+        "expected_information_value",
+        str(overrides.get("expected_information_value") or "").strip()
+        or (
+            "Determine whether the registered treatment clears the frozen "
+            "success threshold and is eligible for a scientific verdict."
+        ),
+    )
+    requested_validity.setdefault(
+        "sample_adequacy_basis",
+        str(overrides.get("sample_adequacy_basis") or "").strip()
+        or (
+            f"sample_size={draft['sample_size']}; "
+            f"statistical_power={draft['statistical_power']}"
+        ),
+    )
+    requested_validity.setdefault(
+        "independence_justification",
+        str(overrides.get("independence_justification") or "").strip()
+        or (
+            f"Inference uses variance_unit={draft['variance_unit']}; "
+            "seeds and repeated executions are not counted as independent "
+            "scientific units."
+        ),
+    )
+    requested_validity.setdefault(
         "baseline_ids",
         [
             str(draft["baseline"]["experiment_id"] or draft["baseline"]["name"])
