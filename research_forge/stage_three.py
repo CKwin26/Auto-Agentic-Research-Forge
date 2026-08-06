@@ -1810,6 +1810,13 @@ def _copy_frozen_inputs(
         destination = safe_relative(destination_root, relative)
         filesystem_path(destination.parent).mkdir(parents=True, exist_ok=True)
         shutil.copy2(filesystem_path(source), filesystem_path(destination))
+        if os.name != "nt":
+            # Atomic project artifacts are deliberately owner-readable only.
+            # The Stage 3 runner, however, executes as the fixed unprivileged
+            # UID 65534 and consumes a dedicated, immutable staging copy.  Make
+            # that copy readable by the container without weakening or
+            # mutating the frozen source artifact.
+            filesystem_path(destination).chmod(0o444)
 
 
 def _render_isolated_command(

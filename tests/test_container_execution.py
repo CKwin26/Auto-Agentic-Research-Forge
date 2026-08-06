@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -18,6 +19,27 @@ from research_forge.experiment_execution import (
     ExperimentSpec,
 )
 from research_forge.stage_three import _run_isolated_candidate_evaluator
+from research_forge.stage_three import _copy_frozen_inputs
+
+
+def test_frozen_input_staging_is_container_readable_without_mutating_source(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source"
+    destination = tmp_path / "staged"
+    source.mkdir()
+    frozen = source / "private-config.json"
+    frozen.write_text('{"frozen": true}\n', encoding="utf-8")
+    if os.name != "nt":
+        frozen.chmod(0o600)
+
+    _copy_frozen_inputs(source, destination, ["private-config.json"])
+
+    staged = destination / "private-config.json"
+    assert staged.read_text(encoding="utf-8") == '{"frozen": true}\n'
+    if os.name != "nt":
+        assert frozen.stat().st_mode & 0o777 == 0o600
+        assert staged.stat().st_mode & 0o777 == 0o444
 
 
 def test_container_command_enforces_stage3_isolation(
