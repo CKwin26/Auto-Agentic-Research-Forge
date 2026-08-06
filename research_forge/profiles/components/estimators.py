@@ -24,5 +24,22 @@ ESTIMATOR_COMPONENTS = {
             description="Unpaired difference in group means.",
             implementation_id="welch_mean_estimator_v1",
         ),
+        ProfileComponent(
+            component_id="equal_weight_top_k_v1",
+            kind=ComponentKind.ESTIMATOR,
+            version="0.1",
+            description=(
+                "Deterministic score ranking with asset-id tie breaking and "
+                "equal weight over the frozen top-k set."
+            ),
+            implementation_id="equal_weight_top_k_v1",
+        ),
+        ProfileComponent(
+            component_id="normalized_exact_match_v1",
+            kind=ComponentKind.ESTIMATOR,
+            version="0.1",
+            description="NFKC, case-folded and whitespace-normalized exact match.",
+            implementation_id="normalized_exact_match_v1",
+        ),
     )
 }

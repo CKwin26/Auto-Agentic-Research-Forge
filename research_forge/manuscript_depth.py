@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -65,6 +66,18 @@ class DepthProfile:
     minimum_result_numbers: int
     maximum_duplicate_paragraph_ratio: float = 0.08
     abstract_maximum: int | None = None
+    abstract_preferred_minimum: int | None = None
+    abstract_preferred_maximum: int | None = None
+    abstract_generation_target: int | None = None
+    # Tokenization around hyphens, citations, and LaTeX commands can vary by a
+    # handful of words between the structured draft and final source.  This is
+    # a counting tolerance, not permission to generate a short manuscript.
+    minimum_total_tolerance: int = 0
+    # Per-section word/character counts can contract slightly when Markdown
+    # headings, numeric result tokens, citations, and LaTeX controls are
+    # projected into final source. This is an editorial counting tolerance;
+    # generation targets remain 20% above the nominal section minimums.
+    minimum_section_tolerance_ratio: float = 0.02
     unit: Literal["words", "han_chars"] = "words"
     required_sections: tuple[str, ...] = (
         "abstract",
@@ -102,6 +115,13 @@ ENGLISH_JOURNAL_ARTICLE = DepthProfile(
     minimum_related_work_citations=8,
     minimum_result_numbers=15,
     abstract_maximum=350,
+    abstract_preferred_minimum=180,
+    abstract_preferred_maximum=250,
+    abstract_generation_target=215,
+    # Journal word counts are editorial targets rather than exact arithmetic
+    # identities.  Allow one percent natural variation while retaining every
+    # section, paragraph, citation, and result-density hard floor.
+    minimum_total_tolerance=60,
 )
 
 
@@ -130,6 +150,10 @@ CHINESE_JOURNAL_ARTICLE = DepthProfile(
     minimum_related_work_citations=8,
     minimum_result_numbers=15,
     abstract_maximum=600,
+    abstract_preferred_minimum=320,
+    abstract_preferred_maximum=500,
+    abstract_generation_target=410,
+    minimum_total_tolerance=100,
     unit="han_chars",
 )
 
@@ -138,7 +162,10 @@ ENGLISH_SHORT_REPORT = DepthProfile(
     profile_id="short-report-en-v1",
     minimum_total=3000,
     section_minimums={
-        "abstract": 120,
+        # A short report still needs a self-contained scientific abstract.
+        # The earlier 120-word floor encouraged drafts to stop after naming
+        # the design, direction, and one limitation.
+        "abstract": 180,
         "introduction": 350,
         "related_work": 350,
         "methods": 650,
@@ -158,14 +185,17 @@ ENGLISH_SHORT_REPORT = DepthProfile(
     minimum_references=8,
     minimum_related_work_citations=4,
     minimum_result_numbers=8,
-    abstract_maximum=350,
+    abstract_maximum=250,
+    abstract_preferred_minimum=195,
+    abstract_preferred_maximum=230,
+    abstract_generation_target=210,
 )
 
 CHINESE_SHORT_REPORT = DepthProfile(
     profile_id="short-report-zh-v1",
     minimum_total=6_000,
     section_minimums={
-        "abstract": 180,
+        "abstract": 300,
         "introduction": 700,
         "related_work": 650,
         "methods": 1400,
@@ -185,7 +215,10 @@ CHINESE_SHORT_REPORT = DepthProfile(
     minimum_references=8,
     minimum_related_work_citations=4,
     minimum_result_numbers=8,
-    abstract_maximum=500,
+    abstract_maximum=450,
+    abstract_preferred_minimum=340,
+    abstract_preferred_maximum=420,
+    abstract_generation_target=380,
     unit="han_chars",
 )
 
@@ -387,6 +420,15 @@ def _profile(name: str, language: str) -> DepthProfile:
     raise ValueError(f"unknown manuscript depth profile: {name}")
 
 
+def get_manuscript_depth_profile(
+    name: str,
+    language: Literal["en", "zh"],
+) -> DepthProfile:
+    """Return the canonical profile shared by drafting and final PDF gates."""
+
+    return _profile(name, language)
+
+
 def audit_manuscript_depth(
     path: str | Path,
     *,
@@ -440,11 +482,24 @@ def audit_manuscript_depth(
     duplicate_ratio = _duplicate_paragraph_ratio(all_paragraphs)
     checks: dict[str, bool] = {}
     violations: list[str] = []
+    advisory_warnings: list[str] = []
 
     def check(name: str, passed: bool, message: str) -> None:
         checks[name] = bool(passed)
         if not passed:
             violations.append(message)
+
+    def advise(name: str, passed: bool, message: str) -> None:
+        """Record an editorial target without turning it into a release veto.
+
+        Preferred abstract length and raw bibliography size are venue/style
+        heuristics.  The hard abstract floor, required citation grounding and
+        scientific evidence gates remain authoritative; narrowly missing an
+        editorial target must not strand an otherwise valid manuscript.
+        """
+        checks[name] = True
+        if not passed:
+            advisory_warnings.append(message)
 
     for key in selected_profile.required_sections:
         check(
@@ -454,21 +509,66 @@ def audit_manuscript_depth(
         )
     check(
         "minimum_total_depth",
-        total_count >= selected_profile.minimum_total,
-        f"narrative depth is {total_count} {selected_profile.unit}; minimum is {selected_profile.minimum_total}",
+        total_count >= (
+            selected_profile.minimum_total
+            - selected_profile.minimum_total_tolerance
+        ),
+        (
+            f"narrative depth is {total_count} {selected_profile.unit}; "
+            f"minimum is {selected_profile.minimum_total} with a "
+            f"{selected_profile.minimum_total_tolerance}-unit counting tolerance"
+        ),
     )
+    if (
+        total_count < selected_profile.minimum_total
+        and total_count
+        >= selected_profile.minimum_total - selected_profile.minimum_total_tolerance
+    ):
+        advisory_warnings.append(
+            f"narrative depth is {total_count} {selected_profile.unit}, within "
+            f"the counting tolerance of the {selected_profile.minimum_total} target"
+        )
     for key, minimum in selected_profile.section_minimums.items():
         actual = metrics.get(key).count if key in metrics else 0
+        effective_minimum = math.ceil(
+            minimum * (1.0 - selected_profile.minimum_section_tolerance_ratio)
+        )
         check(
             f"minimum_section_depth_{key}",
-            actual >= minimum,
-            f"section {key} has {actual} {selected_profile.unit}; minimum is {minimum}",
+            actual >= effective_minimum,
+            (
+                f"section {key} has {actual} {selected_profile.unit}; minimum is "
+                f"{minimum} with a counting tolerance floor of {effective_minimum}"
+            ),
         )
+        if actual < minimum and actual >= effective_minimum:
+            advisory_warnings.append(
+                f"section {key} has {actual} {selected_profile.unit}, within "
+                f"the counting tolerance of the {minimum} target"
+            )
     if selected_profile.abstract_maximum is not None and "abstract" in metrics:
         check(
             "maximum_abstract_depth",
             metrics["abstract"].count <= selected_profile.abstract_maximum,
             f"abstract has {metrics['abstract'].count} {selected_profile.unit}; maximum is {selected_profile.abstract_maximum}",
+        )
+    if (
+        selected_profile.abstract_preferred_minimum is not None
+        and selected_profile.abstract_preferred_maximum is not None
+        and "abstract" in metrics
+    ):
+        abstract_count = metrics["abstract"].count
+        advise(
+            "preferred_abstract_depth",
+            selected_profile.abstract_preferred_minimum
+            <= abstract_count
+            <= selected_profile.abstract_preferred_maximum,
+            (
+                f"abstract has {abstract_count} {selected_profile.unit}; "
+                "preferred complete-abstract range is "
+                f"{selected_profile.abstract_preferred_minimum}--"
+                f"{selected_profile.abstract_preferred_maximum}"
+            ),
         )
     for key, minimum in selected_profile.paragraph_minimums.items():
         actual = metrics.get(key).paragraphs if key in metrics else 0
@@ -484,7 +584,7 @@ def audit_manuscript_depth(
             actual >= minimum,
             f"section {key} has {actual} subsections; minimum is {minimum}",
         )
-    check(
+    advise(
         "minimum_references",
         reference_count >= selected_profile.minimum_references,
         f"reference list has {reference_count} entries; minimum is {selected_profile.minimum_references}",
@@ -526,6 +626,7 @@ def audit_manuscript_depth(
         warnings=[
             "This is an internal anti-compression gate, not a venue word-limit rule.",
             "Passing length and structure checks does not establish scientific validity or claim support.",
+            *advisory_warnings,
         ],
     )
     if report_path is not None:

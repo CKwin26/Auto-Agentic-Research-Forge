@@ -1636,6 +1636,30 @@ def test_adoption_signals_do_not_become_scientific_scores() -> None:
     assert resources[0].metadata["attention"]["stars"] == 100000
 
 
+def test_publication_resource_uses_metadata_authors_not_venue_name() -> None:
+    resources = normalize_signals(
+        [
+            TrendSignal(
+                signal_id="paper-1",
+                provider="crossref",
+                signal_class="scholarly_attention",
+                query="prompt evaluation",
+                title="Prompt Evaluation Study",
+                summary="A controlled evaluation.",
+                url="https://doi.org/10.1234/example",
+                published_at="2026",
+                source_name="Journal of Evaluation",
+                trend_score=0.5,
+                scientific_density=0.8,
+                metadata={"authors": ["Ada Lovelace", "Alan Turing"]},
+            )
+        ]
+    )
+
+    assert resources[0].authors_or_owners == ["Ada Lovelace", "Alan Turing"]
+    assert resources[0].metadata["source_name"] == "Journal of Evaluation"
+
+
 def test_readiness_and_institution_api_round_trip(tmp_path: Path) -> None:
     static = tmp_path / "dist"
     static.mkdir()

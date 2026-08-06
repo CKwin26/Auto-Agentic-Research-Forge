@@ -51,8 +51,54 @@ def _section(
     return "\n\n".join(blocks)
 
 
+def test_short_report_abstract_has_a_self_contained_depth_window() -> None:
+    english = _profile("short-report", "en")
+    chinese = _profile("short-report", "zh")
+
+    assert english.section_minimums["abstract"] == 180
+    assert english.abstract_maximum == 250
+    assert english.abstract_generation_target == 210
+    assert english.abstract_preferred_minimum == 195
+    assert english.abstract_preferred_maximum == 230
+    assert chinese.section_minimums["abstract"] == 300
+    assert chinese.abstract_maximum == 450
+    assert chinese.abstract_generation_target == 380
+
+
+def test_preferred_abstract_length_and_reference_count_are_advisory(
+    tmp_path: Path,
+) -> None:
+    manuscript = tmp_path / "short-report.tex"
+    body = [
+        r"\documentclass{article}",
+        r"\begin{document}",
+        r"\begin{abstract}",
+        _paragraph("Abstract", 1, 192),
+        r"\end{abstract}",
+        _section("Introduction", words=420, paragraphs=3),
+        _section("Related Work", words=420, paragraphs=3, citations=4),
+        _section("Methods", words=760, paragraphs=5, subsections=2),
+        _section("Results", words=650, paragraphs=4, subsections=2, numbers=10),
+        _section("Discussion", words=650, paragraphs=4, subsections=2),
+        _section("Conclusion", words=130, paragraphs=1),
+        r"\begin{thebibliography}{99}",
+        *(rf"\bibitem{{source-{index}}} Verified source {index}." for index in range(5)),
+        r"\end{thebibliography}",
+        r"\end{document}",
+    ]
+    manuscript.write_text("\n\n".join(body) + "\n", encoding="utf-8")
+
+    report = audit_manuscript_depth(manuscript, profile="short-report")
+
+    assert report.passed
+    assert report.checks["preferred_abstract_depth"]
+    assert report.checks["minimum_references"]
+    assert any("preferred complete-abstract range" in item for item in report.warnings)
+    assert any("reference list has 5 entries" in item for item in report.warnings)
+
+
 def _journal_latex() -> str:
-    abstract = _paragraph("Abstract", 1, 180)
+    abstract = _paragraph("Abstract", 1, 220)
     body = [
         r"\documentclass{article}",
         r"\begin{document}",
@@ -86,6 +132,40 @@ def test_journal_depth_gate_accepts_balanced_long_form_article(tmp_path: Path) -
     assert report.sections["related_work"].citations == 8
     assert report.sections["results"].numeric_tokens >= 15
     assert report_path.is_file()
+
+
+def test_journal_section_counting_tolerance_is_advisory(tmp_path: Path) -> None:
+    manuscript = tmp_path / "paper-near-section-target.tex"
+    original_results = _section(
+        "Results", words=1200, paragraphs=7, subsections=3, numbers=18
+    )
+    near_target_results = _section(
+        # The helper's ``words`` budget includes 19 numeric/control tokens;
+        # the production counter correctly excludes them from prose depth.
+        "Results", words=1007, paragraphs=7, subsections=3, numbers=18
+    )
+    original_discussion = _section(
+        "Discussion", words=1300, paragraphs=7, subsections=3
+    )
+    expanded_discussion = _section(
+        "Discussion", words=1500, paragraphs=7, subsections=3
+    )
+    manuscript.write_text(
+        _journal_latex()
+        .replace(original_results, near_target_results)
+        .replace(original_discussion, expanded_discussion),
+        encoding="utf-8",
+    )
+
+    report = audit_manuscript_depth(manuscript)
+
+    assert report.passed
+    assert report.sections["results"].count == 988
+    assert any(
+        "section results has 988 words" in warning
+        and "counting tolerance" in warning
+        for warning in report.warnings
+    )
 
 
 def test_journal_depth_gate_rejects_heading_complete_but_thin_article(
@@ -219,3 +299,14 @@ def test_chinese_short_report_has_a_native_depth_profile() -> None:
     assert profile.unit == "han_chars"
     assert profile.minimum_total == 6_000
     assert profile.minimum_references == 8
+
+
+def test_journal_total_depth_allows_only_one_percent_counting_variation() -> None:
+    english = _profile("journal-article", "en")
+    chinese = _profile("journal-article", "zh")
+
+    assert english.minimum_total - english.minimum_total_tolerance == 5_940
+    assert chinese.minimum_total - chinese.minimum_total_tolerance == 9_900
+    assert all(
+        value > 0 for value in english.section_minimums.values()
+    )

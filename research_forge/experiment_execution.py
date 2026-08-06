@@ -58,6 +58,8 @@ class ExperimentSpec(StrictModel):
     evaluator_command: list[str] | None = None
     evaluator_code_paths: list[str] = Field(default_factory=list)
     evaluator_required_inputs: list[str] = Field(default_factory=list)
+    candidate_data_path: str | None = None
+    evaluator_target_path: str | None = None
     prediction_artifact_path: str | None = None
     network_access: bool = False
     artifacts: list[ExperimentArtifactSpec] = Field(min_length=1)
@@ -105,6 +107,14 @@ class ExperimentSpec(StrictModel):
             if self.network_access:
                 raise ValueError(
                     "generated isolated experiments cannot request network"
+                )
+            if self.candidate_data_path is not None and self.candidate_data_path not in self.required_inputs:
+                raise ValueError(
+                    "candidate_data_path must be a declared candidate input"
+                )
+            if self.evaluator_target_path is not None and self.evaluator_target_path not in self.evaluator_required_inputs:
+                raise ValueError(
+                    "evaluator_target_path must be a declared evaluator input"
                 )
         for name in self.required_env:
             if not name.replace("_", "a").isalnum() or not name[0].isalpha():

@@ -144,7 +144,7 @@ function requestId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function GlobalHeader({ connected, runtime, tasks, activeTask, onSelectTask, onOpenDeployment }) {
+function GlobalHeader({ connected, runtime, tasks, activeTask, onSelectTask, onOpenDeployment, onOpenPaperLab }) {
   const [open, setOpen] = useState(false);
   const needsAttention = tasks.filter((task) => ["waiting_for_user", "failed", "blocked"].includes(task.status));
   const engineName = runtime?.backend === "api" ? "API 模型" : "Codex";
@@ -162,6 +162,10 @@ function GlobalHeader({ connected, runtime, tasks, activeTask, onSelectTask, onO
         <button className="deployment-settings-button" type="button" onClick={onOpenDeployment}>
           <GearSix size={17} />
           <span>模型设置</span>
+        </button>
+        <button className="deployment-settings-button" type="button" onClick={onOpenPaperLab}>
+          <Flask size={17} />
+          <span>Profile 论文验收</span>
         </button>
         <div className="task-switcher">
           <button
@@ -201,6 +205,43 @@ function GlobalHeader({ connected, runtime, tasks, activeTask, onSelectTask, onO
   );
 }
 
+function ProfilePaperLab({ data, loading, error, onClose, onRefresh, onOpenPath }) {
+  return (
+    <div className="profile-paper-lab-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <section className="profile-paper-lab" role="dialog" aria-modal="true" aria-labelledby="profile-paper-lab-title">
+        <header>
+          <div><span>PROFILE PAPER LAB</span><h2 id="profile-paper-lab-title">用最终论文验收每一种研究设计</h2><p>组件测试只能达到 C2；只有完整实验、独立重算、证据映射和论文包全部通过，才能达到 C3。</p></div>
+          <button type="button" onClick={onClose} aria-label="关闭 Profile Paper Lab"><X size={22} /></button>
+        </header>
+        {loading ? <div className="paper-lab-loading"><CircleNotch className="spinner" size={24} />正在读取验收记录</div> : null}
+        {error ? <div className="deployment-error"><WarningCircle size={18} />{error}</div> : null}
+        {!loading && data ? (
+          <>
+            <div className="paper-lab-composition"><strong>执行方式</strong><ArrowRight size={15} /><strong>研究设计</strong><ArrowRight size={15} /><strong>推断组件</strong><ArrowRight size={15} /><strong>最终论文</strong></div>
+            <div className="paper-lab-table-wrap">
+              <table className="paper-lab-table">
+                <thead><tr><th>研究设计</th><th>成熟度</th><th>最新论文</th><th>科学 Verdict</th><th>自动验收</th><th>独立重算</th><th>AI 科学审核</th></tr></thead>
+                <tbody>{(data.profiles || []).map((profile) => (
+                  <tr key={profile.design_id}>
+                    <td><strong>{profile.title}</strong><small>{profile.summary}</small></td>
+                    <td><span className={`paper-lab-maturity is-${profile.verified_maturity}`}>{String(profile.verified_maturity || profile.maturity).split("_")[0].toUpperCase()}</span></td>
+                    <td>{profile.manuscript_path ? <button type="button" className="paper-lab-link" onClick={() => onOpenPath(profile.manuscript_path)}>查看 PDF</button> : "未生成"}</td>
+                    <td>{profile.latest_package?.scientific_verdict || "—"}</td>
+                    <td>{profile.automatic_acceptance === "pass" ? "PASS" : profile.automatic_acceptance === "fail" ? "FAIL" : "未完成"}</td>
+                    <td>{profile.independent_recalculation === "pass" ? "PASS" : "—"}</td>
+                    <td>{profile.ai_scientific_review === "passed" ? "已通过" : "待审核"}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+            <footer><p>{data.maturity_rule}</p><button type="button" className="secondary-button" onClick={onRefresh}><ClockCounterClockwise size={16} />刷新验收状态</button></footer>
+          </>
+        ) : null}
+      </section>
+    </div>
+  );
+}
+
 function DeploymentWizard({
   runtime,
   externalSetup,
@@ -221,6 +262,8 @@ function DeploymentWizard({
     baseUrl: "",
     apiKey: "",
   });
+  const [profileAcceptance, setProfileAcceptance] = useState(null);
+  const [profileAcceptanceBusy, setProfileAcceptanceBusy] = useState(false);
   const codexReady = runtime?.codex_authenticated === true;
   const apiReady = runtime?.backend === "api" && runtime?.ready === true;
   const selectedReady = method === "codex" ? codexReady : apiReady;
@@ -255,6 +298,20 @@ function DeploymentWizard({
       run_validation: false,
     });
     if (result) onComplete(runtime);
+  };
+
+  const runLlmProfileAcceptance = async () => {
+    setProfileAcceptanceBusy(true);
+    try {
+      setProfileAcceptance(await api("/api/experiment-profiles/llm-evaluation/acceptance", {
+        method: "POST",
+        body: JSON.stringify({}),
+      }));
+    } catch (acceptanceError) {
+      setProfileAcceptance({ overall: "FAIL", error: humanizeUiError(acceptanceError) });
+    } finally {
+      setProfileAcceptanceBusy(false);
+    }
   };
 
   return (
@@ -415,6 +472,27 @@ function DeploymentWizard({
             ) : (
               <div className="offline-setup-note"><WifiSlash size={20} /><span><strong>离线工作流保持完整</strong><small>仍可扫描本地项目、设计实验、运行受控实验并撰写论文。</small></span></div>
             )}
+            <section className="profile-acceptance-card">
+              <div>
+                <strong>LLM 实验 Profile 端到端验收</strong>
+                <small>从 Idea 入口运行 150 道冻结选择题的双臂 300 次受控调用，并检查论文与复现包。</small>
+              </div>
+              <button type="button" className="secondary-button" onClick={runLlmProfileAcceptance} disabled={profileAcceptanceBusy}>
+                {profileAcceptanceBusy ? <CircleNotch className="spinner" size={17} /> : <Play size={17} />}
+                {profileAcceptanceBusy ? "正在验收" : "运行端到端验收"}
+              </button>
+              {profileAcceptance ? (
+                <div className={`profile-acceptance-result is-${profileAcceptance.overall?.toLowerCase()}`}>
+                  <strong>Overall {profileAcceptance.overall}</strong>
+                  {profileAcceptance.scientific_verdict ? <span>Scientific Verdict：{profileAcceptance.scientific_verdict}</span> : null}
+                  {profileAcceptance.critical_gates ? <span>Critical Gates：{Object.values(profileAcceptance.critical_gates).filter(Boolean).length}/{Object.keys(profileAcceptance.critical_gates).length}</span> : null}
+                  {profileAcceptance.paper ? <span>Paper：{profileAcceptance.paper}</span> : null}
+                  {profileAcceptance.completion_package ? <span>Completion Package：{profileAcceptance.completion_package}</span> : null}
+                  {profileAcceptance.known_limitations?.length ? <span>Known Limitations：{profileAcceptance.known_limitations.join("；")}</span> : null}
+                  {profileAcceptance.error ? <span>{profileAcceptance.error}</span> : null}
+                </div>
+              ) : null}
+            </section>
             {error ? (
               <div className="deployment-recovery" role="alert">
                 <WarningCircle size={20} weight="fill" />
@@ -4168,6 +4246,10 @@ export function App() {
   });
   const [deploymentBusy, setDeploymentBusy] = useState(false);
   const [deploymentError, setDeploymentError] = useState("");
+  const [paperLabOpen, setPaperLabOpen] = useState(false);
+  const [paperLabData, setPaperLabData] = useState(null);
+  const [paperLabLoading, setPaperLabLoading] = useState(false);
+  const [paperLabError, setPaperLabError] = useState("");
   const pollRef = useRef(null);
   const directions = useMemo(
     () => uniqueDirections(state.inspection?.candidates || [], state.inspection?.discovery_portfolio),
@@ -4262,6 +4344,19 @@ export function App() {
     window.localStorage.setItem("research-forge.deployment.v2", "complete");
     setRuntime({ ...nextRuntime, loading: false });
     setDeploymentOpen(false);
+  };
+
+  const openProfilePaperLab = async () => {
+    setPaperLabOpen(true);
+    setPaperLabLoading(true);
+    setPaperLabError("");
+    try {
+      setPaperLabData(await api("/api/profile-paper-lab"));
+    } catch (error) {
+      setPaperLabError(error.message);
+    } finally {
+      setPaperLabLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -4657,6 +4752,7 @@ export function App() {
         activeTask={state.activeTask}
         onSelectTask={selectTask}
         onOpenDeployment={() => setDeploymentOpen(true)}
+        onOpenPaperLab={openProfilePaperLab}
       />
       <main className="workspace">
         <ResearchStageTabs activePhase={activePhase} workflow={activeWorkflow} onChange={setActivePhase} />
@@ -4688,6 +4784,7 @@ export function App() {
         ) : null}
       </main>
       <EvidenceDrawer item={drawerItem} onClose={() => setDrawerItem(null)} />
+      {paperLabOpen ? <ProfilePaperLab data={paperLabData} loading={paperLabLoading} error={paperLabError} onClose={() => setPaperLabOpen(false)} onRefresh={openProfilePaperLab} onOpenPath={openPath} /> : null}
     </div>
   );
 }

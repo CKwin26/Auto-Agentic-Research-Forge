@@ -1,0 +1,22 @@
+{
+  "@context": "https://www.w3.org/ns/prov.jsonld",
+  "activity": {
+    "rf:plan-rocrate-fixture": {
+      "prov:generated": [
+        "rf:stage3/completion/completion.json",
+        "rf:stage3/evaluations/result.json"
+      ],
+      "prov:type": "rf:Stage3Execution"
+    }
+  },
+  "entity": {
+    "rf:stage3/completion/completion.json": {
+      "prov:type": "rf:FrozenArtifact",
+      "rf:sha256": "a7a34190f2c345333c7bc8eaee15f88f405a6f5a6168fe488028bf1973bbbcc8"
+    },
+    "rf:stage3/evaluations/result.json": {
+      "prov:type": "rf:FrozenArtifact",
+      "rf:sha256": "1db7bad12257793eb869d2426434ae213d78ab90d6eb053a4e1ad330e8edad1e"
+    }
+  }
+}

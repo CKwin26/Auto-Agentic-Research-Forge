@@ -11,6 +11,11 @@ from collections import Counter
 import re
 from typing import Any, Mapping
 
+from .paper_pipeline import (
+    GENERIC_JOURNAL_ARTICLE,
+    abstract_reader_facing_violations,
+)
+
 
 SCI_SSCI_SOURCE_REPOSITORY = "https://github.com/Yila-AI/sci-ssci-skills"
 SCI_SSCI_LICENSE = "Apache-2.0"
@@ -94,8 +99,8 @@ def stage_four_sci_ssci_contract(*, language: str = "zh") -> dict[str, Any]:
     """Return a prompt-safe, versioned writing contract for Stage 4."""
 
     return {
-        "schema_version": 1,
-        "policy_id": "research-forge-sci-ssci-writing-v1",
+        "schema_version": 2,
+        "policy_id": "research-forge-sci-ssci-writing-v2",
         "language": language,
         "source": {
             "repository": SCI_SSCI_SOURCE_REPOSITORY,
@@ -147,12 +152,22 @@ def stage_four_sci_ssci_contract(*, language: str = "zh") -> dict[str, Any]:
             "claim strength.",
         ],
         "abstract_route": [
-            "problem_or_context",
-            "gap_and_objective",
-            "approach",
-            "principal_findings",
-            "calibrated_implication",
+            "scientific_problem_or_tension",
+            "bounded_comparison_design",
+            "principal_finding_in_plain_language",
+            "scientific_implication",
+            "single_calibrated_boundary",
         ],
+        "abstract_reader_contract": {
+            "lead_with_scientific_question_not_compliance": True,
+            "finding_precedes_limitations": True,
+            "maximum_boundary_sentences_at_end": 1,
+            "internal_identifiers_allowed": False,
+            "audit_report_voice_allowed": False,
+            "preferred_numeric_token_count": 0,
+            "maximum_numeric_token_count": 2,
+            "venue_policy_may_require_one_reader_critical_effect": True,
+        },
         "claim_strength_ladder": [
             "consistent_with_or_may_suggest",
             "associated_with",
@@ -236,6 +251,9 @@ def audit_stage_four_manuscript(
         [part for part in re.split(r"\n\s*\n", abstract.strip()) if part.strip()]
     ) <= 1
     abstract_has_no_labels = _ABSTRACT_LABEL_RE.search(abstract) is None
+    abstract_rhetoric_violations = abstract_reader_facing_violations(
+        abstract, GENERIC_JOURNAL_ARTICLE.abstract
+    )
     causal_overreach = (
         not causal_claim_authorized
         and _contains_unnegated_causal_marker(title + "\n" + abstract)
@@ -265,6 +283,14 @@ def audit_stage_four_manuscript(
                 "message": "Abstract contains a structured section label.",
             }
         )
+    for message in abstract_rhetoric_violations:
+        if message.startswith("abstract exposes internal identifiers"):
+            code = "ABSTRACT_INTERNAL_IDENTIFIER"
+        elif message.startswith("abstract uses audit or governance vocabulary"):
+            code = "ABSTRACT_AUDIT_REPORT_VOICE"
+        else:
+            code = "ABSTRACT_DEFENSIVE_ENDING"
+        findings.append({"code": code, "message": message})
     if unknown_citations:
         findings.append(
             {
@@ -286,14 +312,15 @@ def audit_stage_four_manuscript(
             }
         )
     return {
-        "schema_version": 1,
-        "policy_id": "research-forge-sci-ssci-writing-v1",
+        "schema_version": 2,
+        "policy_id": "research-forge-sci-ssci-writing-v2",
         "source_repository": SCI_SSCI_SOURCE_REPOSITORY,
         "license": SCI_SSCI_LICENSE,
         "checks": {
             "title_promise_has_no_internal_identifiers": not title_identifiers,
             "abstract_is_one_unstructured_paragraph": abstract_is_one_paragraph,
             "abstract_has_no_section_labels": abstract_has_no_labels,
+            "abstract_has_reader_facing_rhetoric": not abstract_rhetoric_violations,
             "citations_belong_to_frozen_verified_set": not unknown_citations,
             "claim_strength_not_escalated": not causal_overreach,
         },

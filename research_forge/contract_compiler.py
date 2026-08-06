@@ -543,6 +543,14 @@ def compile_research_contract(
             "disagreements affect the scientific verdict"
         )
 
+    if contract.study_design:
+        from .study_design import validate_composable_contract
+
+        issues.extend(
+            f"STUDY_DESIGN_INVALID: {item}"
+            for item in validate_composable_contract(contract)
+        )
+
     issues = list(dict.fromkeys(issues))
     compile_report_id = stable_id(
         "contract-compile",

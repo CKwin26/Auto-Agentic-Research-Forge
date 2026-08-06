@@ -17,5 +17,19 @@ OUTCOME_COMPONENTS = {
             description="Sample-level success/failure outcome encoded as 0/1.",
             implementation_id="binary_analysis_table_v1",
         ),
+        ProfileComponent(
+            component_id="period_portfolio_return_v1",
+            kind=ComponentKind.OUTCOME,
+            version="0.1",
+            description="Equal-weight period return net of frozen round-trip costs.",
+            implementation_id="period_portfolio_return_v1",
+        ),
+        ProfileComponent(
+            component_id="deterministic_task_score_v1",
+            kind=ComponentKind.OUTCOME,
+            version="0.1",
+            description="Per-task deterministic score in the closed interval [0, 1].",
+            implementation_id="deterministic_task_score_v1",
+        ),
     )
 }

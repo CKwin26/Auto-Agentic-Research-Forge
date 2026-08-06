@@ -138,6 +138,125 @@ def audit_evaluation_transparency_coverage(
     )
 
 
+_DISCLOSURE_MARKERS: dict[str, tuple[tuple[str, ...], ...]] = {
+    "sample_flow": (
+        ("assigned", "analysis"),
+        ("population", "denominator"),
+        ("样本", "分母"),
+        ("分配", "分析"),
+    ),
+    "eligibility": (
+        ("eligible", "excluded"),
+        ("included", "excluded"),
+        ("资格", "排除"),
+        ("纳入", "排除"),
+    ),
+    "abstention": (("abstention",), ("abstain",), ("弃权",)),
+    "numeric_precision": (
+        ("decimal",),
+        ("precision",),
+        ("rounding",),
+        ("小数",),
+        ("精度",),
+        ("舍入",),
+    ),
+    "release_assets": (
+        ("release asset",),
+        ("public packet",),
+        ("packet schema",),
+        ("发布资产",),
+        ("公开材料包",),
+        ("数据包模式",),
+    ),
+}
+
+
+def infer_declared_transparency_item_ids(
+    register: EvaluationTransparencyRegister,
+    *,
+    sections: dict[str, str],
+) -> list[str]:
+    """Infer reader-facing disclosures without leaking internal item IDs.
+
+    Transparency identifiers belong in the audit ledger, not in manuscript
+    prose.  Earlier code nevertheless counted only literal
+    ``transparency:<id>`` claim tokens, so a manuscript could disclose sample
+    flow, eligibility, abstentions, precision, and missing release assets in
+    ordinary language while the coverage gate still reported zero coverage.
+    This conservative semantic check requires category-specific marker groups
+    in the registered destination (with ``limitations`` mapped to the draft's
+    limitations/discussion text).
+    """
+
+    normalized = {
+        str(name): str(value or "").casefold()
+        for name, value in sections.items()
+    }
+    declared: list[str] = []
+    for item in register.material_items():
+        destinations = [item.required_destination]
+        if item.required_destination == "limitations":
+            destinations.append("discussion")
+        destination_text = "\n".join(
+            normalized.get(name, "") for name in destinations
+        )
+        # Section placement is a presentation recommendation, not scientific
+        # authority. Count a clear disclosure elsewhere in the manuscript and
+        # let the structure audit handle relocation separately.
+        manuscript_text = "\n".join(normalized.values())
+        marker_groups = _DISCLOSURE_MARKERS.get(item.category, ())
+        if marker_groups and any(
+            all(
+                marker.casefold() in destination_text
+                or marker.casefold() in manuscript_text
+                for marker in group
+            )
+            for group in marker_groups
+        ):
+            declared.append(item.item_id)
+    return sorted(declared)
+
+
+def restore_required_transparency_disclosures(
+    register: EvaluationTransparencyRegister,
+    *,
+    sections: dict[str, str],
+) -> tuple[dict[str, str], list[str]]:
+    """Append frozen disclosure statements that prose generation omitted.
+
+    The repair is deterministic and may only copy statements already frozen in
+    the transparency register.  It therefore cannot change an estimate,
+    decision, or scientific claim.  Natural drafting should normally place the
+    statements first; this function is the fail-closed completeness fallback.
+    """
+
+    repaired = {str(key): str(value or "") for key, value in sections.items()}
+    restored: list[str] = []
+    declared = set(
+        infer_declared_transparency_item_ids(register, sections=repaired)
+    )
+    for item in register.material_items():
+        if item.item_id in declared:
+            continue
+        destination = item.required_destination
+        if destination not in repaired:
+            destination = (
+                "limitations"
+                if "limitations" in repaired
+                else "discussion"
+            )
+        statement = item.statement.strip()
+        if item.missing_reason:
+            statement += " This remains a limitation because " + item.missing_reason.strip().rstrip(".") + "."
+        repaired[destination] = (
+            repaired.get(destination, "").rstrip()
+            + "\n\n"
+            + statement
+        ).strip()
+        restored.append(item.item_id)
+    return repaired, restored
+
+
 _BACKFILL_CONTRACT_FIELDS = {
     "eligibility": ["eligibility_rules"],
     "threshold_provenance": ["evaluator_policy"],
@@ -745,4 +864,6 @@ __all__ = [
     "assess_stage4_evidence_sufficiency",
     "audit_evaluation_transparency_coverage",
     "build_evaluation_transparency_register",
+    "infer_declared_transparency_item_ids",
+    "restore_required_transparency_disclosures",
 ]

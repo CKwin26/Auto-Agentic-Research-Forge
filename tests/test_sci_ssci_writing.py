@@ -34,7 +34,9 @@ def test_contract_records_source_and_scientific_authority_boundary() -> None:
         is False
     )
     assert contract["invariants"]["no_silent_claim_strength_change"] is True
-    assert contract["abstract_route"][-1] == "calibrated_implication"
+    assert contract["policy_id"] == "research-forge-sci-ssci-writing-v2"
+    assert contract["abstract_route"][-1] == "single_calibrated_boundary"
+    assert contract["abstract_reader_contract"]["audit_report_voice_allowed"] is False
 
 
 def test_manuscript_audit_accepts_bounded_noncausal_draft() -> None:
@@ -70,6 +72,22 @@ def test_manuscript_audit_rejects_structured_abstract() -> None:
     codes = {item["code"] for item in report["findings"]}
     assert "ABSTRACT_NOT_SINGLE_PARAGRAPH" in codes
     assert "ABSTRACT_SECTION_LABEL" in codes
+
+
+def test_manuscript_audit_rejects_reader_facing_audit_report_voice() -> None:
+    report = audit_stage_four_manuscript(
+        _draft(
+            abstract=(
+                "We study dual_quality_top5 in a controlled comparison. The "
+                "frozen audit ledger and immutable hash gate define the result."
+            )
+        ),
+        verified_source_ids={"source-1"},
+        causal_claim_authorized=False,
+    )
+    codes = {item["code"] for item in report["findings"]}
+    assert "ABSTRACT_INTERNAL_IDENTIFIER" in codes
+    assert "ABSTRACT_AUDIT_REPORT_VOICE" in codes
 
 
 def test_manuscript_audit_blocks_unauthorized_causal_promise() -> None:

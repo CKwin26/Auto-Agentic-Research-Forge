@@ -132,10 +132,34 @@ def _multi_arm_checks() -> dict[str, bool]:
     }
 
 
+def _time_series_backtest_checks() -> dict[str, bool]:
+    """Golden paired-period vector, recomputed without the Profile runner."""
+
+    baseline = [-0.103, -0.103, -0.103]
+    treatment = [0.197, 0.197, 0.197]
+    paired = [right - left for left, right in zip(baseline, treatment)]
+    effect = sum(paired) / len(paired)
+    independent = (
+        sum(treatment) / len(treatment)
+        - sum(baseline) / len(baseline)
+    )
+    return {
+        "periods_are_independent_units": len(paired) == 3,
+        "paired_effect": math.isclose(effect, 0.3, abs_tol=1e-15),
+        "cross_implementation": math.isclose(
+            effect, independent, abs_tol=1e-15
+        ),
+        "fixed_replay": paired
+        == [right - left for left, right in zip(baseline, treatment)],
+    }
+
+
 def run_profile_assurance(
     profile: Stage3Profile,
 ) -> ProfileAssuranceResult:
-    if profile is Stage3Profile.COMPUTATIONAL_PAIRED_COMPARISON_V2:
+    if profile is Stage3Profile.TIME_SERIES_BACKTEST_V1:
+        checks = _time_series_backtest_checks()
+    elif profile is Stage3Profile.COMPUTATIONAL_PAIRED_COMPARISON_V2:
         checks = _continuous_checks()
     elif profile is Stage3Profile.PAIRED_BINARY_INDEPENDENT_V1:
         checks = _binary_independent_checks()

@@ -37,6 +37,15 @@ ROOT = Path(__file__).resolve().parents[1]
 T = TypeVar("T", bound=BaseModel)
 SUPPORTED_BACKENDS = {"codex", "api"}
 DEFAULT_CODEX_MODEL = "gpt-5.6-terra"
+DEFAULT_CODEX_REASONING_EFFORT = "medium"
+SUPPORTED_CODEX_REASONING_EFFORTS = {
+    "low",
+    "medium",
+    "high",
+    "xhigh",
+    "max",
+    "ultra",
+}
 CODEX_TRANSIENT_MAX_ATTEMPTS = 8
 CODEX_TURN_TIMEOUT_SECONDS = 20 * 60
 CODEX_TRANSIENT_BACKOFF_SECONDS = (15, 30, 60, 120, 240, 480, 600)
@@ -333,6 +342,20 @@ def _configured_codex_model() -> str:
     return codex_provider_binding()["provider_model"]
 
 
+def _configured_codex_reasoning_effort() -> str:
+    effort = os.getenv(
+        "RESEARCH_FORGE_CODEX_REASONING_EFFORT",
+        DEFAULT_CODEX_REASONING_EFFORT,
+    ).strip().lower()
+    if effort not in SUPPORTED_CODEX_REASONING_EFFORTS:
+        choices = ", ".join(sorted(SUPPORTED_CODEX_REASONING_EFFORTS))
+        raise ValueError(
+            "unsupported RESEARCH_FORGE_CODEX_REASONING_EFFORT="
+            f"{effort!r}; choose {choices}"
+        )
+    return effort
+
+
 def model_name() -> str:
     if backend_name() == "codex":
         return f"codex:{_configured_codex_model()}"
@@ -395,6 +418,11 @@ async def _run_codex_structured(
                 thread = await codex.thread_start(
                     approval_mode=ApprovalMode.deny_all,
                     base_instructions=instructions,
+                    config={
+                        "model_reasoning_effort": (
+                            _configured_codex_reasoning_effort()
+                        )
+                    },
                     cwd=str(working_dir),
                     ephemeral=True,
                     model=model,
@@ -743,6 +771,30 @@ async def revise_bundle_paper_draft(
         cwd=cwd,
         stage=MacroStage.SYNTHESIS,
         skill_id="manuscript-draft-revision",
+    )
+
+
+async def revise_bundle_paper_sections(
+    prompt: str,
+    *,
+    cwd: str | Path | None = None,
+):
+    """Revise only explicitly opened manuscript sections.
+
+    Unlike ``revise_bundle_paper_draft``, this response does not spend output
+    budget echoing fields that the caller will not permit the model to change.
+    """
+
+    from .paper_expansion import ManuscriptSectionRevision
+
+    return await _run_structured(
+        "Evidence-bound manuscript section reviser",
+        _instructions("bundle_paper_section_revision.md"),
+        ManuscriptSectionRevision,
+        prompt,
+        cwd=cwd,
+        stage=MacroStage.SYNTHESIS,
+        skill_id="manuscript-section-revision",
     )
 
 

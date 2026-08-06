@@ -2413,6 +2413,22 @@ def test_stage3_can_close_as_truthful_unverifiable_boundary(
     assert authority["claims"][0]["evidence_level"] == "L0_boundary_only"
 
     ensure_stage_four_dag(repository, study_id)
+    stage4_handoff = read_json(
+        repository.root
+        / "studies"
+        / study_id
+        / "stage4"
+        / "stage_four_evidence_handoff_v1.json"
+    )
+    assert stage4_handoff["adapter_id"] == "stage-four-evidence-handoff-v1"
+    assert stage4_handoff["adapter_complete"] is True
+    assert stage4_handoff["manuscript_generated_by_profile"] is False
+    assert (
+        stage4_handoff["mandatory_reporting_register"][
+            "source_claim_envelope_id"
+        ]
+        == package.claim_envelope_id
+    )
     scheduler = PersistentDAGScheduler(
         repository,
         workflow_handlers(),

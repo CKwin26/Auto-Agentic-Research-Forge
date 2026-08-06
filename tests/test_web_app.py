@@ -185,6 +185,74 @@ def test_health_endpoint(tmp_path: Path) -> None:
         thread.join(timeout=5)
 
 
+def test_experiment_profile_catalog_separates_formal_and_planned_types(
+    tmp_path: Path,
+) -> None:
+    static = tmp_path / "dist"
+    static.mkdir()
+    (static / "index.html").write_text("ok", encoding="utf-8")
+    server = create_server(
+        "127.0.0.1", 0, runs_root=tmp_path / "runs", static_root=static
+    )
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with urlopen(
+            f"http://127.0.0.1:{server.server_port}/api/experiment-profiles"
+        ) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        profiles = {item["profile_id"]: item for item in payload["profiles"]}
+        assert "tabular_ml_v1" in payload["formal_execution_profiles"]
+        assert "time_series_backtest_v1" in payload["formal_execution_profiles"]
+        assert "human_behavior_v1" not in payload["formal_execution_profiles"]
+        assert "llm_evaluation_v1" in payload["formal_execution_profiles"]
+        assert profiles["human_behavior_v1"]["automation_mode"] == (
+            "design_and_import_only"
+        )
+        assert profiles["time_series_backtest_v1"]["operations"][
+            "compile_run_dag"
+        ] == "integration_tested"
+        assert profiles["llm_evaluation_v1"]["maturity"] == "c2_dry_run"
+        assert profiles["llm_evaluation_v1"]["verified_maturity"] == "c2_dry_run"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_llm_profile_acceptance_endpoint_runs_complete_controlled_case(
+    tmp_path: Path,
+) -> None:
+    static = tmp_path / "dist"
+    static.mkdir()
+    (static / "index.html").write_text("ok", encoding="utf-8")
+    server = create_server(
+        "127.0.0.1", 0, runs_root=tmp_path / "runs", static_root=static
+    )
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        request = Request(
+            f"http://127.0.0.1:{server.server_port}/api/experiment-profiles/llm-evaluation/acceptance",
+            data=b"{}",
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(request, timeout=30) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        assert payload["overall"] == "PASS"
+        assert payload["formal_calls"] == 300
+        assert payload["critical_gates"]["stage_four_handoff_complete"] is True
+        assert payload["paper"] is None
+        assert payload["stage_four_handoff"].endswith(
+            "stage_four_evidence_handoff.json"
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
 def test_runtime_env_update_is_atomic_and_preserves_unrelated_values(
     tmp_path: Path,
 ) -> None:

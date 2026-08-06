@@ -38,7 +38,10 @@ _PUBLICATION_OBJECT_ID_RE = re.compile(
     r"[a-z0-9][a-z0-9-]{7,}\b"
 )
 _PUBLICATION_KEY_VALUE_RE = re.compile(
-    r"\b[a-z][a-z0-9_]*=(?:true|false|null|[a-z][a-z0-9_]*|\d+)\b"
+    r"\b[a-z][a-z0-9_]*=(?:true|false|null|[a-z][a-z0-9_]*|[-+]?\d+(?:\.\d+)?)(?![\w.])"
+)
+_PUBLICATION_KEY_VALUE_CAPTURE_RE = re.compile(
+    r"\b([a-z][a-z0-9_]*)=(true|false|null|[a-z][a-z0-9_]*|[-+]?\d+(?:\.\d+)?)\b"
 )
 _PUBLICATION_AUTHORITY_ALIASES = {
     "frozen protocol and eligibility": "冻结的研究协议与资格规则",
@@ -69,6 +72,80 @@ _PUBLICATION_WORD_ALIASES = {
     "unverifiable": "不可验证",
 }
 
+_PUBLICATION_WORD_ALIASES.update(
+    {
+        "confirmatory_used": "纳入预先规定的验证性分析",
+        "adaptive_reuse": "作为适应性重复使用进行分析",
+        "exhausted": "不再具备验证性解释资格",
+    }
+)
+
+_ENGLISH_PUBLICATION_WORD_ALIASES = {
+    "qualified": "eligible for analysis",
+    "inconclusive": "indeterminate",
+    "incomplete": "not fully specified",
+    "disqualified": "ineligible for analysis",
+    "untouched": "unchanged",
+    "unverifiable": "not verifiable from the available evidence",
+}
+
+# A prior publication view may already contain localized audit vocabulary.
+# Normalize it when the requested manuscript language is English so mixed
+# language text cannot leak through to typesetting.
+_CHINESE_TO_ENGLISH_PUBLICATION_ALIASES = {
+    "证据不足": "indeterminate",
+    "资格信息不完整": "not fully specified",
+    "冻结的内部记录": "frozen internal record",
+}
+
+_ENGLISH_READER_FACING_PHRASE_ALIASES = {
+    "paired_period_descriptive_v1": "paired period-level descriptive analysis",
+    "confirmatory_status=confirmatory_used": (
+        "confirmatory status was included in the prespecified confirmatory analysis"
+    ),
+    "confirmatory_used": "included in the prespecified confirmatory analysis",
+    "confirmatory status confirmatory used": (
+        "confirmatory status included in the prespecified analysis"
+    ),
+    "treatment=0": "the treatment indicator was coded as 0",
+    "treatment=1": "the treatment indicator was coded as 1",
+    "baseline=0": "the baseline indicator was coded as 0",
+    "baseline=1": "the baseline indicator was coded as 1",
+    "150-Item Controlled Science Fixture": (
+        "Controlled Set of 150 Science Questions"
+    ),
+    "Under the frozen controlled acceptance design": "In the prespecified paired design",
+    "frozen controlled acceptance design": "prespecified paired design",
+    "controlled acceptance fixture": "controlled science item set",
+    "The frozen scientific verdict was supported.": "The prespecified support criterion was met.",
+    "the frozen scientific verdict was supported": "the prespecified support criterion was met",
+    "the frozen scientific verdict": "the prespecified study conclusion",
+    "prespecified scientific verdict was supported": "prespecified support criterion was met",
+    "scientific verdict was supported": "support criterion was met",
+    "scientific verdict": "study conclusion",
+    "verdict criterion": "decision criterion",
+    "supported verdict": "supported conclusion",
+    "What is the frozen registered treatment contrast?": (
+        "How does the primary outcome differ between the compared conditions?"
+    ),
+    "What result is supported by the frozen Stage 3 claim boundary?": (
+        "What primary result is supported by the available evidence?"
+    ),
+    "Frozen primary result.": "Primary outcome comparison.",
+    "registered treatment–comparator contrast": "treatment–comparator contrast",
+    "registered treatment-comparator contrast": "treatment-comparator contrast",
+    "eligible denominator and evidence boundary": (
+        "analysis denominator and evidential scope"
+    ),
+    "license-free controlled Profile acceptance fixture": (
+        "license-free controlled science item set"
+    ),
+    "controlled Profile acceptance fixture": "controlled science item set",
+    "controlled science fixture": "controlled science item set",
+    "controlled fixture": "controlled item set",
+    "evaluation fixture": "evaluation item set",
+}
+
 
 def publication_code_identifiers(text: str) -> list[str]:
     """Find implementation identifiers that do not belong in a paper title."""
@@ -80,6 +157,7 @@ def academicize_publication_text(
     text: str,
     *,
     aliases: dict[str, str] | None = None,
+    language: Literal["zh", "en"] = "zh",
 ) -> str:
     """Translate audit vocabulary into reader-facing scientific language.
 
@@ -88,18 +166,75 @@ def academicize_publication_text(
     """
 
     rendered = text
-    replacements = dict(_PUBLICATION_AUTHORITY_ALIASES)
+    is_english = language == "en"
+    replacements = {} if is_english else dict(_PUBLICATION_AUTHORITY_ALIASES)
+    if is_english:
+        replacements.update(_CHINESE_TO_ENGLISH_PUBLICATION_ALIASES)
+        replacements.update(_ENGLISH_READER_FACING_PHRASE_ALIASES)
     replacements.update(aliases or {})
     for internal, public in sorted(
         replacements.items(), key=lambda item: len(item[0]), reverse=True
     ):
         if internal:
-            rendered = rendered.replace(internal, public)
-    for internal, public in _PUBLICATION_WORD_ALIASES.items():
+            # Arm labels and code identifiers must be replaced as lexical
+            # units.  A raw substring replacement turns words such as
+            # ``baselined`` into ``reference methodled`` and can corrupt an
+            # otherwise valid manuscript.  Phrases containing whitespace or
+            # punctuation remain exact replacements; identifier-shaped keys
+            # use conservative token boundaries.
+            if re.fullmatch(r"[A-Za-z0-9_]+", internal):
+                rendered = re.sub(
+                    rf"(?<![A-Za-z0-9_]){re.escape(internal)}(?![A-Za-z0-9_])",
+                    lambda _match, value=public: value,
+                    rendered,
+                )
+            else:
+                rendered = rendered.replace(internal, public)
+    word_aliases = (
+        _ENGLISH_PUBLICATION_WORD_ALIASES
+        if is_english
+        else _PUBLICATION_WORD_ALIASES
+    )
+    for internal, public in word_aliases.items():
         rendered = re.sub(
             rf"(?<![A-Za-z0-9_]){re.escape(internal)}(?![A-Za-z0-9_])",
             public,
             rendered,
+        )
+    def render_key_value(match: re.Match[str]) -> str:
+        key = match.group(1).replace("_", " ")
+        raw_value = match.group(2)
+        value = raw_value.replace("_", " ")
+        if is_english:
+            if re.fullmatch(r"[-+]?\d+(?:\.\d+)?", raw_value):
+                return f"{key} of {raw_value}"
+            return f"{key} was {value}"
+        if re.fullmatch(r"[-+]?\d+(?:\.\d+)?", raw_value):
+            return f"{key}为{raw_value}"
+        return f"{key}为{value}"
+
+    # Models occasionally echo compact JSON-like facts into prose. Preserve
+    # their exact values while replacing the code notation with grammatical
+    # manuscript language before the leak audit runs.
+    rendered = _PUBLICATION_KEY_VALUE_CAPTURE_RE.sub(render_key_value, rendered)
+    if is_english:
+        rendered = _PUBLICATION_OBJECT_ID_RE.sub(
+            "frozen internal record", rendered
+        )
+        return rendered.translate(
+            str.maketrans(
+                {
+                    "\u2010": "-",
+                    "\u2011": "-",
+                    "\u2012": "-",
+                    "\u2013": "-",
+                    "\u2014": "-",
+                    "\u2018": "'",
+                    "\u2019": "'",
+                    "\u201c": '"',
+                    "\u201d": '"',
+                }
+            )
         )
     rendered = _PUBLICATION_OBJECT_ID_RE.sub("冻结的内部记录", rendered)
     return rendered
@@ -118,7 +253,15 @@ def publication_internal_tokens(text: str) -> list[str]:
     for internal in _PUBLICATION_AUTHORITY_ALIASES:
         if internal in scrubbed:
             found.append(internal)
+    # ``exhausted`` is ordinary scholarly English (for example, an exhausted
+    # search space or resource).  Compact internal forms such as
+    # ``confirmatory_status=exhausted`` are already caught by the key/value
+    # detector above, so treating the standalone word as a leak creates false
+    # positives in otherwise reader-facing prose.
+    ambiguous_reader_words = {"exhausted"}
     for internal in _PUBLICATION_WORD_ALIASES:
+        if internal in ambiguous_reader_words:
+            continue
         if re.search(
             rf"(?<![A-Za-z0-9_]){re.escape(internal)}(?![A-Za-z0-9_])",
             scrubbed,
@@ -166,6 +309,7 @@ class EvidenceClaimBinding(StrictModel):
     kind: str
     statement: str
     evidence: list[EvidencePointer]
+    evidence_facets: list[str] = Field(default_factory=list)
     allowed_sections: list[str]
     claim_strength: Literal[
         "descriptive", "associational", "comparative", "causal", "limitation"
@@ -446,6 +590,12 @@ class PaperArtifactManifest(StrictModel):
 
 
 _FINAL_NUMBER_RE = re.compile(r"=\s*(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\s*$")
+_LABELED_NUMBER_RE = re.compile(
+    r"(?P<label>[A-Za-z][A-Za-z0-9 -]{1,48}?)\s+"
+    r"(?:was|were|is|are|equals?|=|:)\s*"
+    r"(?P<value>-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)",
+    re.IGNORECASE,
+)
 
 
 def _slot_rows(
@@ -505,6 +655,31 @@ def _provenance_svg(slot: FigureSlot, rows: list[dict[str, str]]) -> str:
 
 
 def _numeric_svg(slot: FigureSlot, rows: list[dict[str, str]]) -> str | None:
+    def natural_metric_label(label: str) -> str:
+        normalized = label.replace("-", "_").replace(" ", "_").lower()
+        normalized = re.sub(r"_+", "_", normalized).strip("_")
+        natural_labels = {
+            "and_the_paired_difference": "Paired difference",
+            "the_paired_difference": "Paired difference",
+            "paired_difference": "Paired difference",
+            "baseline_exact_accuracy": "Baseline exact accuracy",
+            "treatment_exact_accuracy": "Treatment exact accuracy",
+        }
+        if normalized in natural_labels:
+            return natural_labels[normalized]
+        abbreviations = {"lora": "LoRA", "nli": "NLI", "llm": "LLM"}
+        words = [
+            abbreviations.get(word.lower(), word.capitalize())
+            for word in normalized.split("_")
+            if word
+        ]
+        while words and words[0].lower() in {"and", "the"}:
+            words.pop(0)
+        while words and words[-1].lower() in {"is", "was", "were"}:
+            words.pop()
+        rendered = " ".join(words)
+        return (rendered[:1].upper() + rendered[1:])[:34]
+
     def display_label(claim_id: str) -> str:
         """Project internal claim identifiers into publication-facing labels."""
 
@@ -514,40 +689,136 @@ def _numeric_svg(slot: FigureSlot, rows: list[dict[str, str]]) -> str | None:
             label = claim_id.rsplit(":contrast:", 1)[1]
         else:
             label = claim_id.rsplit(":", 1)[-1]
-        abbreviations = {"lora": "LoRA", "nli": "NLI", "llm": "LLM"}
-        return " ".join(
-            abbreviations.get(word.lower(), word.capitalize())
-            for word in label.replace("-", "_").split("_")
-            if word
-        )[:34]
+        return natural_metric_label(label)
 
     values: list[tuple[str, float]] = []
+    interval: tuple[float, float] | None = None
+    interval_re = re.compile(
+        r"(?:confidence\s+)?interval\s+(?:was|is|equals?|=|:)\s*"
+        r"(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\s+"
+        r"(?:to|through)\s+(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)",
+        re.IGNORECASE,
+    )
     for row in rows:
+        interval_match = interval_re.search(row["statement"])
+        if interval_match is not None:
+            interval = (
+                float(interval_match.group(1)),
+                float(interval_match.group(2)),
+            )
         match = _FINAL_NUMBER_RE.search(row["statement"])
         if match is not None:
             values.append(
                 (display_label(row["claim_id"]), float(match.group(1)))
             )
+            continue
+        for labelled in _LABELED_NUMBER_RE.finditer(row["statement"]):
+            label = " ".join(labelled.group("label").split())[-34:]
+            values.append((natural_metric_label(label), float(labelled.group("value"))))
     if not values:
         return None
-    if any(value < 0 for _, value in values):
-        return None
+    values = list(dict.fromkeys(values))
+    # Counts and denominators describe evidential scope, not the outcome
+    # scale.  Plotting them beside effects or rates on one axis creates a
+    # dimensionally invalid chart.  Keep them in the caption/table instead.
+    scope_markers = ("denominator", "unit count", "sample count", "seed", "replicate")
+    scope_values = [
+        (label, value)
+        for label, value in values
+        if any(marker in label.casefold() for marker in scope_markers)
+    ]
+    outcome_values = [
+        (label, value)
+        for label, value in values
+        if not any(marker in label.casefold() for marker in scope_markers)
+    ]
+    if outcome_values:
+        values = outcome_values
+    effect = next(
+        (
+            (label, value)
+            for label, value in values
+            if "effect" in label.casefold() or "difference" in label.casefold()
+        ),
+        None,
+    )
+    if effect is not None and interval is not None:
+        width = 960
+        height = 360
+        lower, upper = sorted(interval)
+        point = effect[1]
+        axis_min = min(0.0, lower, point)
+        axis_max = max(0.0, upper, point)
+        span = axis_max - axis_min or max(abs(point), 1.0)
+        padding = span * 0.18
+        axis_min -= padding
+        axis_max += padding
+        left, right = 130.0, 850.0
+
+        def x_position(value: float) -> float:
+            return left + (value - axis_min) / (axis_max - axis_min) * (right - left)
+
+        point_x = x_position(point)
+        lower_x = x_position(lower)
+        upper_x = x_position(upper)
+        zero_x = x_position(0.0)
+        scope_text = "; ".join(
+            f"{label}: {value:g}" for label, value in scope_values
+        )
+        scope_svg = (
+            f'<text x="480" y="310" text-anchor="middle" '
+            'font-family="Arial, sans-serif" font-size="14" fill="#333">'
+            f'{html.escape(scope_text)}</text>'
+            if scope_text
+            else ""
+        )
+        return (
+            f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+            f'viewBox="0 0 {width} {height}">'
+            '<rect width="100%" height="100%" fill="white"/>'
+            f'<text x="70" y="48" font-family="Arial, sans-serif" font-size="22" '
+            f'font-weight="600">{html.escape(slot.purpose[:100])}</text>'
+            '<text x="70" y="86" font-family="Arial, sans-serif" font-size="15" '
+            'fill="#333">Treatment-minus-baseline effect and registered interval</text>'
+            f'<line x1="{left}" y1="220" x2="{right}" y2="220" stroke="#333"/>'
+            f'<line x1="{zero_x:.1f}" y1="135" x2="{zero_x:.1f}" y2="245" '
+            'stroke="#777" stroke-dasharray="5 4"/>'
+            f'<line x1="{lower_x:.1f}" y1="175" x2="{upper_x:.1f}" y2="175" '
+            'stroke="#3A747D" stroke-width="5"/>'
+            f'<line x1="{lower_x:.1f}" y1="162" x2="{lower_x:.1f}" y2="188" '
+            'stroke="#3A747D" stroke-width="3"/>'
+            f'<line x1="{upper_x:.1f}" y1="162" x2="{upper_x:.1f}" y2="188" '
+            'stroke="#3A747D" stroke-width="3"/>'
+            f'<circle cx="{point_x:.1f}" cy="175" r="9" fill="#0D454E"/>'
+            f'<text x="{point_x:.1f}" y="145" text-anchor="middle" '
+            f'font-family="Arial, sans-serif" font-size="14">{point:g}</text>'
+            f'<text x="{left}" y="250" text-anchor="middle" '
+            f'font-family="Arial, sans-serif" font-size="13">{axis_min:.2g}</text>'
+            f'<text x="{right}" y="250" text-anchor="middle" '
+            f'font-family="Arial, sans-serif" font-size="13">{axis_max:.2g}</text>'
+            f'{scope_svg}</svg>\n'
+        )
     width = 960
     height = 520
-    baseline = 420
+    minimum = min(0.0, *(value for _, value in values))
+    maximum_value = max(0.0, *(value for _, value in values))
+    span = maximum_value - minimum or 1.0
     chart_height = 300
-    maximum = max(abs(value) for _, value in values) or 1.0
+    top = 100
+    baseline = top + (maximum_value / span) * chart_height
     bar_width = max(20, min(90, 700 // len(values)))
     gap = max(12, (780 - bar_width * len(values)) // (len(values) + 1))
     bars: list[str] = []
     x = 90 + gap
     for label, value in values:
-        bar_height = abs(value) / maximum * chart_height
-        y = baseline - bar_height
+        bar_height = abs(value) / span * chart_height
+        y = baseline - bar_height if value >= 0 else baseline
+        value_label_y = max(78, y - 8) if value >= 0 else min(455, y + bar_height + 18)
+        category_label_y = top + chart_height + 34
         bars.append(
             f'<rect x="{x}" y="{y:.1f}" width="{bar_width}" height="{bar_height:.1f}" fill="#2676d9"/>'
-            f'<text x="{x + bar_width / 2:.1f}" y="{baseline + 26}" text-anchor="middle" font-family="Arial, sans-serif" font-size="13">{html.escape(label)}</text>'
-            f'<text x="{x + bar_width / 2:.1f}" y="{max(78, y - 8):.1f}" text-anchor="middle" font-family="Arial, sans-serif" font-size="13">{value:g}</text>'
+            f'<text x="{x + bar_width / 2:.1f}" y="{category_label_y}" text-anchor="middle" font-family="Arial, sans-serif" font-size="13">{html.escape(label)}</text>'
+            f'<text x="{x + bar_width / 2:.1f}" y="{value_label_y:.1f}" text-anchor="middle" font-family="Arial, sans-serif" font-size="13">{value:g}</text>'
         )
         x += bar_width + gap
     return (
@@ -942,7 +1213,10 @@ def default_submission_genre(
 
 
 def load_or_create_submission_genre(
-    root: Path, contract: PaperStructureContract
+    root: Path,
+    contract: PaperStructureContract,
+    *,
+    language: Literal["zh", "en"] = "zh",
 ) -> SubmissionGenreProfile:
     path = root / "stage_4_synthesis" / "submission_genre.json"
     if path.is_file():
@@ -951,8 +1225,13 @@ def load_or_create_submission_genre(
             raise ValueError(
                 "submission genre and paper structure profile disagree; create a new venue revision"
             )
+        if profile.language != language:
+            raise ValueError(
+                "submission genre and Study manuscript language disagree; "
+                "create a new Stage 4 workflow revision"
+            )
         return profile
-    profile = default_submission_genre(contract)
+    profile = default_submission_genre(contract, language=language)
     write_json_atomic(path, profile)
     return profile
 

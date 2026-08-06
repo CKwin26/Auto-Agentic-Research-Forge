@@ -11,6 +11,7 @@ from research_forge.agent_runtime import (
     _append_agent_telemetry,
     _codex_process_env,
     _codex_retry_delay,
+    _configured_codex_reasoning_effort,
     _is_transient_codex_error,
     _load_local_runtime_env,
     _parse_structured_output,
@@ -46,6 +47,21 @@ def test_codex_is_the_default_backend(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("CODEX_HOME", raising=False)
     assert backend_name() == "codex"
     assert model_name() == "codex:gpt-5.6-terra"
+
+
+def test_codex_reasoning_effort_defaults_to_medium(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("RESEARCH_FORGE_CODEX_REASONING_EFFORT", raising=False)
+    assert _configured_codex_reasoning_effort() == "medium"
+
+
+def test_codex_reasoning_effort_rejects_unknown_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("RESEARCH_FORGE_CODEX_REASONING_EFFORT", "mystery")
+    with pytest.raises(ValueError, match="unsupported"):
+        _configured_codex_reasoning_effort()
 
 
 def test_large_runtime_request_is_split_without_losing_text() -> None:

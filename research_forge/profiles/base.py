@@ -66,6 +66,7 @@ class ExperimentProfileBundle(StrictModel):
     reproduction_comparator_id: str
     assurance_suite_id: str
     frontend_renderer_id: str
+    stage_four_evidence_adapter_id: str = "stage-four-evidence-handoff-v1"
 
     required_contract_fields: tuple[str, ...]
     supported_data_types: tuple[str, ...]

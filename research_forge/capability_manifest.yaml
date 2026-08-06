@@ -51,7 +51,7 @@ capabilities:
     declared_maturity: 2
     evidence_level: 1
     scope: bounded
-    supported_profiles: [tabular_ml_v1, benchmark_prediction_v1, existing_python_project_v1, computational_paired_comparison_v1, computational_paired_comparison_v2, paired_binary_independent_v1, paired_binary_clustered_v1, paired_multi_endpoint_v1, paired_multi_arm_ablation_v1]
+    supported_profiles: [tabular_ml_v1, time_series_backtest_v1, llm_evaluation_v1, benchmark_prediction_v1, existing_python_project_v1, computational_paired_comparison_v1, computational_paired_comparison_v2, paired_binary_independent_v1, paired_binary_clustered_v1, paired_multi_arm_ablation_v1]
     entrypoint: research_forge.stage_three
     inputs: [frozen_contract, profile_bundle, resource_bindings]
     outputs: [experiment_assets, run_matrix, evaluator_assets]
@@ -61,8 +61,8 @@ capabilities:
     upstream_sources: [OpenML, AIRS]
     evidence:
       design: [docs/stage-3-execution-kernel.md, docs/profile-capability-matrix.md]
-      source: [research_forge/stage_three.py, research_forge/profiles/registry.py, research_forge/profiles/tabular_ml.py, research_forge/profiles/benchmark_prediction.py, research_forge/profiles/existing_python_project.py, research_forge/existing_project_replay.py, research_forge/profile_capability_matrix.yaml]
-      component_validation: [tests/test_stage_three.py, tests/test_profiles.py, tests/test_tabular_ml_profile.py, tests/test_benchmark_prediction_profile.py, tests/test_existing_python_project_profile.py, tests/test_existing_project_replay.py, tests/test_profile_capability_matrix.py]
+      source: [research_forge/stage_three.py, research_forge/profiles/registry.py, research_forge/profiles/tabular_ml.py, research_forge/profiles/time_series_backtest.py, research_forge/profiles/llm_evaluation.py, research_forge/profiles/benchmark_prediction.py, research_forge/profiles/existing_python_project.py, research_forge/existing_project_replay.py, research_forge/profile_capability_matrix.yaml]
+      component_validation: [tests/test_stage_three.py, tests/test_profiles.py, tests/test_tabular_ml_profile.py, tests/test_time_series_backtest_profile.py, tests/test_llm_evaluation_profile.py, tests/test_benchmark_prediction_profile.py, tests/test_existing_python_project_profile.py, tests/test_existing_project_replay.py, tests/test_profile_capability_matrix.py]
 
   - capability_id: reproduction.sealed_existing_project_replay
     title: 已有 Python 项目密封重放

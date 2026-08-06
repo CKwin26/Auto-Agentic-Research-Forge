@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 from types import SimpleNamespace
 
 import pytest
@@ -10,6 +11,9 @@ from research_forge.paper_author_voice import (
     SentenceLengthDistribution,
 )
 from research_forge.paper_authoring import (
+    EvidenceClaimBinding,
+    EvidenceClaimMap,
+    EvidencePointer,
     HierarchicalPaperOutline,
     OutlineNode,
     PaperArtifactManifest,
@@ -20,6 +24,8 @@ from research_forge.paper_expansion import (
     PaperDraftSections,
     _restore_required_outline_structure,
     _sanitize_outline_references,
+    normalize_reader_facing_governance,
+    normalize_paper_draft,
 )
 from research_forge.paper_humanize import (
     audit_humanization_integrity,
@@ -41,6 +47,7 @@ from research_forge.paper_reporting_compliance import (
 from research_forge.paper_reviewer_attack_surface import (
     audit_reviewer_attack_surface,
 )
+from research_forge.manuscript_depth import ENGLISH_SHORT_REPORT
 from research_forge.paper_venue_policy import (
     GENERIC_JOURNAL_POLICY,
     GENERIC_SHORT_REPORT_POLICY,
@@ -58,17 +65,93 @@ from research_forge.stage_four import (
     STAGE4_STEP_DEFINITIONS,
     _completion_artifact_hashes,
     _draft_depth_violations,
+    _localized_depth_contract,
+    _merge_verified_background_sources,
+    _numeric_evidence_from_bound_claims,
     _drafting_evidence_view,
     _drafting_literature_view,
+    _humanization_citation_view,
+    _humanization_evidence_view,
+    _humanization_reverse_outline_view,
     _effective_depth_profile,
     _effective_evaluation_arm_estimates,
+    _finding_requires_stage3_backfill,
     _has_blocking_review_findings,
     _normalize_verified_citation_prefixes,
     _publication_aliases_for_contract,
+    _select_primary_visual_bindings,
     ensure_stage_four_dag,
     request_stage_four_revision,
     stage4_read_model,
 )
+
+
+def test_typesetting_numeric_evidence_uses_bound_profile_statistics(
+    tmp_path: Path,
+) -> None:
+    import hashlib
+    import json
+
+    statistics = {
+        "baseline_accuracy": 0.76,
+        "treatment_accuracy": 0.9466666666666667,
+        "paired_accuracy_difference": 0.18666666666666668,
+        "paired_bootstrap_95_ci": [0.11333333333333333, 0.26],
+        "mcnemar": {"exact_two_sided_p": 1.941574737429619e-06},
+    }
+    source = tmp_path / "statistics.json"
+    source.write_text(json.dumps(statistics), encoding="utf-8")
+    digest = hashlib.sha256(source.read_bytes()).hexdigest()
+    evidence_map = EvidenceClaimMap(
+        track_id="profile-test",
+        frozen_conclusion="The registered comparison was supported.",
+        bindings=[
+            EvidenceClaimBinding(
+                claim_id="profile-primary-effect",
+                kind="result_metric",
+                statement=(
+                    "Baseline accuracy was 0.760, treatment accuracy was 0.947, "
+                    "and the paired difference was 0.187 with an interval from "
+                    "0.113 to 0.260; the exact two-sided McNemar p-value was "
+                    "1.94157e-06."
+                ),
+                evidence=[
+                    EvidencePointer(
+                        path=str(source),
+                        sha256=digest,
+                        evidence_type="project_artifact",
+                    )
+                ],
+                allowed_sections=["results"],
+                claim_strength="comparative",
+                evidence_status="bound",
+            )
+        ],
+        verified_source_ids=[],
+        forbidden_moves=[],
+        source_registry_sha256="0" * 64,
+    )
+
+    rows = _numeric_evidence_from_bound_claims(
+        evidence_map,
+        repository_root=tmp_path,
+    )
+
+    assert {item["path"] for item in rows} == {
+        "statistics.json$.baseline_accuracy",
+        "statistics.json$.treatment_accuracy",
+        "statistics.json$.paired_accuracy_difference",
+        "statistics.json$.paired_bootstrap_95_ci[0]",
+        "statistics.json$.paired_bootstrap_95_ci[1]",
+        "statistics.json$.mcnemar.exact_two_sided_p",
+    }
+    interval = [
+        item["value"]
+        for item in rows
+        if "paired_bootstrap_95_ci" in item["path"]
+    ]
+    assert interval == [0.11333333333333333, 0.26]
+    assert interval != [0.1288836925413637, 0.24444964079196965]
 
 
 def test_contract_implementation_names_are_projected_to_publication_roles() -> None:
@@ -85,6 +168,174 @@ def test_contract_implementation_names_are_projected_to_publication_roles() -> N
     assert aliases["dual_quality_top5"] == "候选方法"
     assert aliases["top_k_event_identification_rate"] == "主要结局指标"
     assert aliases["formal-primary-task-b6b855d916b9ad5f"] == "注册研究任务"
+
+
+def test_contract_implementation_names_use_english_publication_roles() -> None:
+    contract = SimpleNamespace(
+        baseline={"name": "v3_tech_quality_top5 ranking"},
+        treatment={"name": "dual_quality_top5 ranking"},
+        metrics=[{"name": "top_k_event_identification_rate"}],
+        tasks=["formal-primary-task-b6b855d916b9ad5f"],
+    )
+
+    aliases = _publication_aliases_for_contract(contract, language="en")
+
+    assert aliases["v3_tech_quality_top5"] == "reference method"
+    assert aliases["dual_quality_top5"] == "candidate method"
+    assert aliases["top_k_event_identification_rate"] == "primary outcome"
+    assert aliases["formal-primary-task-b6b855d916b9ad5f"] == "registered study task"
+    assert not any(re.search(r"[\u4e00-\u9fff]", value) for value in aliases.values())
+
+
+def test_bound_evidence_mischaracterization_stays_in_stage_four() -> None:
+    evidence_map = SimpleNamespace(
+        bindings=[
+            SimpleNamespace(
+                claim_id="scoring-and-pairing",
+                evidence_status="bound",
+            )
+        ]
+    )
+    finding = SimpleNamespace(
+        category="evidence",
+        claim_ids=["scoring-and-pairing"],
+        diagnosis=(
+            "The draft states that no rule exists, contradicts the supplied "
+            "binding, and omits the bound evidence."
+        ),
+        required_change="Correct the evidence characterization and report the bound scoring rule.",
+    )
+
+    assert not _finding_requires_stage3_backfill(finding, evidence_map)
+
+
+def test_missing_bound_claim_still_requires_stage_three_backfill() -> None:
+    evidence_map = SimpleNamespace(bindings=[])
+    finding = SimpleNamespace(
+        category="evidence",
+        claim_ids=["missing-claim"],
+        diagnosis="No frozen evidence binds the requested comparison.",
+        required_change="Obtain and freeze the missing result evidence.",
+    )
+
+    assert _finding_requires_stage3_backfill(finding, evidence_map)
+
+
+def test_unbound_manuscript_statistic_is_removed_in_stage_four() -> None:
+    evidence_map = SimpleNamespace(
+        bindings=[
+            SimpleNamespace(
+                claim_id="evaluation:method",
+                evidence_status="bound",
+            )
+        ]
+    )
+    finding = SimpleNamespace(
+        category="evidence",
+        claim_ids=["evaluation:method"],
+        diagnosis=(
+            "The draft reports an abstention count that is not contained in "
+            "the supplied claim binding."
+        ),
+        required_change=(
+            "Remove the unbound abstention statement, or add explicit frozen "
+            "evidence before publication."
+        ),
+    )
+
+    assert not _finding_requires_stage3_backfill(finding, evidence_map)
+
+
+def test_primary_visual_prefers_semantic_result_over_first_required_claim() -> None:
+    arm = SimpleNamespace(
+        claim_id="profile-arm-definition",
+        kind="operational",
+        claim_strength="descriptive",
+        evidence_status="bound",
+        evidence_facets=["arm_definition"],
+    )
+    result = SimpleNamespace(
+        claim_id="profile-primary-effect",
+        kind="result_metric",
+        claim_strength="comparative",
+        evidence_status="bound",
+        evidence_facets=["primary_result"],
+    )
+    denominator = SimpleNamespace(
+        claim_id="profile-denominator",
+        kind="operational",
+        claim_strength="descriptive",
+        evidence_status="bound",
+        evidence_facets=["denominator_reconciliation"],
+    )
+    verdict = SimpleNamespace(
+        claim_id="profile-frozen-verdict",
+        kind="result_metric",
+        claim_strength="comparative",
+        evidence_status="bound",
+        evidence_facets=[],
+    )
+    evidence_map = SimpleNamespace(bindings=[arm, result, verdict, denominator])
+    narrative = SimpleNamespace(required_claim_ids=[arm.claim_id, result.claim_id])
+
+    primary, plotted, contrasts, selected_denominator = (
+        _select_primary_visual_bindings(evidence_map, narrative)
+    )
+
+    assert primary is arm
+    assert plotted == [result]
+    assert contrasts == [result]
+    assert selected_denominator is denominator
+
+
+def test_profile_evidence_map_inherits_frozen_background_sources() -> None:
+    evidence_map = EvidenceClaimMap(
+        track_id="profile-track",
+        frozen_conclusion="The registered comparison was supported.",
+        bindings=[],
+        verified_source_ids=[],
+        forbidden_moves=[],
+        source_registry_sha256="a" * 64,
+    )
+
+    merged = _merge_verified_background_sources(
+        evidence_map, ["source-b", "source-a", "source-a"]
+    )
+
+    assert merged.verified_source_ids == ["source-a", "source-b"]
+    assert merged.source_registry_sha256 != evidence_map.source_registry_sha256
+    assert evidence_map.verified_source_ids == []
+
+
+def test_profile_evidence_map_binds_verified_background_metadata() -> None:
+    evidence_map = EvidenceClaimMap(
+        track_id="profile-track",
+        frozen_conclusion="The registered comparison was supported.",
+        bindings=[],
+        verified_source_ids=[],
+        forbidden_moves=[],
+        source_registry_sha256="a" * 64,
+    )
+
+    merged = _merge_verified_background_sources(
+        evidence_map,
+        [
+            {
+                "resource_id": "resource-methods",
+                "title": "A Verified Methods Paper",
+                "canonical_metadata_hash": "b" * 64,
+                "canonical_identifier": "doi:10.1000/methods",
+            }
+        ],
+    )
+
+    assert merged.verified_source_ids == ["resource-methods"]
+    assert len(merged.bindings) == 1
+    binding = merged.bindings[0]
+    assert binding.kind == "literature_context"
+    assert binding.evidence_status == "bound"
+    assert binding.evidence[0].source_id == "resource-methods"
+    assert binding.evidence[0].evidence_type == "verified_literature"
 from research_forge.workflow_domain import (
     EntryMode,
     ExecutionStatus,
@@ -141,6 +392,96 @@ def _reporting_register() -> MandatoryReportingRegister:
         frozen=True,
         frozen_at="2026-07-27T00:00:00+00:00",
     )
+
+
+def test_reviewer_attack_audit_allows_explicit_scope_disclaimers() -> None:
+    report = audit_reviewer_attack_surface(
+        title="A controlled paired evaluation",
+        sections={
+            "introduction": (
+                "The study does not assess state-of-the-art performance or "
+                "universal prompt effectiveness."
+            ),
+            "limitations": (
+                "State-of-the-art capability cannot be inferred from this "
+                "configuration."
+            ),
+        },
+        reporting_register=_reporting_register(),
+        presented_claim_ids=["claim-primary", "claim-runtime-negative"],
+    )
+
+    assert report.passed
+
+
+def test_reviewer_attack_audit_allows_absolute_term_in_negated_list() -> None:
+    register = _reporting_register()
+    report = audit_reviewer_attack_surface(
+        title="A bounded comparison",
+        sections={
+            "discussion": (
+                "The result supports only the registered comparison, not live "
+                "effectiveness, causal identification, universal superiority, "
+                "or performance under untested conditions."
+            )
+        },
+        reporting_register=register,
+        presented_claim_ids=["claim-primary", "claim-runtime-negative"],
+    )
+
+    assert report.passed
+    assert not report.findings
+
+
+def test_reviewer_attack_audit_allows_absolute_term_in_no_claim_boundary() -> None:
+    report = audit_reviewer_attack_surface(
+        title="A bounded time-to-event comparison",
+        sections={
+            "introduction": (
+                "The manuscript makes no literature-wide novelty claim, no "
+                "claim that the endpoint is universally preferable, and no "
+                "assertion that the fixture validates production settings."
+            )
+        },
+        reporting_register=_reporting_register(),
+        presented_claim_ids=["claim-primary", "claim-runtime-negative"],
+    )
+
+    assert report.passed
+    assert not report.findings
+
+
+def test_reviewer_attack_audit_distinguishes_order_from_novelty_first() -> None:
+    register = _reporting_register()
+    ranked = audit_reviewer_attack_surface(
+        title="A bounded comparison",
+        sections={"methods": "Eligible assets were ranked first by the registered score."},
+        reporting_register=register,
+        presented_claim_ids=["claim-primary", "claim-runtime-negative"],
+    )
+    novelty = audit_reviewer_attack_surface(
+        title="A bounded comparison",
+        sections={"introduction": "This is the first framework for the task."},
+        reporting_register=register,
+        presented_claim_ids=["claim-primary", "claim-runtime-negative"],
+    )
+
+    assert ranked.passed
+    assert not novelty.passed
+
+
+def test_reviewer_attack_audit_still_blocks_positive_absolute_claims() -> None:
+    report = audit_reviewer_attack_surface(
+        title="A controlled paired evaluation",
+        sections={
+            "introduction": "The method achieves state-of-the-art performance.",
+        },
+        reporting_register=_reporting_register(),
+        presented_claim_ids=["claim-primary", "claim-runtime-negative"],
+    )
+
+    assert not report.passed
+    assert report.findings[0].attack_type == "unsupported_absolute"
 
 
 def test_legacy_paired_evaluation_exposes_both_arm_estimates() -> None:
@@ -255,6 +596,74 @@ def test_stage_four_drafting_views_bound_prompt_without_losing_claims() -> None:
     assert "verification_method" not in sources[0]
 
 
+def test_humanization_views_keep_authority_keys_without_repeating_long_prose() -> None:
+    import hashlib
+
+    long_statement = "registered protocol detail " * 600
+    evidence = {
+        "frozen_conclusion": "The estimate is assumption-bounded.",
+        "forbidden_moves": ["Do not claim randomization."],
+        "bindings": [
+            {
+                "claim_id": "claim-long-protocol",
+                "kind": "registered_protocol",
+                "statement": long_statement,
+                "claim_strength": "descriptive",
+                "evidence_status": "bound",
+                "evidence_facets": ["protocol"],
+                "allowed_sections": ["methods"],
+            }
+        ],
+    }
+    compact = _humanization_evidence_view(evidence)
+    binding = compact["bindings"][0]
+    assert binding["claim_id"] == "claim-long-protocol"
+    assert binding["statement_excerpted"] is True
+    assert len(binding["statement_excerpt"]) < len(long_statement)
+    assert binding["statement_sha256"] == hashlib.sha256(
+        long_statement.encode("utf-8")
+    ).hexdigest()
+
+    reverse = _humanization_reverse_outline_view(
+        {
+            "passed": True,
+            "violations": [],
+            "sections": [
+                {
+                    "section_key": "methods",
+                    "thesis": "The estimator follows the frozen protocol.",
+                    "expected_moves": ["design", "estimator"],
+                    "paragraphs": [
+                        {
+                            "opening_sentence": "A long paragraph is omitted.",
+                            "citation_keys": ["source-1"],
+                            "numeric_token_count": 4,
+                            "visual_callout_present": False,
+                        }
+                    ],
+                }
+            ],
+        }
+    )
+    assert reverse["sections"][0]["paragraph_count"] == 1
+    assert reverse["sections"][0]["citation_keys"] == ["source-1"]
+    assert "opening_sentence" not in reverse["sections"][0]
+
+    citation = _humanization_citation_view(
+        {
+            "bibliography_hygiene_passed": True,
+            "claim_source_support_passed": True,
+            "cited_source_ids": ["source-1"],
+            "unknown_source_ids": [],
+            "uncited_registered_source_ids": [],
+            "rejected_or_unverified_count": 0,
+            "support_items": [{"reason": "repeated verbose prose"}],
+        }
+    )
+    assert citation["claim_source_support_passed"] is True
+    assert "support_items" not in citation
+
+
 def test_outline_sanitizer_drops_only_unregistered_identifiers() -> None:
     from research_forge.paper_authoring import (
         EvidenceClaimBinding,
@@ -281,8 +690,8 @@ def test_outline_sanitizer_drops_only_unregistered_identifiers() -> None:
                 argument="Report only registered evidence.",
                 claim_ids=["claim-known", "claim-invented"],
                 source_ids=["source-known", "source-invented"],
-                figure_slot_ids=[],
-                table_slot_ids=[],
+                figure_slot_ids=["fig-model-invented"],
+                table_slot_ids=["tab-model-invented"],
                 children=[],
             ),
             *[
@@ -335,6 +744,8 @@ def test_outline_sanitizer_drops_only_unregistered_identifiers() -> None:
 
     assert sanitized.sections[0].claim_ids == ["claim-known"]
     assert sanitized.sections[0].source_ids == ["source-known"]
+    assert sanitized.sections[0].figure_slot_ids == []
+    assert sanitized.sections[0].table_slot_ids == []
     assert outline.sections[0].claim_ids == [
         "claim-known",
         "claim-invented",
@@ -457,6 +868,19 @@ def test_reporting_and_attack_surface_cannot_hide_registered_result() -> None:
         "unsupported_absolute",
         "mandatory_result_omission",
     }
+
+    factorial_language = audit_reviewer_attack_surface(
+        title="A Randomized Factorial Study",
+        sections={
+            "methods": (
+                "The two registered factors were completely crossed, so every "
+                "level of one factor occurred with every level of the other."
+            )
+        },
+        reporting_register=register,
+        presented_claim_ids=["claim-primary", "claim-runtime-negative"],
+    )
+    assert factorial_language.passed
 
     colon_register = register.model_copy(
         update={
@@ -828,11 +1252,17 @@ def test_stage_four_dag_is_persisted_with_owner_approval_points(
     )
     returned, steps = ensure_stage_four_dag(repository, study.study_id)
     assert returned == authority
-    assert len(steps) == len(STAGE4_STEP_DEFINITIONS) == 30
+    assert len(steps) == len(STAGE4_STEP_DEFINITIONS) == 31
     assert all(step.phase is Phase.PAPER for step in steps)
     assert [step.step_type for step in steps] == [
         item.step_type for item in STAGE4_STEP_DEFINITIONS
     ]
+    assert next(
+        step for step in steps if step.step_type == "bounded_content_revision"
+    ).max_retries == 5
+    assert next(
+        step for step in steps if step.step_type == "draft_generation"
+    ).max_retries == 3
     assert {item.gate_type for item in repository.list_gates(study.study_id)} >= {
         GateType.PUBLICATION_NARRATIVE,
         GateType.VISUAL_ARGUMENT,
@@ -889,7 +1319,7 @@ def test_stage_four_dag_is_persisted_with_owner_approval_points(
     )
     read_model = stage4_read_model(repository, study.study_id)
     assert read_model["initialized"] is True
-    assert read_model["overview"]["total_steps"] == 60
+    assert read_model["overview"]["total_steps"] == 62
     assert read_model["overview"]["workflow_revision"] == 2
     assert read_model["artifacts"][
         "stage4_evidence_backfill_request_v1"
@@ -1022,6 +1452,84 @@ def test_stage_four_prompts_do_not_embed_a_previous_study() -> None:
     assert "supplied Study-specific evidence bindings" in source
 
 
+def test_primary_visual_question_does_not_assume_three_arms() -> None:
+    source = (
+        Path(__file__).parents[1] / "research_forge" / "stage_four.py"
+    ).read_text(encoding="utf-8")
+    typesetting = (
+        Path(__file__).parents[1] / "research_forge" / "paper_typesetting.py"
+    ).read_text(encoding="utf-8")
+
+    assert "冻结三臂的规范对齐得分" not in source
+    assert "冻结三臂的规范对齐得分" not in typesetting
+    assert "比较条件之间的主要结果有何差异？" in source
+
+
+def test_draft_normalization_collapses_accidental_repeated_academic_term() -> None:
+    draft = PaperDraftSections.model_construct(
+        title="A registered comparison",
+        abstract=(
+            "We evaluated a registered study task task under a fixed split and "
+            "preserved the bounded scientific conclusion."
+        ),
+        introduction="Introduction.",
+        related_work="Related work.",
+        methods="Methods.",
+        results="Results.",
+        discussion="Discussion.",
+        limitations="Limitations.",
+        conclusion="Conclusion.",
+        data_availability="Data availability.",
+        ethics_statement="Ethics statement.",
+        author_contributions="Author contributions.",
+        conflict_of_interest="No conflicts.",
+        funding="No funding.",
+        ai_disclosure="AI disclosure.",
+    )
+
+    normalized, trace = normalize_paper_draft(draft)
+
+    assert "task task" not in normalized.abstract
+    assert "study task under" in normalized.abstract
+    assert "collapsed_accidental_adjacent_term_duplicate" in trace.operations
+
+
+def test_reader_facing_governance_normalization_preserves_methods_boundary() -> None:
+    draft = PaperDraftSections.model_construct(
+        title="A registered comparison",
+        abstract="A complete abstract describing a frozen comparison without other internal workflow language.",
+        introduction="We study a frozen comparison.",
+        related_work="Prior work is summarized here.",
+        methods="The protocol and artifacts were frozen before execution.",
+        results=(
+            "The frozen comparison favored the candidate, while one secondary "
+            "assessment remained incomplete.\n\n"
+            "The callout marks a pending artifact that was not supplied for inspection."
+        ),
+        discussion="The frozen result answers the bounded question.",
+        limitations="The frozen boundary excludes other populations.",
+        conclusion="Within the frozen comparison, the candidate performed better.",
+        data_availability="Available with the registered package.",
+        ethics_statement="No human participants were involved.",
+        author_contributions="The author designed and reported the study.",
+        conflict_of_interest="No conflicts were declared.",
+        funding="No external funding was reported.",
+        ai_disclosure="AI-assisted tools supported language editing.",
+    )
+
+    normalized = normalize_reader_facing_governance(draft)
+
+    assert "frozen" not in normalized.abstract.casefold()
+    assert "frozen" not in normalized.introduction.casefold()
+    assert "registered comparison" in normalized.results.casefold()
+    assert "pending artifact" not in normalized.results.casefold()
+    assert "favored the candidate" in normalized.results.casefold()
+    assert "incomplete" not in normalized.results.casefold()
+    assert "not fully specified" in normalized.results.casefold()
+    assert "frozen" in normalized.methods.casefold()
+    assert "frozen" in normalized.limitations.casefold()
+
+
 def test_short_report_uses_its_own_depth_contract() -> None:
     def paragraphs(count: int, size: int, headings: int = 0) -> str:
         values = ["测" * size for _ in range(count)]
@@ -1030,14 +1538,14 @@ def test_short_report_uses_its_own_depth_contract() -> None:
         return "\n\n".join(values)
 
     draft = SimpleNamespace(
-        abstract="测" * 200,
-        introduction=paragraphs(3, 250),
+        abstract="测" * 380,
+        introduction=paragraphs(3, 300),
         related_work=paragraphs(3, 250),
         methods=paragraphs(5, 300, 3),
         results=paragraphs(4, 300, 2),
         discussion=paragraphs(4, 300, 2),
-        limitations="测" * 450,
-        conclusion="测" * 200,
+        limitations="测" * 650,
+        conclusion="测" * 320,
     )
     assert _draft_depth_violations(
         draft,
@@ -1047,6 +1555,157 @@ def test_short_report_uses_its_own_depth_contract() -> None:
         draft,
         profile="journal-article",
     )
+
+
+def test_short_report_abstract_does_not_stop_at_the_hard_minimum() -> None:
+    def paragraphs(count: int, size: int, headings: int = 0) -> str:
+        values = ["研究" * size for _ in range(count)]
+        for index in range(min(headings, count)):
+            values[index] = f"### 小节{index + 1}\n" + values[index]
+        return "\n\n".join(values)
+
+    draft = SimpleNamespace(
+        # The Chinese short-report hard floor is 300 Han characters, but the
+        # preferred complete-abstract range starts at 340. Crossing 300 must
+        # not make the draft appear complete.
+        abstract="研" * 320,
+        introduction=paragraphs(3, 300),
+        related_work=paragraphs(3, 250),
+        methods=paragraphs(5, 300, 3),
+        results=paragraphs(4, 300, 2),
+        discussion=paragraphs(4, 300, 2),
+        limitations="研" * 650,
+        conclusion="研" * 320,
+    )
+
+    violations = _draft_depth_violations(
+        draft,
+        profile="short-report",
+        language="zh",
+    )
+
+    assert any(
+        "below the preferred complete-abstract range" in item
+        and "target 380" in item
+        for item in violations
+    )
+
+
+def test_stage_four_depth_precheck_matches_canonical_short_report_profile() -> None:
+    contract = _localized_depth_contract("short-report", language="en")
+
+    assert (
+        contract["sections"]["results"]
+        == ENGLISH_SHORT_REPORT.section_minimums["results"]
+    )
+    assert contract["total"] == ENGLISH_SHORT_REPORT.minimum_total
+    assert contract["generation_total"] >= int(contract["total"] * 1.09)
+    assert (
+        contract["generation_sections"]["results"]
+        > contract["sections"]["results"]
+    )
+    assert contract["generation_sections"]["results"] >= int(
+        contract["sections"]["results"] * 1.19
+    )
+
+
+def test_english_manuscript_depth_uses_words_instead_of_han_characters() -> None:
+    contract = _localized_depth_contract("short-report", language="en")
+
+    def prose(section: str) -> str:
+        paragraph_count = max(
+            contract["paragraphs"].get(section, 1),
+            contract["subsections"].get(section, 0),
+        )
+        target = int(contract["sections"][section] * 1.2)
+        words_per_paragraph = max(20, target // paragraph_count + 1)
+        paragraphs = [
+            " ".join(["evidence"] * words_per_paragraph)
+            for _ in range(paragraph_count)
+        ]
+        for index in range(contract["subsections"].get(section, 0)):
+            paragraphs[index] = (
+                f"### Registered analysis {index + 1}\n" + paragraphs[index]
+            )
+        return "\n\n".join(paragraphs)
+
+    draft = SimpleNamespace(
+        **{section: prose(section) for section in contract["sections"]}
+    )
+
+    assert _draft_depth_violations(
+        draft,
+        profile="short-report",
+        language="en",
+    ) == []
+    assert any(
+        "English words" in item
+        for item in _draft_depth_violations(
+            SimpleNamespace(**{section: "" for section in contract["sections"]}),
+            profile="short-report",
+            language="en",
+        )
+    )
+
+
+def test_english_depth_precheck_does_not_count_result_numbers_as_prose_words() -> None:
+    contract = _localized_depth_contract("journal-article", language="en")
+
+    def section_prose(section: str, word_count: int) -> str:
+        paragraph_count = max(
+            contract["paragraphs"].get(section, 1),
+            contract["subsections"].get(section, 0),
+        )
+        per_paragraph = max(20, word_count // paragraph_count)
+        paragraphs = [" ".join(["evidence"] * per_paragraph) for _ in range(paragraph_count)]
+        remaining = word_count - sum(item.count("evidence") for item in paragraphs)
+        paragraphs[-1] += " " + " ".join(["evidence"] * max(0, remaining))
+        for index in range(contract["subsections"].get(section, 0)):
+            paragraphs[index] = f"### Registered analysis\n{paragraphs[index]}"
+        return "\n\n".join(paragraphs)
+
+    draft = SimpleNamespace(
+        **{
+            section: section_prose(
+                section,
+                minimum - 42 if section == "results" else int(minimum * 1.25),
+            )
+            + (" 1 2 3 4 5 6 7 8 9 10 11 12" if section == "results" else "")
+            for section, minimum in contract["sections"].items()
+        }
+    )
+
+    violations = _draft_depth_violations(
+        draft,
+        profile="journal-article",
+        language="en",
+    )
+
+    assert any(
+        item.startswith("results:")
+        and "English words < 1000" in item
+        and "counting tolerance floor 980" in item
+        for item in violations
+    )
+
+
+def test_english_manuscript_depth_rejects_chinese_core_narrative() -> None:
+    contract = _localized_depth_contract("short-report", language="en")
+    draft = SimpleNamespace(
+        **{
+            section: ("### 小节\n\n" if section in {"methods", "results", "discussion"} else "")
+            + "这是中文研究叙述。" * max(80, minimum)
+            for section, minimum in contract["sections"].items()
+        }
+    )
+
+    violations = _draft_depth_violations(
+        draft,
+        profile="short-report",
+        language="en",
+    )
+
+    assert any("manuscript language mismatch" in item for item in violations)
 
 
 def test_evidence_boundary_report_uses_short_report_depth_contract() -> None:

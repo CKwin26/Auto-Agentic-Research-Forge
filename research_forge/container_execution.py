@@ -12,6 +12,20 @@ from pathlib import Path
 from .storage import sha256_file
 
 
+def _filesystem_path(path: Path) -> Path:
+    """Return a local filesystem-safe view without changing audit paths."""
+
+    resolved = path.resolve()
+    if os.name != "nt":
+        return resolved
+    rendered = str(resolved)
+    if rendered.startswith("\\\\?\\"):
+        return resolved
+    if rendered.startswith("\\\\"):
+        return Path("\\\\?\\UNC\\" + rendered.lstrip("\\"))
+    return Path("\\\\?\\" + rendered)
+
+
 @dataclass(frozen=True)
 class ContainerSupplyChainEvidence:
     image_digest: str
@@ -99,11 +113,57 @@ class ContainerExecutionResult:
     isolation_attestation: dict[str, object]
 
 
+def inspect_local_container_image(docker: str, image: str) -> str | None:
+    """Resolve a local image to its immutable ID without pulling it."""
+
+    inspected = subprocess.run(
+        [docker, "image", "inspect", "--format", "{{.Id}}", image],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=30,
+        shell=False,
+        check=False,
+    )
+    image_id = inspected.stdout.strip()
+    if inspected.returncode == 0 and image_id.startswith("sha256:"):
+        return image_id
+    listed = subprocess.run(
+        [
+            docker,
+            "image",
+            "ls",
+            "--quiet",
+            "--no-trunc",
+            "--filter",
+            f"reference={image}",
+        ],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=30,
+        shell=False,
+        check=False,
+    )
+    candidates = sorted(
+        {
+            line.strip()
+            for line in listed.stdout.splitlines()
+            if line.strip().startswith("sha256:")
+        }
+    )
+    if listed.returncode != 0 or len(candidates) != 1:
+        return None
+    return candidates[0]
+
+
 def _directory_size(root: Path) -> int:
     return sum(
-        item.stat().st_size
+        os.stat(_filesystem_path(item)).st_size
         for item in root.rglob("*")
-        if item.is_file() and not item.is_symlink()
+        if stat.S_ISREG(os.lstat(_filesystem_path(item)).st_mode)
     )
 
 
@@ -121,7 +181,7 @@ def _validate_mount_tree(
     }
     for item in root.rglob("*"):
         try:
-            metadata = item.lstat()
+            metadata = os.lstat(_filesystem_path(item))
         except OSError as exc:
             raise ValueError(f"cannot inspect container input: {item}") from exc
         mode = metadata.st_mode
@@ -184,21 +244,11 @@ def run_isolated_command(
         docker = str(candidate.resolve()) if candidate.is_file() else None
     if docker is None:
         raise FileNotFoundError("Docker CLI is unavailable")
-    inspected = subprocess.run(
-        [docker, "image", "inspect", "--format", "{{.Id}}", selected.image],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=30,
-        shell=False,
-        check=False,
-    )
-    if inspected.returncode != 0:
+    image_id = inspect_local_container_image(docker, selected.image)
+    if image_id is None:
         raise RuntimeError(
             f"container image is unavailable: {selected.image}"
         )
-    image_id = inspected.stdout.strip()
     if selected.supply_chain_evidence is not None:
         selected.supply_chain_evidence.validate()
         if image_id != selected.supply_chain_evidence.image_digest:

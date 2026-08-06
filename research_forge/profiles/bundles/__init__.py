@@ -7,8 +7,12 @@ from .tabular_ml_v1 import BUNDLE as TABULAR_ML_V1
 from .benchmark_prediction_v1 import BUNDLE as BENCHMARK_PREDICTION_V1
 from .existing_python_project_v1 import BUNDLE as EXISTING_PYTHON_PROJECT_V1
 from .deterministic_simulation_v1 import BUNDLE as DETERMINISTIC_SIMULATION_V1
+from .time_series_backtest_v1 import BUNDLE as TIME_SERIES_BACKTEST_V1
+from .llm_evaluation_v1 import BUNDLE as LLM_EVALUATION_V1
 
 ALL_BUNDLES = (
+    TIME_SERIES_BACKTEST_V1,
+    LLM_EVALUATION_V1,
     DETERMINISTIC_SIMULATION_V1,
     EXISTING_PYTHON_PROJECT_V1,
     BENCHMARK_PREDICTION_V1,
@@ -31,4 +35,6 @@ __all__ = [
     "BENCHMARK_PREDICTION_V1",
     "EXISTING_PYTHON_PROJECT_V1",
     "DETERMINISTIC_SIMULATION_V1",
+    "TIME_SERIES_BACKTEST_V1",
+    "LLM_EVALUATION_V1",
 ]

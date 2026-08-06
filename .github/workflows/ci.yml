@@ -23,7 +23,10 @@ jobs:
           python-version: "3.12"
           cache: pip
       - name: Install Research Forge
-        run: python -m pip install -e ".[dev,external-research,paper-evidence,scientific-validation]"
+        # The test suite renders the same PDF/PNG figures and paper packages
+        # that a release installation produces, so CI must exercise the
+        # pinned publication adapters as well as the scientific validators.
+        run: python -m pip install -e ".[dev,external-research,paper-evidence,publication,scientific-validation]"
       - name: Prepare clean-room replay image
         run: docker pull python:3.12-slim
       - name: Best-effort warm maintained RO-Crate validator cache

@@ -24,5 +24,22 @@ DESIGN_COMPONENTS = {
             description="Registered contrasts over paired multi-arm cells.",
             implementation_id="paired_multi_arm_compiler_v1",
         ),
+        ProfileComponent(
+            component_id="point_in_time_cross_sectional_ranking_v1",
+            kind=ComponentKind.DESIGN,
+            version="0.1",
+            description=(
+                "Baseline and treatment rank the same eligible assets using "
+                "signals available at each frozen decision timestamp."
+            ),
+            implementation_id="point_in_time_ranking_kernel_v1",
+        ),
+        ProfileComponent(
+            component_id="frozen_llm_response_comparison_v1",
+            kind=ComponentKind.DESIGN,
+            version="0.1",
+            description="Two frozen response sets evaluated on identical registered tasks.",
+            implementation_id="frozen_llm_response_matrix_v1",
+        ),
     )
 }

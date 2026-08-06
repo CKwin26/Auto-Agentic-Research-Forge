@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from research_forge.container_execution import inspect_local_container_image
 from research_forge.existing_project_replay import (
     ExistingProjectReplaySpec,
     build_existing_project_replay_package,
@@ -106,6 +107,8 @@ def test_package_identity_is_stable_across_materializations(
 def test_project_replays_twice_in_fresh_offline_containers(
     tmp_path: Path,
 ) -> None:
+    if inspect_local_container_image("docker", "python:3.12-slim") is None:
+        pytest.skip("a running Docker daemon with python:3.12-slim is required")
     source = tmp_path / "source"
     source.mkdir()
     (source / "tests").mkdir()

@@ -293,29 +293,41 @@ def build_nuwa_packet(
     audit_to_claim: dict[str, str] = {}
     literature = literature_by_id or {}
     for binding in evidence_map.bindings:
-        audit_id = "audit-" + hashlib.sha256(
-            f"{binding.claim_id}\n{binding.statement}".encode("utf-8")
-        ).hexdigest()[:16]
-        audit_to_claim[audit_id] = binding.claim_id
-        items.append(
-            NuwaBlindedClaim(
-                audit_id=audit_id,
-                claim_type=_claim_type(binding.kind, binding.evidence),
-                claim_text=academicize_publication_text(
-                    binding.statement,
-                    aliases=publication_aliases,
-                ),
-                linked_evidence=[
-                    _pointer_excerpt(
-                        root,
-                        pointer,
-                        evidence_index=index,
-                        literature_by_id=literature,
-                    )
-                    for index, pointer in enumerate(binding.evidence, start=1)
-                ],
-            )
+        publication_text = academicize_publication_text(
+            binding.statement,
+            aliases=publication_aliases,
         )
+        claim_parts = _split_nuwa_claim_text(publication_text)
+        linked_evidence = [
+            _pointer_excerpt(
+                root,
+                pointer,
+                evidence_index=index,
+                literature_by_id=literature,
+            )
+            for index, pointer in enumerate(binding.evidence, start=1)
+        ]
+        for part_index, claim_part in enumerate(claim_parts, start=1):
+            audit_id = "audit-" + hashlib.sha256(
+                (
+                    f"{binding.claim_id}\n{binding.statement}\n"
+                    f"part:{part_index}/{len(claim_parts)}"
+                ).encode("utf-8")
+            ).hexdigest()[:16]
+            audit_to_claim[audit_id] = binding.claim_id
+            label = (
+                f"[Registered claim part {part_index} of {len(claim_parts)}] "
+                if len(claim_parts) > 1
+                else ""
+            )
+            items.append(
+                NuwaBlindedClaim(
+                    audit_id=audit_id,
+                    claim_type=_claim_type(binding.kind, binding.evidence),
+                    claim_text=label + claim_part,
+                    linked_evidence=linked_evidence,
+                )
+            )
     packet_payload = {
         "panel_id": panel_id,
         "blinded": True,
@@ -327,6 +339,42 @@ def build_nuwa_packet(
         items=items,
         audit_to_claim_id=audit_to_claim,
     )
+
+
+def _split_nuwa_claim_text(text: str, *, limit: int = 7_400) -> list[str]:
+    """Split a long frozen statement without dropping or summarizing evidence.
+
+    The panel schema deliberately bounds each review unit.  A rich Research
+    Contract can exceed that bound, so the adapter creates stable semantic
+    parts while retaining the original claim binding and evidence pointers.
+    """
+
+    normalized = " ".join(str(text).split())
+    if len(normalized) <= limit:
+        return [normalized]
+    pieces: list[str] = []
+    remaining = normalized
+    while remaining:
+        if len(remaining) <= limit:
+            pieces.append(remaining)
+            break
+        window = remaining[: limit + 1]
+        cut = max(
+            window.rfind(". "),
+            window.rfind("; "),
+            window.rfind(": "),
+        )
+        if cut < limit // 2:
+            cut = window.rfind(" ")
+        if cut <= 0:
+            cut = limit
+        else:
+            cut += 1
+        pieces.append(remaining[:cut].strip())
+        remaining = remaining[cut:].strip()
+    if not pieces or any(len(item) > limit for item in pieces):
+        raise ValueError("Nuwa claim partitioning failed to respect the review-unit limit")
+    return pieces
 
 
 def build_nuwa_jobs(
