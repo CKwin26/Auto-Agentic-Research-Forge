@@ -270,6 +270,7 @@ def audit_citation_resolution_v2(
     text: str,
     *,
     registry_keys: set[str],
+    related_work_submission_ready: bool = True,
 ) -> CitationResolutionAudit:
     cited: list[str] = []
     for value in re.findall(r"\\cite\w*(?:\[[^\]]*\])?\{([^{}]+)\}", text):
@@ -287,14 +288,69 @@ def audit_citation_resolution_v2(
         )
         for key in unresolved
     ]
+    if not related_work_submission_ready:
+        findings.append(
+            _finding(
+                "citation_resolution",
+                "RELATED_WORK_NOT_SUBMISSION_READY",
+                (
+                    "Related Work is backed only by metadata context or has "
+                    "unresolved literature EvidenceSpan gaps"
+                ),
+                location="Related Work",
+                action=(
+                    "freeze abstract or full-text EvidenceSpan material and "
+                    "rerun narrative Related Work synthesis"
+                ),
+            )
+        )
     return CitationResolutionAudit(
         passed=not findings,
-        checks={"all_citation_keys_resolve": not unresolved},
+        checks={
+            "all_citation_keys_resolve": not unresolved,
+            "related_work_submission_ready": related_work_submission_ready,
+        },
         findings=findings,
         cited_keys=cited_keys,
         registry_keys=sorted(registry_keys),
         unresolved_keys=unresolved,
     )
+
+
+def citation_registry_keys_from_sources(sources: list[Any]) -> set[str]:
+    keys: set[str] = set()
+    for source in sources:
+        if isinstance(source, str):
+            value = source.strip()
+            if value:
+                keys.add(value)
+            continue
+        if isinstance(source, dict):
+            for field in (
+                "citation_key",
+                "source_id",
+                "resource_id",
+                "canonical_resource_id",
+            ):
+                value = source.get(field)
+                if value:
+                    keys.add(str(value))
+            continue
+        dump = None
+        if hasattr(source, "model_dump"):
+            dump = source.model_dump(mode="json")
+        for field in (
+            "citation_key",
+            "source_id",
+            "resource_id",
+            "canonical_resource_id",
+        ):
+            value = getattr(source, field, None)
+            if value:
+                keys.add(str(value))
+            if isinstance(dump, dict) and dump.get(field):
+                keys.add(str(dump[field]))
+    return keys
 
 
 def audit_numerical_consistency_v2(
@@ -566,4 +622,5 @@ __all__ = [
     "audit_numerical_consistency_v2",
     "audit_statistical_semantics_v2",
     "build_publication_acceptance_report_v2",
+    "citation_registry_keys_from_sources",
 ]

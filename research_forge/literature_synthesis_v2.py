@@ -353,6 +353,79 @@ def validate_literature_synthesis(bundle: LiteratureSynthesisBundle) -> list[Lit
     return gaps
 
 
+def build_metadata_context_literature_bundle(
+    *,
+    study_id: str,
+    verified_resources: list[dict[str, object]],
+) -> LiteratureSynthesisBundle:
+    cards: list[PaperContributionCard] = []
+    for resource in verified_resources:
+        date = str(resource.get("publication_or_release_date") or "")
+        year = int(date[:4]) if len(date) >= 4 and date[:4].isdigit() else None
+        metadata = resource.get("metadata")
+        venue = None
+        if isinstance(metadata, dict):
+            venue_value = metadata.get("venue") or metadata.get("container")
+            venue = str(venue_value) if venue_value else None
+        authors = [
+            str(author).strip()
+            for author in resource.get("authors_or_owners") or []
+            if str(author).strip()
+        ]
+        if not authors and isinstance(metadata, dict):
+            authors = [
+                str(author).strip()
+                for author in metadata.get("authors") or []
+                if str(author).strip()
+            ]
+        cards.append(
+            PaperContributionCard(
+                paper_id=str(resource["resource_id"]),
+                title=str(resource.get("title") or "Untitled verified source"),
+                authors=authors or ["Author metadata unavailable"],
+                year=year,
+                venue=venue,
+                doi=(
+                    str(resource.get("doi"))
+                    if resource.get("doi") is not None
+                    else None
+                ),
+                full_text_status="metadata_only",
+                supportive_or_conflicting="context_only",
+                extraction_confidence=0.5,
+            )
+        )
+    gaps = [
+        LiteratureEvidenceGap(
+            gap_id=(
+                "lit-gap-"
+                + re.sub(r"[^a-z0-9]+", "-", card.paper_id.casefold()).strip("-")
+                + "-full-text"
+            ),
+            paper_id=card.paper_id,
+            requested_field="substantive literature synthesis",
+            reason=(
+                "Only verified metadata is frozen; abstract or full-text "
+                "EvidenceSpan material is required before describing methods, "
+                "results, limitations, or relation to the current study."
+            ),
+            required_action=(
+                "retrieve and freeze abstract or full text through the "
+                "Retrieval Gateway, then rerun narrative Related Work synthesis"
+            ),
+        )
+        for card in cards
+    ]
+    return LiteratureSynthesisBundle(
+        study_id=study_id,
+        mode="metadata_context",
+        contribution_cards=cards,
+        evidence_spans=[],
+        evidence_gaps=gaps,
+        submission_ready_related_work=False,
+    )
+
+
 __all__ = [
     "ContradictionMap",
     "ContradictionRecord",
@@ -370,5 +443,6 @@ __all__ = [
     "RelatedWorkOutline",
     "RelatedWorkSectionPlan",
     "SystematicReviewProtocol",
+    "build_metadata_context_literature_bundle",
     "validate_literature_synthesis",
 ]

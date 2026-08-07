@@ -73,6 +73,7 @@ from research_forge.stage_four import (
     _humanization_citation_view,
     _humanization_evidence_view,
     _humanization_reverse_outline_view,
+    _materialize_profile_figure_markdown,
     _effective_depth_profile,
     _effective_evaluation_arm_estimates,
     _finding_requires_stage3_backfill,
@@ -152,6 +153,49 @@ def test_typesetting_numeric_evidence_uses_bound_profile_statistics(
     ]
     assert interval == [0.11333333333333333, 0.26]
     assert interval != [0.1288836925413637, 0.24444964079196965]
+
+
+def test_profile_figures_are_materialized_as_relative_manuscript_assets(
+    tmp_path: Path,
+) -> None:
+    repository = WorkflowRepository(tmp_path / "repository")
+    project = repository.create_project("Profile figure materialization")
+    study = repository.create_study(
+        project.project_id,
+        "Stage 4 figure binding",
+        entry_mode=EntryMode.IDEA_TO_PAPER,
+        study_id="study-stage4-figure-binding",
+    )
+    source = tmp_path / "source-figure.png"
+    source.write_bytes(b"\x89PNG\r\n\x1a\n" + b"0" * 256)
+    context = SimpleNamespace(repository=repository, study_id=study.study_id)
+
+    markdown, artifact_ids = _materialize_profile_figure_markdown(
+        context,
+        tmp_path / "work",
+        {
+            "status": "accepted",
+            "figures": [
+                {
+                    "figure_id": "fig-primary-effect",
+                    "caption": "Primary effect with a complete interval.",
+                    "png_path": str(source),
+                }
+            ],
+        },
+    )
+
+    assert "manuscript_assets/figures/fig-primary-effect.png" in markdown
+    assert str(source) not in markdown
+    assert artifact_ids
+    assert (
+        tmp_path
+        / "work"
+        / "stage_4_synthesis"
+        / "manuscript_assets"
+        / "figures"
+        / "fig-primary-effect.png"
+    ).is_file()
 
 
 def test_contract_implementation_names_are_projected_to_publication_roles() -> None:

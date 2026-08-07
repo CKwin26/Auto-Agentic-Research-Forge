@@ -10,7 +10,9 @@ from research_forge.publication_qa_v2 import (
     audit_numerical_consistency_v2,
     audit_statistical_semantics_v2,
     build_publication_acceptance_report_v2,
+    citation_registry_keys_from_sources,
 )
+from research_forge.models import LiteratureSource, LiteratureSourceType
 
 
 def _write_manuscript(tmp_path, text: str):
@@ -65,6 +67,46 @@ def test_unresolved_citation_key_is_critical() -> None:
     )
     assert report.passed is False
     assert report.unresolved_keys == ["missing"]
+
+
+def test_metadata_only_related_work_blocks_publication_ready() -> None:
+    report = audit_citation_resolution_v2(
+        r"Prior work is cited as \cite{known}.",
+        registry_keys={"known"},
+        related_work_submission_ready=False,
+    )
+    assert report.passed is False
+    assert "RELATED_WORK_NOT_SUBMISSION_READY" in {
+        item.code for item in report.findings
+    }
+
+
+def test_citation_registry_accepts_pydantic_dict_and_string_sources() -> None:
+    source = LiteratureSource(
+        source_id="lit-source-01",
+        source_type=LiteratureSourceType.PAPER,
+        title="A verified source",
+        authors=["A. Author"],
+        year=2026,
+        locator="doi:10.0000/example",
+        verified=True,
+        verification_method="test",
+        origin="discovery",
+        origin_id="lit-source-01",
+    )
+    keys = citation_registry_keys_from_sources(
+        [
+            source,
+            {"citation_key": "manual-key", "resource_id": "resource-key"},
+            "string-key",
+        ]
+    )
+    assert {"lit-source-01", "manual-key", "resource-key", "string-key"} <= keys
+    report = audit_citation_resolution_v2(
+        r"Prior work is cited as [lit-source-01] and \cite{manual-key}.",
+        registry_keys=keys,
+    )
+    assert report.passed is True
 
 
 def test_numerical_surfaces_must_share_value_unit_direction_and_precision() -> None:
