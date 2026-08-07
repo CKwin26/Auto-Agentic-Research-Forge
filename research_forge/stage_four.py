@@ -13,6 +13,7 @@ import hashlib
 import json
 import math
 import re
+import shutil
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -1591,6 +1592,61 @@ def _stage4_working_root(context: Any) -> Path:
     return root
 
 
+def _materialize_profile_figure_markdown(
+    context: Any,
+    root: Path,
+    profile_figures: dict[str, Any],
+) -> tuple[str, list[str]]:
+    if profile_figures.get("status") != "accepted":
+        return "", []
+    figure_asset_root = (
+        root / "stage_4_synthesis" / "manuscript_assets" / "figures"
+    )
+    figure_asset_root.mkdir(parents=True, exist_ok=True)
+    artifact_ids: list[str] = []
+    lines = [
+        "## Profile-specific scientific figures",
+        "",
+        (
+            "The following figures are deterministic renderings of the "
+            "frozen Profile-specific Stage 3 statistics."
+        ),
+        "",
+    ]
+    for index, figure in enumerate(profile_figures.get("figures") or [], start=1):
+        figure_id = str(figure["figure_id"])
+        source_png = Path(str(figure.get("png_path") or "")).resolve()
+        if not source_png.is_file():
+            raise FileNotFoundError(
+                f"profile figure PNG is missing before LaTeX binding: {source_png}"
+            )
+        asset_name = f"{figure_id}.png"
+        asset_path = figure_asset_root / asset_name
+        if source_png != asset_path:
+            shutil.copyfile(source_png, asset_path)
+        asset_artifact = context.repository.register_artifact(
+            context.study_id,
+            str(asset_path),
+            sha256_file(asset_path),
+            kind="final_manuscript_figure_asset",
+            role=ArtifactRole.MANUSCRIPT,
+        )
+        artifact_ids.append(asset_artifact.artifact_id)
+        relative_asset_path = (
+            Path("manuscript_assets") / "figures" / asset_name
+        ).as_posix()
+        lines.extend(
+            [
+                (
+                    f"![Figure {index} ({figure_id}). "
+                    f"{figure['caption']}]({relative_asset_path})"
+                ),
+                "",
+            ]
+        )
+    return "\n".join(lines).rstrip() + "\n\n", artifact_ids
+
+
 def _completion_artifact_hashes(
     repository: WorkflowRepository,
     study_id: str,
@@ -1841,17 +1897,38 @@ def stage_four_handlers() -> dict[str, Callable[[Any], dict[str, Any]]]:
                 "; ".join(blockers),
                 kind="publication_prerequisites_not_met",
             )
+        from .literature_synthesis_v2 import (
+            build_metadata_context_literature_bundle,
+        )
+
+        literature_synthesis_bundle = build_metadata_context_literature_bundle(
+            study_id=context.study_id,
+            verified_resources=verified_resources,
+        )
+        literature_artifact = persist_stage_four_artifact(
+            context.repository,
+            context.study_id,
+            name="literature_synthesis_bundle_v2",
+            value=literature_synthesis_bundle,
+            kind="literature_synthesis_bundle_v2",
+            role=ArtifactRole.AUDIT,
+            immutable=True,
+        )
         return {
             "passed": True,
             "boundary_report_mode": boundary_report_mode,
             "checks": checks,
             "verified_source_ids": sorted(verified_source_ids),
             "verified_literature": verified_resources,
+            "literature_synthesis_bundle": (
+                literature_synthesis_bundle.model_dump(mode="json")
+            ),
             "numeric_evidence_count": numeric_count,
             "incomplete_author_metadata_source_ids": (
                 incomplete_author_metadata
             ),
             "venue_policy_id": policy.profile_id,
+            "_workflow_output_artifact_ids": [literature_artifact.artifact_id],
         }
 
     def evaluation_transparency(context: Any) -> dict[str, Any]:
@@ -7758,29 +7835,12 @@ def stage_four_handlers() -> dict[str, Callable[[Any], dict[str, Any]]]:
         profile_figures = context.result("figure_and_table_generation").get(
             "profile_scientific_figures", {}
         )
-        if profile_figures.get("status") == "accepted":
-            figure_markdown = [
-                "## Profile-specific scientific figures",
-                "",
-                (
-                    "The following figures are deterministic renderings of the "
-                    "frozen Profile-specific Stage 3 statistics."
-                ),
-                "",
-            ]
-            for index, figure in enumerate(
-                profile_figures.get("figures") or [], start=1
-            ):
-                figure_markdown.extend(
-                    [
-                        (
-                            f"![Figure {index} ({figure['figure_id']}). "
-                            f"{figure['caption']}]({figure['png_path']})"
-                        ),
-                        "",
-                    ]
-                )
-            insertion = "\n".join(figure_markdown).rstrip() + "\n\n"
+        insertion, output_artifact_ids = _materialize_profile_figure_markdown(
+            context,
+            root,
+            profile_figures,
+        )
+        if insertion:
             discussion = re.search(
                 r"(?im)^##\s+(?:discussion|讨论)\s*$",
                 manuscript,
@@ -7838,6 +7898,7 @@ def stage_four_handlers() -> dict[str, Callable[[Any], dict[str, Any]]]:
             "_workflow_output_artifact_ids": [
                 markdown_artifact.artifact_id,
                 latex_artifact.artifact_id,
+                *output_artifact_ids,
             ],
         }
 
@@ -7901,6 +7962,7 @@ def stage_four_handlers() -> dict[str, Callable[[Any], dict[str, Any]]]:
             audit_numerical_consistency_v2,
             audit_statistical_semantics_v2,
             build_publication_acceptance_report_v2,
+            citation_registry_keys_from_sources,
         )
 
         latex_path = Path(context.result("latex_typesetting")["latex_path"]).resolve()
@@ -7931,14 +7993,15 @@ def stage_four_handlers() -> dict[str, Callable[[Any], dict[str, Any]]]:
             for item in profile_result.get("reports") or []
         ]
         planned_figure_ids = [item.figure_id for item in figure_reports]
-        registry_keys: set[str] = set()
-        for source in literature_sources(context):
-            if isinstance(source, str):
-                registry_keys.add(source)
-            elif isinstance(source, dict):
-                for key in ("citation_key", "source_id", "resource_id"):
-                    if source.get(key):
-                        registry_keys.add(str(source[key]))
+        registry_keys = citation_registry_keys_from_sources(
+            literature_sources(context)
+        )
+        literature_bundle = context.result("publication_prerequisite_gate").get(
+            "literature_synthesis_bundle", {}
+        )
+        related_work_submission_ready = bool(
+            literature_bundle.get("submission_ready_related_work")
+        )
 
         surfaces: list[NumericalSurfaceValue] = []
         evaluation_artifacts = [
@@ -7971,7 +8034,9 @@ def stage_four_handlers() -> dict[str, Callable[[Any], dict[str, Any]]]:
 
         manuscript_audit = audit_manuscript_source_v2(latex_path)
         citation_audit = audit_citation_resolution_v2(
-            latex_text, registry_keys=registry_keys
+            latex_text,
+            registry_keys=registry_keys,
+            related_work_submission_ready=related_work_submission_ready,
         )
         numerical_audit = audit_numerical_consistency_v2(surfaces)
         semantics_audit = audit_statistical_semantics_v2(figure_reports)

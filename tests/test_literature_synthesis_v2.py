@@ -11,6 +11,7 @@ from research_forge.literature_synthesis_v2 import (
     PaperContributionCard,
     RelatedWorkOutline,
     RelatedWorkSectionPlan,
+    build_metadata_context_literature_bundle,
 )
 
 
@@ -74,6 +75,28 @@ def test_metadata_context_cannot_pass_submission_ready_gate() -> None:
             evidence_spans=[],
             submission_ready_related_work=True,
         )
+
+
+def test_metadata_context_bundle_records_evidence_gaps() -> None:
+    bundle = build_metadata_context_literature_bundle(
+        study_id="study-01",
+        verified_resources=[
+            {
+                "resource_id": "resource-paper-01",
+                "title": "Verified metadata is not a full-text finding",
+                "authors_or_owners": ["A. Author"],
+                "publication_or_release_date": "2026-02-03",
+                "doi": "10.0000/example",
+                "metadata": {"venue": "Example Venue"},
+            }
+        ],
+    )
+
+    assert bundle.mode == "metadata_context"
+    assert bundle.submission_ready_related_work is False
+    assert bundle.contribution_cards[0].full_text_status == "metadata_only"
+    assert bundle.contribution_cards[0].intervention_or_method is None
+    assert bundle.evidence_gaps
 
 
 def test_narrative_related_work_is_organized_by_method_family_and_evidence() -> None:
